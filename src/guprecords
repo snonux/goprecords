@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # guprecords (c) 2014, Paul Buetow
-# E-Mail: guprecords@mx.buetow.org WWW: http://codeberg.org/foozone/guprecords
+# E-Mail: guprecords@mx.buetow.org WWW: http://codeberg.org/snonux/guprecords
 
 use strict;
 use warnings;
