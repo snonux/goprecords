@@ -2,12 +2,6 @@
 
 use v6.d;
 
-constant SECOND = 1;
-constant MINUTE = 60 * SECOND;
-constant HOUR = 60 * MINUTE;
-constant DAY = 24 * HOUR;
-constant MONTH = 24 * HOUR;
-
 class Aggregate {
   has Int $.total-uptime;
   has Int $.first-boot;
@@ -30,18 +24,16 @@ class Aggregate {
   method Str returns Str {
     #duration($!total-uptime)
     my Str $active = self.is-active ?? '* ' !! '  ';
-    "$active {duration(self.total-downtime)} {date($!last-seen)}";
+    return "$active {duration($!total-uptime)} {date($!last-seen)}";
   }
 
-  method is-active returns Bool {
-    # Last seen 3 months ago?
-    my Int \seconds = (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)).Int;
-    seconds < 3600 * 24 * 90;
+  method is-active(Int \limit = 90) returns Bool {
+    (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)) < limit * 3600 * 24;
   }
 
   sub duration(Int \seconds) returns Str {
     my DateTime \dt .= new(Instant.from-posix: seconds);
-    "{dt.year-1970} years, {dt.month} months, {dt.day} days";
+    return "{dt.year-1970} years, {dt.month} months, {dt.day} days";
   }
 
   sub date(Int \epoch) returns Str {
@@ -50,7 +42,7 @@ class Aggregate {
 }
 
 class Aggregator {
-  has %.aggregates = { hostname => {}, os => {}, uname => {} }
+  has %.aggregates = { hostname => {}, os => {}, uname => {}, major => {} }
 
   method aggregate(IO::Path :$file is readonly) {
     my Str $hostname = $file.IO.basename.split('.').first;
@@ -59,13 +51,16 @@ class Aggregator {
     for $file.IO.lines {
       my Str ($uptime, $boot-time, $os) = .trim.split(':');
       my Str $uname = $os.split(' ').first;
+      my Str $major = "{$uname} {$os.split(' ')[1].split('.').first}...";
 
       %!aggregates<os>{$os} //= Aggregate.new;
       %!aggregates<uname>{$uname} //= Aggregate.new;
+      %!aggregates<major>{$major} //= Aggregate.new;
 
       for %!aggregates<hostname>{$hostname},
           %!aggregates<os>{$os},
-          %!aggregates<uname>{$uname} {
+          %!aggregates<uname>{$uname},
+          %!aggregates<major>{$major} {
         .aggregate(:$uptime, :$boot-time);
       }
     }
@@ -83,7 +78,7 @@ sub MAIN(
   }
 
   for $aggregator.aggregates.kv -> $category, $aggregates {
-    say "Categoty $category";
+    say "Category $category";
     for $aggregates.kv -> $name, $agg {
       my Str $plural = $agg.elems > 1 ?? 's' !! '';
       say "\t$name $agg (" ~ $agg.elems ~ " record$plural)";
