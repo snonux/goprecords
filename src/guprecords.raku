@@ -2,8 +2,14 @@
 
 use v6.d;
 
+constant SECOND = 1;
+constant MINUTE = 60 * SECOND;
+constant HOUR = 60 * MINUTE;
+constant DAY = 24 * HOUR;
+constant MONTH = 24 * HOUR;
+
 class Aggregate {
-  has Int $.total-uptime = 0;
+  has Int $.total-uptime;
   has Int $.first-boot;
   has Int $.last-seen;
   has Int $.elems;
@@ -20,6 +26,27 @@ class Aggregate {
 
   method total-downtime { $.last-seen - $.first-boot - $.total-uptime }
   method total-time { self.total-downtime + $.total-uptime }
+
+  method Str returns Str {
+    #duration($!total-uptime)
+    my Str $active = self.is-active ?? '* ' !! '  ';
+    "$active {duration(self.total-downtime)} {date($!last-seen)}";
+  }
+
+  method is-active returns Bool {
+    # Last seen 3 months ago?
+    my Int \seconds = (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)).Int;
+    seconds < 3600 * 24 * 90;
+  }
+
+  sub duration(Int \seconds) returns Str {
+    my DateTime \dt .= new(Instant.from-posix: seconds);
+    "{dt.year-1970} years, {dt.month} months, {dt.day} days";
+  }
+
+  sub date(Int \epoch) returns Str {
+    DateTime.new(Instant.from-posix: epoch).yyyy-mm-dd
+  }
 }
 
 class Aggregator {
@@ -47,6 +74,7 @@ class Aggregator {
 
 sub MAIN(
   Str $in-dir = './stats',
+  Str $sort-by = 'uptime';
 ) {
   my Aggregator $aggregator .= new;
 
@@ -58,7 +86,7 @@ sub MAIN(
     say "Categoty $category";
     for $aggregates.kv -> $name, $agg {
       my Str $plural = $agg.elems > 1 ?? 's' !! '';
-      say "\t$name (" ~ $agg.elems ~ " record$plural)";
+      say "\t$name $agg (" ~ $agg.elems ~ " record$plural)";
     }
   }
 }
