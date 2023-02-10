@@ -42,7 +42,7 @@ class Aggregate {
 }
 
 class Aggregator {
-  has %.aggregates = { hostname => {}, os => {}, uname => {}, major => {} }
+  has %.aggregates = { hostname => {}, os => {}, uname => {}, os-major => {} }
 
   method aggregate(IO::Path :$file is readonly) {
     my Str $hostname = $file.IO.basename.split('.').first;
@@ -51,22 +51,26 @@ class Aggregator {
     for $file.IO.lines {
       my Str ($uptime, $boot-time, $os) = .trim.split(':');
       my Str $uname = $os.split(' ').first;
-      my Str $major = "{$uname} {$os.split(' ')[1].split('.').first}...";
+      my Str $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
 
       %!aggregates<os>{$os} //= Aggregate.new;
       %!aggregates<uname>{$uname} //= Aggregate.new;
-      %!aggregates<major>{$major} //= Aggregate.new;
+      %!aggregates<os-major>{$os-major} //= Aggregate.new;
 
       for %!aggregates<hostname>{$hostname},
           %!aggregates<os>{$os},
           %!aggregates<uname>{$uname},
-          %!aggregates<major>{$major} {
+          %!aggregates<os-major>{$os-major} {
         .aggregate(:$uptime, :$boot-time);
       }
     }
   }
 }
 
+# TODO: 
+#   --category switch (hostname, os, os-major, uname...)
+#   --stats switch (record count, total uptime, total downtime, total time/lifespan,
+#                   individual uptime, individual downtime)
 sub MAIN(
   Str $in-dir = './stats',
   Str $sort-by = 'uptime';
