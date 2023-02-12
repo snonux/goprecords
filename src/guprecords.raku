@@ -47,7 +47,7 @@ class Aggregate {
 }
 
 class Aggregator {
-  has %.aggregates = { hostname => {}, os => {}, uname => {}, os-major => {} }
+  has Hash %.aggregates = { hostname => {}, os => {}, uname => {}, os-major => {} }
 
   method add-file(IO::Path:D :$file is readonly) {
     my Str $hostname = $file.IO.basename.split('.').first;
@@ -73,16 +73,10 @@ class Aggregator {
   }
 }
 
-class Reporter {
-  has %.aggregates is required;
+role Sorting {
+  has Hash %.aggregates is required;
   has Cat $.cat is required;
   has SubCat $.sub-cat is required;
-
-  method report {
-    for self.sort-by($!sub-cat) -> $what {
-      $what.Str.say;
-    }
-  }
 
   multi method sort-by('uptime') { self.sort-by: *.uptime }
   multi method sort-by('downtime') { self.sort-by: *.downtime }
@@ -91,6 +85,14 @@ class Reporter {
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse
+  }
+}
+
+class Reporter does Sorting {
+  method report {
+    for self.sort-by($!sub-cat) -> $what {
+      $what.Str.say;
+    }
   }
 }
 
