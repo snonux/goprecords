@@ -28,7 +28,7 @@ class Aggregate {
   method lifespan { self.downtime + $.uptime }
 
   method Str returns Str {
-    my Str $active = self!is-active ?? '* ' !! '  ';
+    my Str $active = self!is-active ?? '*' !! ' ';
     return "$active {$!name}\t{duration($!uptime)} {$!uptime}"
   }
 
@@ -73,10 +73,16 @@ class Aggregator {
   }
 }
 
-role Sorting {
+class Reporter {
   has Hash %.aggregates is required;
   has Cat $.cat is required;
   has SubCat $.sub-cat is required;
+
+  method report {
+    for self.sort-by($!sub-cat) -> $what {
+      $what.Str.say;
+    }
+  }
 
   multi method sort-by('uptime') { self.sort-by: *.uptime }
   multi method sort-by('downtime') { self.sort-by: *.downtime }
@@ -85,14 +91,6 @@ role Sorting {
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse
-  }
-}
-
-class Reporter does Sorting {
-  method report {
-    for self.sort-by($!sub-cat) -> $what {
-      $what.Str.say;
-    }
   }
 }
 
