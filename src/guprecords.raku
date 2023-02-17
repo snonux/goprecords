@@ -5,7 +5,7 @@ use v6.d;
 #= The stats major category.
 subset Cat of Str where * eq any <hostname os os-major uname>;
 #= The sub-cateogory.
-subset SubCat of Str where * eq any <boots uptime downtime lifespan>;
+subset SubCat of Str where * eq any <boots uptime downtime lifespan metascore>;
 
 class Aggregate {
   has Str $.name is required;
@@ -24,12 +24,26 @@ class Aggregate {
       $!boots++;
   }
 
-  method downtime { $.last-seen - $.first-boot - $.uptime }
-  method lifespan { self.downtime + $.uptime }
+  method downtime returns Int { $.last-seen - $.first-boot - $.uptime }
+  method lifespan returns Int { self.downtime + $.uptime }
+
+  method metascore returns Int {
+    my \week = 7 * 24 * 3600;
+    my \month = 30 * 24 * 3600;
+    Int((($!uptime * 2) + self.downtime + ($!boots * week) + (self!is-active ?? month !! 0))/1000000)
+  }
 
   method Str returns Str {
-    my Str $active = self!is-active ?? '*' !! ' ';
-    return "$active {$!name}\t{duration($!uptime)} {$!uptime}"
+    qq:to/END/;
+      {$!name}{self!is-active ?? ' (still active)' !! ''}
+         meta score: {self.metascore}
+         uptime:     {duration($!uptime)}
+         downtime:   {duration(self.downtime)}
+         lifespan:   {duration(self.lifespan)}
+         num boots:  {$!boots}
+         first boot: {date($!first-boot)}
+         last seen:  {date($!last-seen)}
+    END
   }
 
   method !is-active(Int:D \limit = 90) returns Bool {
@@ -88,6 +102,7 @@ class Reporter {
   multi method sort-by('downtime') { self.sort-by: *.downtime }
   multi method sort-by('lifespan') { self.sort-by: *.lifespan }
   multi method sort-by('boots') { self.sort-by: *.boots }
+  multi method sort-by('metascore') { self.sort-by: *.metascore }
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse
