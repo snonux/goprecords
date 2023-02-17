@@ -2,17 +2,16 @@
 
 use v6.d;
 
-#= The stats major category.
 subset Cat of Str where * eq any <hostname os os-major uname>;
-#= The sub-cateogory.
 subset SubCat of Str where * eq any <boots uptime downtime lifespan metascore>;
+subset PosInt of Int where * >= 0;
 
 class Aggregate {
   has Str $.name is required;
-  has Int $.uptime;
-  has Int $.first-boot;
-  has Int $.last-seen;
-  has Int $.boots;
+  has PosInt $.uptime;
+  has PosInt $.first-boot;
+  has PosInt $.last-seen;
+  has PosInt $.boots;
 
   method add-record(Str:D :$uptime is readonly, Str:D :$boot-time is readonly) {
       $!uptime += $uptime;
@@ -24,38 +23,48 @@ class Aggregate {
       $!boots++;
   }
 
-  method downtime returns Int { $.last-seen - $.first-boot - $.uptime }
-  method lifespan returns Int { self.downtime + $.uptime }
+  method downtime returns PosInt {
+    say qq:to/END/;
+      name: {$.name}
+      num boots: {$!boots}
+      last seen: {$.last-seen}
+      first boot: {$.first-boot}
+      uptime: {$.uptime}
+      result: {$.last-seen - $.first-boot - $.uptime}
+    END
+    $.last-seen - $.first-boot - $.uptime
+  }
+  method lifespan returns PosInt { self.downtime + $.uptime }
 
-  method metascore returns Int {
-    my \week = 7 * 24 * 3600;
+  method metascore returns PosInt {
+    my \day = 1 * 24 * 3600;
     my \month = 30 * 24 * 3600;
-    Int((($!uptime * 2) + self.downtime + ($!boots * week) + (self!is-active ?? month !! 0))/1000000)
+    PosInt((($!uptime * 2) + self.downtime + ($!boots * day) + (self!is-active ?? month !! 0))/1000000)
   }
 
   method Str returns Str {
     qq:to/END/;
       {$!name}{self!is-active ?? ' (still active)' !! ''}
-         meta score: {self.metascore}
          uptime:     {duration($!uptime)}
          downtime:   {duration(self.downtime)}
          lifespan:   {duration(self.lifespan)}
-         num boots:  {$!boots}
-         first boot: {date($!first-boot)}
          last seen:  {date($!last-seen)}
+         first boot: {date($!first-boot)}
+         num boots:  {$!boots}
+         meta score: {self.metascore}
     END
   }
 
-  method !is-active(Int:D \limit = 90) returns Bool {
+  method !is-active(PosInt:D \limit = 90) returns Bool {
     (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)) < limit * 3600 * 24;
   }
 
-  sub duration(Int:D \seconds) returns Str {
+  sub duration(PosInt:D \seconds) returns Str {
     my DateTime \dt .= new(Instant.from-posix: seconds);
     return "{dt.year-1970} years, {dt.month} months, {dt.day} days";
   }
 
-  sub date(Int:D \epoch) returns Str {
+  sub date(PosInt:D \epoch) returns Str {
     DateTime.new(Instant.from-posix: epoch).yyyy-mm-dd
   }
 }
@@ -113,10 +122,12 @@ sub MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   Cat :$cat = 'hostname';      #= Category, one of hostname, os os-major and uname.
   SubCat :$sub-cat = 'uptime'; #= Sort by one of boots uptime downtime and lifespan.
+  Str :$host-UNTESTED = '.*';           #= Hostname filter pattern.
 ) {
-  my Aggregator $agg .= new;
 
-  for dir($stats-dir, test => { /\.records$/ }) -> $file {
+  my Aggregator $agg .= new;
+  for dir($stats-dir, test => { /.records$/ }) -> $file {
+    $file.say;
     $agg.add-file(:$file)
   }
 
