@@ -2,44 +2,35 @@
 
 use v6.d;
 
+subset Nat of Int where * >= 0;
 subset Cat of Str where * eq any <hostname os os-major uname>;
-subset SubCat of Str where * eq any <boots uptime downtime lifespan metascore>;
-subset PosInt of Int where * >= 0;
+subset SubCat of Str where * eq any <boots uptime downtime lifespan meta-score>;
+
+# TO DO:  os os-major and uname only support sub-cats boots uptime and meta-score
 
 class Aggregate {
   has Str $.name is required;
-  has PosInt $.uptime;
-  has PosInt $.first-boot;
-  has PosInt $.last-seen;
-  has PosInt $.boots;
+  has Nat $.uptime;
+  has Nat $.first-boot;
+  has Nat $.last-seen;
+  has Nat $.boots;
 
   method add-record(Str:D :$uptime is readonly, Str:D :$boot-time is readonly) {
-      $!uptime += $uptime;
-      $!first-boot = +$boot-time if not defined $!first-boot
-                                 or $!first-boot > $boot-time;
       my Int $last-seen = $uptime + $boot-time;
-      $!last-seen = $last-seen if not defined $!last-seen
-                               or $!last-seen < $last-seen;
+      $!uptime += $uptime;
       $!boots++;
+
+      $!first-boot = +$boot-time if not defined $!first-boot or $!first-boot > $boot-time;
+      $!last-seen = $last-seen if not defined $!last-seen or $!last-seen < $last-seen;
   }
 
-  method downtime returns PosInt {
-    say qq:to/END/;
-      name: {$.name}
-      num boots: {$!boots}
-      last seen: {$.last-seen}
-      first boot: {$.first-boot}
-      uptime: {$.uptime}
-      result: {$.last-seen - $.first-boot - $.uptime}
-    END
-    $.last-seen - $.first-boot - $.uptime
-  }
-  method lifespan returns PosInt { self.downtime + $.uptime }
+  method downtime returns Nat { self.lifespan - $.uptime }
+  method lifespan returns Nat { $!last-seen - $!first-boot }
 
-  method metascore returns PosInt {
+  method meta-score returns Nat {
     my \day = 1 * 24 * 3600;
     my \month = 30 * 24 * 3600;
-    PosInt((($!uptime * 2) + self.downtime + ($!boots * day) + (self!is-active ?? month !! 0))/1000000)
+    Nat((($!uptime * 2) + self.downtime + ($!boots * day) + (self!is-active ?? month !! 0))/1000000)
   }
 
   method Str returns Str {
@@ -51,20 +42,20 @@ class Aggregate {
          last seen:  {date($!last-seen)}
          first boot: {date($!first-boot)}
          num boots:  {$!boots}
-         meta score: {self.metascore}
+         meta score: {self.meta-score}
     END
   }
 
-  method !is-active(PosInt:D \limit = 90) returns Bool {
+  method !is-active(Nat:D \limit = 90) returns Bool {
     (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)) < limit * 3600 * 24;
   }
 
-  sub duration(PosInt:D \seconds) returns Str {
+  sub duration(Nat:D \seconds) returns Str {
     my DateTime \dt .= new(Instant.from-posix: seconds);
     return "{dt.year-1970} years, {dt.month} months, {dt.day} days";
   }
 
-  sub date(PosInt:D \epoch) returns Str {
+  sub date(Nat:D \epoch) returns Str {
     DateTime.new(Instant.from-posix: epoch).yyyy-mm-dd
   }
 }
@@ -74,7 +65,11 @@ class Aggregator {
 
   method add-file(IO::Path:D :$file is readonly) {
     my Str $hostname = $file.IO.basename.split('.').first;
-    %!aggregates<hostname>{$hostname} //= Aggregate.new: :name($hostname);
+
+    die "Record file for {$hostname} already processed - duplicate inputs?"
+      if %!aggregates<hostname>{$hostname}:exists;
+    %!aggregates<hostname>{$hostname} = Aggregate.new: :name($hostname);
+
     for $file.IO.lines -> Str $line { self!add-line(:$line, :$hostname) }
   }
 
@@ -111,7 +106,7 @@ class Reporter {
   multi method sort-by('downtime') { self.sort-by: *.downtime }
   multi method sort-by('lifespan') { self.sort-by: *.lifespan }
   multi method sort-by('boots') { self.sort-by: *.boots }
-  multi method sort-by('metascore') { self.sort-by: *.metascore }
+  multi method sort-by('meta-score') { self.sort-by: *.meta-score }
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse
@@ -127,7 +122,6 @@ sub MAIN(
 
   my Aggregator $agg .= new;
   for dir($stats-dir, test => { /.records$/ }) -> $file {
-    $file.say;
     $agg.add-file(:$file)
   }
 
