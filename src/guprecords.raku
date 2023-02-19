@@ -3,8 +3,12 @@
 use v6.d;
 
 subset Nat of Int where * >= 0;
+
 subset Cat of Str where * eq any <host os os-major uname>;
 subset SubCat of Str where * eq any <boots uptime downtime lifespan meta-score>;
+
+subset HostOnlyCat of Cat where * eq 'host';
+subset BasicSubCat of SubCat where * ne any <downtime lifespan>;
 
 class Epoch {
   our Nat constant DAY = 1 * 24 * 3600;
@@ -61,7 +65,7 @@ class HostAggregate is Aggregate {
 class Aggregator {
   has Hash %.aggregates = { host => {}, os => {}, uname => {}, os-major => {} }
 
-  method add-file(IO::Path:D :$file is readonly) {
+  method add-file(IO::Path:D $file is readonly) {
     my Str $host = $file.IO.basename.split('.').first;
 
     die "Record file for {$host} already processed - duplicate inputs?"
@@ -80,19 +84,17 @@ class Aggregator {
     %!aggregates<uname>{$uname} //= Aggregate.new: :name($uname);
     %!aggregates<os-major>{$os-major} //= Aggregate.new: :name($os-major);
 
-    for %!aggregates<host>{$host},
-        %!aggregates<os>{$os},
-        %!aggregates<uname>{$uname},
-        %!aggregates<os-major>{$os-major} {
+    for %!aggregates<host>{$host}, %!aggregates<os>{$os},
+        %!aggregates<uname>{$uname}, %!aggregates<os-major>{$os-major} {
       .add-record(:$uptime, :$boot-time);
     }
   }
 }
 
 class Reporter {
-  has Hash %.aggregates is required;
   has Cat $.cat is required;
   has SubCat $.sub-cat is required;
+  has Hash %.aggregates;
 
   method report {
     for self.sort-by($!sub-cat) -> $what {
@@ -102,27 +104,38 @@ class Reporter {
   }
 
   multi method sort-by('uptime') { self.sort-by: *.uptime }
-  multi method sort-by('downtime') { self.sort-by: *.downtime }
-  multi method sort-by('lifespan') { self.sort-by: *.lifespan }
   multi method sort-by('boots') { self.sort-by: *.boots }
   multi method sort-by('meta-score') { self.sort-by: *.meta-score }
 
   multi method sort-by(Code:D $sort-by) {
-    %!aggregates{$!cat}.values.sort(&$sort-by).reverse
+    %!aggregates{$!cat}.values.sort(&$sort-by).reverse;
   }
+}
+
+class HostReporter is Reporter {
+  multi method sort-by('downtime') { self.sort-by: *.downtime }
+  multi method sort-by('lifespan') { self.sort-by: *.lifespan }
+}
+
+sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
+  my Aggregator \aggregator .= new;
+  aggregator.add-file($_) for dir(stats-dir, test => { /.records$/ });
+  reporter.aggregates = aggregator.aggregates;
+  reporter.report;
 }
 
 multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
-  Cat :$cat = 'host';          #= Category, one of host, os os-major and uname.
-  SubCat :$sub-cat = 'uptime'; #= Sort by one of boots uptime downtime and lifespan.
-  Str :$host-UNTESTED = '.*';  #= Hostname filter pattern.
+  HostOnlyCat :$cat = 'host',  #= Category, one of host, os os-major and uname.
+  SubCat :$sub-cat = 'uptime', #= Sort by one of boots uptime downtime and lifespan.
 ) {
-  my Aggregator $agg .= new;
-  for dir($stats-dir, test => { /.records$/ }) -> $file {
-    $agg.add-file(:$file)
-  }
+  do-it($stats-dir, HostReporter.new(:$cat, :$sub-cat));
+}
 
-  my Reporter $reporter .= new: :aggregates($agg.aggregates), :$cat, :$sub-cat;
-  $reporter.report;
+multi MAIN(
+  Str :$stats-dir is required,
+  Cat :$cat,
+  BasicSubCat :$sub-cat = 'uptime',
+) {
+  do-it($stats-dir, Reporter.new(:$cat, :$sub-cat));
 }
