@@ -3,10 +3,29 @@
 use v6.d;
 
 subset Nat of Int where * >= 0;
-subset Cat of Str where * eq any <hostname os os-major uname>;
+subset Cat of Str where * eq any <host os os-major uname>;
 subset SubCat of Str where * eq any <boots uptime downtime lifespan meta-score>;
 
-# TO DO:  os os-major and uname only support sub-cats boots uptime and meta-score
+class Epoch {
+  our Nat constant DAY = 1 * 24 * 3600;
+  our Nat constant MONTH = 30 * DAY;
+  has Nat $.value is required;
+
+  submethod new (Nat $value) { self.bless(:$value) }
+
+  method duration returns Str {
+    my DateTime \dt .= new(Instant.from-posix: $!value);
+    "{dt.year-1970} years, {dt.month} months, {dt.day} days";
+  }
+
+  method date returns Str {
+    DateTime.new(Instant.from-posix: $!value).yyyy-mm-dd;
+  }
+
+  method newer-than(Nat:D \limit) returns Bool {
+    (DateTime.now - DateTime.new(Instant.from-posix: $!value)) < limit * DAY;
+  }
+}
 
 class Aggregate {
   has Str $.name is required;
@@ -24,56 +43,35 @@ class Aggregate {
       $!last-seen = $last-seen if not defined $!last-seen or $!last-seen < $last-seen;
   }
 
-  method downtime returns Nat { self.lifespan - $.uptime }
-  method lifespan returns Nat { $!last-seen - $!first-boot }
-
   method meta-score returns Nat {
-    my \day = 1 * 24 * 3600;
-    my \month = 30 * 24 * 3600;
-    Nat((($!uptime * 2) + self.downtime + ($!boots * day) + (self!is-active ?? month !! 0))/1000000)
+    Nat((($!uptime * 2) + ($!boots * Epoch.DAY) + (self.is-active ?? Epoch.MONTH !! 0))/1000000)
   }
 
-  method Str returns Str {
-    qq:to/END/;
-      {$!name}{self!is-active ?? ' (still active)' !! ''}
-         uptime:     {duration($!uptime)}
-         downtime:   {duration(self.downtime)}
-         lifespan:   {duration(self.lifespan)}
-         last seen:  {date($!last-seen)}
-         first boot: {date($!first-boot)}
-         num boots:  {$!boots}
-         meta score: {self.meta-score}
-    END
-  }
-
-  method !is-active(Nat:D \limit = 90) returns Bool {
-    (DateTime.now - DateTime.new(Instant.from-posix: $!last-seen)) < limit * 3600 * 24;
-  }
-
-  sub duration(Nat:D \seconds) returns Str {
-    my DateTime \dt .= new(Instant.from-posix: seconds);
-    return "{dt.year-1970} years, {dt.month} months, {dt.day} days";
-  }
-
-  sub date(Nat:D \epoch) returns Str {
-    DateTime.new(Instant.from-posix: epoch).yyyy-mm-dd
+  method is-active(Nat:D \limit = 90) returns Bool {
+    Epoch.new($!last-seen).newer-than: limit;
   }
 }
 
+class HostAggregate is Aggregate {
+  method lifespan returns Nat { $.last-seen - $.first-boot }
+  method downtime returns Nat { self.lifespan - $.uptime }
+  method meta-score returns Nat { self.downtime + callsame }
+}
+
 class Aggregator {
-  has Hash %.aggregates = { hostname => {}, os => {}, uname => {}, os-major => {} }
+  has Hash %.aggregates = { host => {}, os => {}, uname => {}, os-major => {} }
 
   method add-file(IO::Path:D :$file is readonly) {
-    my Str $hostname = $file.IO.basename.split('.').first;
+    my Str $host = $file.IO.basename.split('.').first;
 
-    die "Record file for {$hostname} already processed - duplicate inputs?"
-      if %!aggregates<hostname>{$hostname}:exists;
-    %!aggregates<hostname>{$hostname} = Aggregate.new: :name($hostname);
+    die "Record file for {$host} already processed - duplicate inputs?"
+      if %!aggregates<host>{$host}:exists;
+    %!aggregates<host>{$host} = HostAggregate.new: :name($host);
 
-    for $file.IO.lines -> Str $line { self!add-line(:$line, :$hostname) }
+    for $file.IO.lines -> Str $line { self!add-line(:$line, :$host) }
   }
 
-  method !add-line(Str:D :$line is readonly, Str:D :$hostname is readonly) {
+  method !add-line(Str:D :$line is readonly, Str:D :$host is readonly) {
     my Str ($uptime, $boot-time, $os) = $line.trim.split(':');
     my Str $uname = $os.split(' ').first;
     my Str $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
@@ -82,7 +80,7 @@ class Aggregator {
     %!aggregates<uname>{$uname} //= Aggregate.new: :name($uname);
     %!aggregates<os-major>{$os-major} //= Aggregate.new: :name($os-major);
 
-    for %!aggregates<hostname>{$hostname},
+    for %!aggregates<host>{$host},
         %!aggregates<os>{$os},
         %!aggregates<uname>{$uname},
         %!aggregates<os-major>{$os-major} {
@@ -98,7 +96,8 @@ class Reporter {
 
   method report {
     for self.sort-by($!sub-cat) -> $what {
-      $what.Str.say;
+      $what.raku.say;
+      $what.is-active.say;
     }
   }
 
@@ -113,13 +112,12 @@ class Reporter {
   }
 }
 
-sub MAIN(
+multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
-  Cat :$cat = 'hostname';      #= Category, one of hostname, os os-major and uname.
+  Cat :$cat = 'host';          #= Category, one of host, os os-major and uname.
   SubCat :$sub-cat = 'uptime'; #= Sort by one of boots uptime downtime and lifespan.
-  Str :$host-UNTESTED = '.*';           #= Hostname filter pattern.
+  Str :$host-UNTESTED = '.*';  #= Hostname filter pattern.
 ) {
-
   my Aggregator $agg .= new;
   for dir($stats-dir, test => { /.records$/ }) -> $file {
     $agg.add-file(:$file)
