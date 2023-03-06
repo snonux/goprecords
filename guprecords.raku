@@ -31,13 +31,14 @@ class Epoch {
 }
 
 class Aggregate {
+  my Int $longest-name-length = 0;
   has Str $.name is required;
   has Nat $.uptime;
   has Nat $.first-boot;
   has Nat $.last-seen;
   has Nat $.boots;
 
-  method new (Str $name) { self.bless(:$name) }
+  method new (Str:D $name) { self.bless(:$name) }
 
   method add-record(Str:D :$uptime is readonly, Str:D :$boot-time is readonly) {
       my Int $last-seen = $uptime + $boot-time;
@@ -99,18 +100,23 @@ class Reporter {
   has Hash %.aggregates;
 
   method report {
-    say "Top {$.first} {$.sub-cat}'s by {$.cat}:\n";
+    say "Top {$.first} {$.sub-cat}'s by {$.cat}:";
     my Nat $count = 0;
 
+    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
+    printf "%3s. |%15s | %s\n", 'Pos', $.cat, $.sub-cat;
+    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
     for self.sort-by($!sub-cat) -> Aggregate $what {
       self!pretty-say($what, $count+1);
       last if ++$count == $.first;
     }
+    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
   }
 
   method !pretty-say(Aggregate:D \what, Nat:D \position) {
-    my Str \active = what.is-active ?? ' (still active)' !! '';
-    say "{position}. {what.name}{active}:\n\t{self.human-str($.sub-cat, what)}";
+    my Str \active = what.is-active ?? '*' !! ' ';
+    my Str \display = (active ~ what.name).substr(0,15);
+    printf "%3d. |%15s | %s\n", position, display, self.human-str($.sub-cat, what);
   }
 
   multi method sort-by('uptime') { self.sort-by: *.uptime }
@@ -121,17 +127,17 @@ class Reporter {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse;
   }
 
-  multi method human-str('uptime', Aggregate:D $what) { "Uptime: {Epoch.new($what.uptime).human-duration}" }
-  multi method human-str('boots', Aggregate:D $what) { "Number of boots: {$what.boots}" }
-  multi method human-str('meta-score', Aggregate:D $what) { "Meta score: {$what.meta-score}" }
+  multi method human-str('uptime', Aggregate:D $what) { Epoch.new($what.uptime).human-duration }
+  multi method human-str('boots', Aggregate:D $what) { $what.boots }
+  multi method human-str('meta-score', Aggregate:D $what) { $what.meta-score }
 }
 
 class HostReporter is Reporter {
   multi method sort-by('downtime') { self.sort-by: *.downtime }
   multi method sort-by('lifespan') { self.sort-by: *.lifespan }
 
-  multi method human-str('downtime', Aggregate:D $what) { "Downtime: {Epoch.new($what.downtime).human-duration}" }
-  multi method human-str('lifespan', Aggregate:D $what) { "Lifespan: {Epoch.new($what.lifespan).human-duration}" }
+  multi method human-str('downtime', Aggregate:D $what) { Epoch.new($what.downtime).human-duration }
+  multi method human-str('lifespan', Aggregate:D $what) { Epoch.new($what.lifespan).human-duration }
 }
 
 sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
