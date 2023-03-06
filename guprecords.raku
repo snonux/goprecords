@@ -31,7 +31,6 @@ class Epoch {
 }
 
 class Aggregate {
-  my Int $longest-name-length = 0;
   has Str $.name is required;
   has Nat $.uptime;
   has Nat $.first-boot;
