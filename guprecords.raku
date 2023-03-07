@@ -100,22 +100,34 @@ class Reporter {
 
   method report {
     say "Top {$.first} {$.sub-cat}'s by {$.cat}:";
-    my Nat $count = 0;
-
-    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
-    printf "%3s. |%15s | %s\n", 'Pos', $.cat, $.sub-cat;
-    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
-    for self.sort-by($!sub-cat) -> Aggregate $what {
-      self!pretty-say($what, $count+1);
-      last if ++$count == $.first;
+    with self!table -> (@table, %size) {
+      my Str \format = "| %{%size<count>}s | %{%size<name>}s | %{%size<value>}s |\n";
+      printf format, 'Pos', $.cat, $.sub-cat;
+      for @table -> \position, \name, \value {
+        printf format, position, name, value;
+      }
     }
-    printf " %4s|%16s|%16s\n", '-' x 4, '-' x 16, '-' x 16;
   }
 
-  method !pretty-say(Aggregate:D \what, Nat:D \position) {
-    my Str \active = what.is-active ?? '*' !! ' ';
-    my Str \display = (active ~ what.name).substr(0,15);
-    printf "%3d. |%15s | %s\n", position, display, self.human-str($.sub-cat, what);
+  method !table returns List {
+    my Nat $count = 0;
+    my @table;
+    my %size := { count => 'Pos'.chars, name => $.cat.chars, value => $.sub-cat.chars };
+
+    for self.sort-by($!sub-cat) -> Aggregate \what {
+      my Str \active = what.is-active ?? '*' !! ' ';
+      my Str \name = active ~ what.name;
+      my Str \value = self.human-str($!sub-cat, what).Str;
+
+      with $count.Str.chars+1 { %size<count> = $_ if %size<count> < $_ }
+      with name.chars { %size<name> = $_ if %size<name> < $_ }
+      with value.chars { %size<value> = $_ if %size<value> < $_ }
+
+      @table.push: "{$count+1}.", name, value;
+      last if ++$count == $.first;
+    }
+
+    return @table, %size;
   }
 
   multi method sort-by('uptime') { self.sort-by: *.uptime }
