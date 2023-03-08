@@ -4,7 +4,7 @@ use v6.d;
 
 subset Nat of Int where * >= 0;
 subset Cat of Str where * eq any <host os os-major uname>;
-subset SubCat of Str where * eq any <boots uptime downtime lifespan meta-score>;
+subset SubCat of Str where * eq any <boots uptime meta-score downtime lifespan>;
 subset HostOnlyCat of Cat where * eq 'host';
 subset BasicSubCat of SubCat where * ne any <downtime lifespan>;
 
@@ -95,35 +95,50 @@ class Aggregator {
 class Reporter {
   has Cat $.cat is required;
   has SubCat $.sub-cat is required;
+  has SubCat $.sub-cat2 is required;
   has Nat $.first is required;
   has Hash %.aggregates;
 
   method report {
-    say "Top {$.first} {$.sub-cat}'s by {$.cat}:";
+    say "Top {$.first} {$.sub-cat}'s by {$.cat}:\n";
     with self!table -> (@table, %size) {
-      my Str \format = "| %{%size<count>}s | %{%size<name>}s | %{%size<value>}s |\n";
-      printf format, 'Pos', $.cat, $.sub-cat;
-      for @table -> \position, \name, \value {
-        printf format, position, name, value;
+      my Str \format = '|' ~ join '|',
+        " %{%size<count>}s ", " %{%size<name>}s ",
+        " %{%size<value>}s ", " %{%size<value2>}s ", "\n";
+      my Str \border = '+' ~ join '+',  
+        '-' x (2+%size<count>), '-' x (2+%size<name>),
+        '-' x (2+%size<value>), '-' x (2+%size<value2>), "\n";
+      print border;
+      printf format, 'Pos', $.cat, $.sub-cat, $.sub-cat2;
+      print border;
+      for @table -> \position, \name, \value, \value2 {
+        printf format, position, name, value, value2;
       }
+      print border;
     }
   }
 
   method !table returns List {
     my Nat $count = 0;
     my @table;
-    my %size := { count => 'Pos'.chars, name => $.cat.chars, value => $.sub-cat.chars };
 
-    for self.sort-by($!sub-cat) -> Aggregate \what {
+    # Initial table size
+    my %size =
+      :count('Pos'.chars), :name($.cat.chars),
+      :value($.sub-cat.chars), :value2($.sub-cat2.chars);
+
+    for self.sort-by($.sub-cat) -> Aggregate \what {
       my Str \active = what.is-active ?? '*' !! ' ';
       my Str \name = active ~ what.name;
-      my Str \value = self.human-str($!sub-cat, what).Str;
+      my Str \value = self.human-str($.sub-cat, what).Str;
+      my Str \value2 = self.human-str($.sub-cat2, what).Str;
 
-      with $count.Str.chars+1 { %size<count> = $_ if %size<count> < $_ }
-      with name.chars { %size<name> = $_ if %size<name> < $_ }
-      with value.chars { %size<value> = $_ if %size<value> < $_ }
+      # Adjust size
+      %size{.key} = .value if %size{.key} < .value for
+        :count($count.Str.chars+1), :name(name.chars),
+        :value(value.chars), :value2(value2.chars);
 
-      @table.push: "{$count+1}.", name, value;
+      @table.push: "{$count+1}.", name, value, value2;
       last if ++$count == $.first;
     }
 
@@ -161,18 +176,20 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
 multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   HostOnlyCat :$cat = 'host',  #= Category, one of host, os os-major and uname.
-  SubCat :$sub-cat = 'uptime', #= Sort by one of boots uptime downtime and lifespan.
-  Nat :$first = 13,            #= Only show top N entries.
+  SubCat :$sub-cat = 'uptime', #= Sort by one of boots uptime downtime, lifespan and meta-score.
+  SubCat :$sub-cat2 = 'uname', #= Additional sub-category to be displayed.
+  Nat :$first = 20,            #= Only show top N entries.
 ) {
-  do-it($stats-dir, HostReporter.new(:$cat, :$sub-cat, :$first));
+  do-it($stats-dir, HostReporter.new(:$cat, :$sub-cat, :$sub-cat2, :$first));
 }
 
 multi MAIN(
   Str :$stats-dir is required,
   Cat :$cat,
   BasicSubCat :$sub-cat = 'uptime',
-  Nat :$first = 13,
+  BasicSubCat :$sub-cat2 = 'boots',
+  Nat :$first = 20,
 ) {
-  do-it($stats-dir, Reporter.new(:$cat, :$sub-cat, :$first));
+  do-it($stats-dir, Reporter.new(:$cat, :$sub-cat, :$sub-cat2, :$first));
 }
 
