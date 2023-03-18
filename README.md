@@ -3,33 +3,6 @@
 Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 
 ```
-Top 20 Uptime's by Host:
-
-+-----+-----------------+-----------------------------+
-| Pos |            Host |                      Uptime |
-+-----+-----------------+-----------------------------+
-|  1. |         *vulcan |  4 years, 2 months, 12 days |
-|  2. |          uranus | 3 years, 11 months, 21 days |
-|  3. |             sun |  3 years, 9 months, 26 days |
-|  4. |           uugrn |   3 years, 5 months, 5 days |
-|  5. |       deltavega |  3 years, 1 months, 21 days |
-|  6. |           pluto | 2 years, 10 months, 29 days |
-|  7. |         tauceti |  2 years, 3 months, 19 days |
-|  8. |       tauceti-f |  1 years, 9 months, 18 days |
-|  9. | *ultramega15289 |  1 years, 7 months, 25 days |
-| 10. |          *earth |  1 years, 4 months, 12 days |
-| 11. |   ultramega8477 |  1 years, 3 months, 25 days |
-| 12. |           host0 |   1 years, 3 months, 9 days |
-| 13. |       tauceti-e |  1 years, 2 months, 20 days |
-| 14. |       *makemake |   1 years, 1 months, 6 days |
-| 15. |        blowfish | 0 years, 11 months, 28 days |
-| 16. |        callisto | 0 years, 10 months, 31 days |
-| 17. |   alphacentauri | 0 years, 10 months, 28 days |
-| 18. |          london |  0 years, 9 months, 16 days |
-| 19. |         twofish |  0 years, 8 months, 31 days |
-| 20. |        fishbone |  0 years, 8 months, 12 days |
-+-----+-----------------+-----------------------------+
-
 Top 20 Boots's by Host:
 
 +-----+-----------------+-------+
