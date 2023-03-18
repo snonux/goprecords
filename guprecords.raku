@@ -92,7 +92,7 @@ class Aggregator {
 }
 
 class Reporter {
-  has Category $.cat is required;
+  has Category $.cat = 'host';
   has Metric $.metric is required;
   has Natural $.limit is required;
   has Hash %.aggregates;
@@ -168,18 +168,18 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
 }
 
 multi MAIN(
-  Str :$stats-dir is required,
-  HostMetric :$metric = 'uptime',
-  Natural :$limit = 20,
-) {
-  do-it($stats-dir, HostReporter.new(cat => 'host', :$metric, :$limit));
-}
-
-multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   Category :$cat is required where * ne 'host', #= The category, one of host, os, os-major, uname [default: 'host']
   Metric :$metric = 'uptime', #= The metric, one of boots, uptime, meta-score, downtime, lifespan
   Natural :$limit = 20, #= Limit output to num of entries.
 ) {
-  do-it($stats-dir, HostReporter.new(:$cat, :$metric, :$limit));
+  do-it($stats-dir, Reporter.new(:$cat, :$metric, :$limit));
+}
+
+multi MAIN(
+  Str :$stats-dir is required,
+  HostMetric :$metric = 'uptime',
+  Natural :$limit = 20,
+) {
+  do-it($stats-dir, HostReporter.new(:$metric, :$limit));
 }
