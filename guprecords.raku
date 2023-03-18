@@ -2,19 +2,18 @@
 
 use v6.d;
 
-subset Nat of Int where * >= 0;
-subset Cat of Str where * eq any <host os os-major uname>;
-subset SubCat of Str where * eq any <boots uptime meta-score downtime lifespan>;
-subset HostOnlyCat of Cat where * eq 'host';
-subset BasicSubCat of SubCat where * ne any <downtime lifespan>;
+subset Natural of Int where * >= 0;
+subset Category of Str where * eq any <host os os-major uname>;
+subset HostMetric of Str where * eq any <boots uptime meta-score downtime lifespan>;
+subset Metric of HostMetric where * ne any <downtime lifespan>;
 
-our Nat constant DAY = 1 * 24 * 3600;
-our Nat constant MONTH = 30 * DAY;
+our Natural constant DAY = 1 * 24 * 3600;
+our Natural constant MONTH = 30 * DAY;
 
 class Epoch {
-  has Nat $.value is required;
+  has Natural $.value is required;
 
-  submethod new (Nat $value) { self.bless(:$value) }
+  submethod new (Natural $value) { self.bless(:$value) }
 
   method human-duration returns Str {
     my DateTime \dt .= new(Instant.from-posix: $!value);
@@ -25,17 +24,17 @@ class Epoch {
     DateTime.new(Instant.from-posix: $!value).yyyy-mm-dd;
   }
 
-  method newer-than(Nat:D \limit) returns Bool {
+  method newer-than(Natural:D \limit) returns Bool {
     (DateTime.now - DateTime.new(Instant.from-posix: $!value)) < limit * DAY;
   }
 }
 
 class Aggregate {
   has Str $.name is required;
-  has Nat $.uptime;
-  has Nat $.first-boot;
-  has Nat $.last-seen;
-  has Nat $.boots;
+  has Natural $.uptime;
+  has Natural $.first-boot;
+  has Natural $.last-seen;
+  has Natural $.boots;
 
   method new (Str:D $name) { self.bless(:$name) }
 
@@ -48,19 +47,19 @@ class Aggregate {
       $!last-seen = $last-seen if not defined $!last-seen or $!last-seen < $last-seen;
   }
 
-  method meta-score returns Nat {
-    Nat((($!uptime * 2) + ($!boots * DAY) + (self.is-active ?? MONTH !! 0))/1000000)
+  method meta-score returns Natural {
+    Natural((($!uptime * 2) + ($!boots * DAY) + (self.is-active ?? MONTH !! 0))/1000000)
   }
 
-  method is-active(Nat:D \limit = 90) returns Bool {
+  method is-active(Natural:D \limit = 90) returns Bool {
     Epoch.new($!last-seen).newer-than: limit;
   }
 }
 
 class HostAggregate is Aggregate {
-  method lifespan returns Nat { $.last-seen - $.first-boot }
-  method downtime returns Nat { self.lifespan - $.uptime }
-  method meta-score returns Nat { Nat(self.downtime / 1000000) + callsame }
+  method lifespan returns Natural { $.last-seen - $.first-boot }
+  method downtime returns Natural { self.lifespan - $.uptime }
+  method meta-score returns Natural { Natural(self.downtime / 1000000) + callsame }
 }
 
 class Aggregator {
@@ -93,53 +92,48 @@ class Aggregator {
 }
 
 class Reporter {
-  has Cat $.cat is required;
-  has SubCat $.sub-cat is required;
-  has SubCat $.sub-cat2 is required;
-  has Nat $.first is required;
+  has Category $.cat is required;
+  has Metric $.metric is required;
+  has Natural $.limit is required;
   has Hash %.aggregates;
 
   method report {
-    say "Top {$.first} {$.sub-cat}'s by {$.cat}:\n";
+    say "Top {$.limit} {$.metric}'s by {$.cat}:\n";
     with self!table -> (@table, %size) {
       my Str \format = '|' ~ join '|',
-        " %{%size<count>}s ", " %{%size<name>}s ",
-        " %{%size<value>}s ", " %{%size<value2>}s ", "\n";
+        " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
       my Str \border = '+' ~ join '+',  
-        '-' x (2+%size<count>), '-' x (2+%size<name>),
-        '-' x (2+%size<value>), '-' x (2+%size<value2>), "\n";
+        '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
       print border;
-      printf format, 'Pos', $.cat, $.sub-cat, $.sub-cat2;
+      printf format, 'Pos', $.cat, $.metric;
       print border;
-      for @table -> \position, \name, \value, \value2 {
-        printf format, position, name, value, value2;
+      for @table -> \position, \name, \value {
+        printf format, position, name, value;
       }
       print border;
     }
   }
 
   method !table returns List {
-    my Nat $count = 0;
+    my Natural $count = 0;
     my @table;
 
     # Initial table size
     my %size =
       :count('Pos'.chars), :name($.cat.chars),
-      :value($.sub-cat.chars), :value2($.sub-cat2.chars);
+      :value($.metric.chars);
 
-    for self.sort-by($.sub-cat) -> Aggregate \what {
+    for self.sort-by($.metric) -> Aggregate \what {
       my Str \active = what.is-active ?? '*' !! ' ';
       my Str \name = active ~ what.name;
-      my Str \value = self.human-str($.sub-cat, what).Str;
-      my Str \value2 = self.human-str($.sub-cat2, what).Str;
+      my Str \value = self.human-str($.metric, what).Str;
 
       # Adjust size
       %size{.key} = .value if %size{.key} < .value for
-        :count($count.Str.chars+1), :name(name.chars),
-        :value(value.chars), :value2(value2.chars);
+        :count($count.Str.chars+1), :name(name.chars), :value(value.chars);
 
-      @table.push: "{$count+1}.", name, value, value2;
-      last if ++$count == $.first;
+      @table.push: "{$count+1}.", name, value;
+      last if ++$count == $.limit;
     }
 
     return @table, %size;
@@ -174,22 +168,18 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
 }
 
 multi MAIN(
-  Str :$stats-dir is required, #= The uptimed raw record input dir.
-  HostOnlyCat :$cat = 'host',  #= Category, one of host, os os-major and uname.
-  SubCat :$sub-cat = 'uptime', #= Sort by one of boots uptime downtime, lifespan and meta-score.
-  SubCat :$sub-cat2 = 'uname', #= Additional sub-category to be displayed.
-  Nat :$first = 20,            #= Only show top N entries.
+  Str :$stats-dir is required,
+  HostMetric :$metric = 'uptime',
+  Natural :$limit = 20,
 ) {
-  do-it($stats-dir, HostReporter.new(:$cat, :$sub-cat, :$sub-cat2, :$first));
+  do-it($stats-dir, HostReporter.new(cat => 'host', :$metric, :$limit));
 }
 
 multi MAIN(
-  Str :$stats-dir is required,
-  Cat :$cat,
-  BasicSubCat :$sub-cat = 'uptime',
-  BasicSubCat :$sub-cat2 = 'boots',
-  Nat :$first = 20,
+  Str :$stats-dir is required, #= The uptimed raw record input dir.
+  Category :$cat is required where * ne 'host', #= The category, one of host, os, os-major, uname [default: 'host']
+  Metric :$metric = 'uptime', #= The metric, one of boots, uptime, meta-score, downtime, lifespan
+  Natural :$limit = 20, #= Limit output to num of entries.
 ) {
-  do-it($stats-dir, Reporter.new(:$cat, :$sub-cat, :$sub-cat2, :$first));
+  do-it($stats-dir, HostReporter.new(:$cat, :$metric, :$limit));
 }
-
