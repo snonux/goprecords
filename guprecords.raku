@@ -2,10 +2,11 @@
 
 use v6.d;
 
+enum Category <Host OS OSMajor Uname>;
+enum HostMetric <Boots Uptime MetaScore Downtime Lifespan>;
+
+subset Metric of HostMetric where * ne any <Downtime Lifespan>;
 subset Natural of Int where * >= 0;
-subset Category of Str where * eq any <host os os-major uname>;
-subset HostMetric of Str where * eq any <boots uptime meta-score downtime lifespan>;
-subset Metric of HostMetric where * ne any <downtime lifespan>;
 
 our Natural constant DAY = 1 * 24 * 3600;
 our Natural constant MONTH = 30 * DAY;
@@ -63,14 +64,14 @@ class HostAggregate is Aggregate {
 }
 
 class Aggregator {
-  has Hash %.aggregates = { host => {}, os => {}, uname => {}, os-major => {} }
+  has Hash %.aggregates = { Host => {}, OS => {}, Uname => {}, OSMajor => {} }
 
   method add-file(IO::Path:D $file is readonly) {
     my Str $host = $file.IO.basename.split('.').first;
 
     die "Record file for {$host} already processed - duplicate inputs?"
-      if %!aggregates<host>{$host}:exists;
-    %!aggregates<host>{$host} = HostAggregate.new($host);
+      if %!aggregates<Host>{$host}:exists;
+    %!aggregates<Host>{$host} = HostAggregate.new($host);
 
     for $file.IO.lines -> Str $line { self!add-line(:$line, :$host) }
   }
@@ -80,19 +81,19 @@ class Aggregator {
     my Str $uname = $os.split(' ').first;
     my Str $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
 
-    %!aggregates<os>{$os} //= Aggregate.new($os);
-    %!aggregates<uname>{$uname} //= Aggregate.new($uname);
-    %!aggregates<os-major>{$os-major} //= Aggregate.new($os-major);
+    %!aggregates<OS>{$os} //= Aggregate.new($os);
+    %!aggregates<Uname>{$uname} //= Aggregate.new($uname);
+    %!aggregates<OSMajor>{$os-major} //= Aggregate.new($os-major);
 
-    for %!aggregates<host>{$host}, %!aggregates<os>{$os},
-        %!aggregates<uname>{$uname}, %!aggregates<os-major>{$os-major} {
+    for %!aggregates<Host>{$host}, %!aggregates<OS>{$os},
+        %!aggregates<Uname>{$uname}, %!aggregates<OSMajor>{$os-major} {
       .add-record(:$uptime, :$boot-time);
     }
   }
 }
 
 class Reporter {
-  has Category $.cat = 'host';
+  has Category $.cat = Host;
   has Metric $.metric is required;
   has Natural $.limit is required;
   has Hash %.aggregates;
@@ -139,25 +140,25 @@ class Reporter {
     return @table, %size;
   }
 
-  multi method sort-by('uptime') { self.sort-by: *.uptime }
-  multi method sort-by('boots') { self.sort-by: *.boots }
-  multi method sort-by('meta-score') { self.sort-by: *.meta-score }
+  multi method sort-by(Uptime) { self.sort-by: *.uptime }
+  multi method sort-by(Boots) { self.sort-by: *.boots }
+  multi method sort-by(MetaScore) { self.sort-by: *.meta-score }
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!cat}.values.sort(&$sort-by).reverse;
   }
 
-  multi method human-str('uptime', Aggregate:D $what) { Epoch.new($what.uptime).human-duration }
-  multi method human-str('boots', Aggregate:D $what) { $what.boots }
-  multi method human-str('meta-score', Aggregate:D $what) { $what.meta-score }
+  multi method human-str(Uptime, Aggregate:D $what) { Epoch.new($what.uptime).human-duration }
+  multi method human-str(Boots, Aggregate:D $what) { $what.boots }
+  multi method human-str(MetaScore, Aggregate:D $what) { $what.meta-score }
 }
 
 class HostReporter is Reporter {
-  multi method sort-by('downtime') { self.sort-by: *.downtime }
-  multi method sort-by('lifespan') { self.sort-by: *.lifespan }
+  multi method sort-by(Downtime) { self.sort-by: *.downtime }
+  multi method sort-by(Lifespan) { self.sort-by: *.lifespan }
 
-  multi method human-str('downtime', Aggregate:D $what) { Epoch.new($what.downtime).human-duration }
-  multi method human-str('lifespan', Aggregate:D $what) { Epoch.new($what.lifespan).human-duration }
+  multi method human-str(Downtime, Aggregate:D $what) { Epoch.new($what.downtime).human-duration }
+  multi method human-str(Lifespan, Aggregate:D $what) { Epoch.new($what.lifespan).human-duration }
 }
 
 sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
@@ -169,8 +170,8 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
 
 multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
-  Category :$cat is required where * ne 'host', #= The category, one of host, os, os-major, uname [default: 'host']
-  Metric :$metric = 'uptime', #= The metric, one of boots, uptime, meta-score, downtime, lifespan
+  Category :$cat is required where * ne Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
+  Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
   Natural :$limit = 20, #= Limit output to num of entries.
 ) {
   do-it($stats-dir, Reporter.new(:$cat, :$metric, :$limit));
@@ -178,7 +179,7 @@ multi MAIN(
 
 multi MAIN(
   Str :$stats-dir is required,
-  HostMetric :$metric = 'uptime',
+  HostMetric :$metric = Uptime,
   Natural :$limit = 20,
 ) {
   do-it($stats-dir, HostReporter.new(:$metric, :$limit));
