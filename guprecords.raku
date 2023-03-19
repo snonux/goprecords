@@ -162,9 +162,12 @@ class HostReporter is Reporter {
 }
 
 sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
-  my Aggregator \aggregator .= new;
-  aggregator.add-file($_) for dir(stats-dir, test => { /.records$/ });
-  reporter.aggregates = aggregator.aggregates;
+  state Aggregator $aggregator = do {
+    my Aggregator \aggregator .= new;
+    aggregator.add-file($_) for dir(stats-dir, test => { /.records$/ });
+    aggregator;
+  };
+  reporter.aggregates = $aggregator.aggregates;
   reporter.report;
 }
 
