@@ -4,6 +4,7 @@ use v6.d;
 
 enum Category <Host OS OSMajor Uname>;
 enum Metric <Boots Uptime MetaScore Downtime Lifespan>;
+enum OutputFormat <PlaintextSingle PlaintextMulti MarkdownSingle MarkdownMulti>;
 
 subset MetricSubset of Metric where * ne any (Downtime, Lifespan);
 subset Natural of Int where * >= 0;
@@ -93,6 +94,7 @@ class Aggregator {
 }
 
 class Reporter {
+  has OutputFormat $.output-format is required;
   has Category $.category = Host;
   has Metric $.metric is required;
   has Natural $.limit is required;
@@ -100,17 +102,21 @@ class Reporter {
 
   method report {
     say "Top {$.limit} {$.metric}'s by {$.category}:\n";
+
     with self!table -> (@table, %size) {
       my Str \format = '|' ~ join '|',
         " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
       my Str \border = '+' ~ join '+',  
         '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
+
       print border;
       printf format, 'Pos', $.category, $.metric;
       print border;
+
       for @table -> \position, \name, \value {
         printf format, position, name, value;
       }
+
       print border;
     }
   }
@@ -176,11 +182,14 @@ multi sub MAIN(
   Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
   Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
   Natural :$limit = 20, #= Limit output to num of entries.
+  Bool :$md, #= Output Markdown format.
 ) {
+  my OutputFormat $output-format = $md ?? MarkdownSingle !! PlaintextSingle;
+
   if $category ~~ Host {
-    do-it($stats-dir, HostReporter.new(:$metric, :$limit));
+    do-it($stats-dir, HostReporter.new(:$metric, :$limit, :$output-format));
   } elsif $metric ~~ MetricSubset {
-    do-it($stats-dir, Reporter.new(:$category, :$metric, :$limit));
+    do-it($stats-dir, Reporter.new(:$category, :$metric, :$limit, :$output-format));
   } else {
     die "Category $category only supports the following metrics: {Metric.^enum_value_list.grep: * ~~ MetricSubset}";
   }
@@ -190,12 +199,15 @@ multi sub MAIN(
   Str :$stats-dir is required,
   Bool :$all, #= Generate all possible stats
   Natural :$limit = 20,
+  Bool :$md,
 ) {
+  my OutputFormat $output-format = $md ?? MarkdownMulti !! PlaintextMulti;
+
   for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
     next if $category !~~ Host and $metric !~~ MetricSubset;
     do-it($stats-dir, $category ~~ Host
-      ?? HostReporter.new(:$metric, :$limit)
-      !! Reporter.new(:$category, :$metric, :$limit));
+      ?? HostReporter.new(:$metric, :$limit, :$output-format)
+      !! Reporter.new(:$category, :$metric, :$limit, :$output-format));
     say '';
   }
 }
