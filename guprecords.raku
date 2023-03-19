@@ -168,7 +168,7 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
   reporter.report;
 }
 
-sub MAIN(
+multi sub MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
   Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
@@ -180,5 +180,19 @@ sub MAIN(
     do-it($stats-dir, Reporter.new(:$category, :$metric, :$limit));
   } else {
     die "Category $category only supports the following metrics: {Metric.^enum_value_list.grep: * ~~ MetricSubset}";
+  }
+}
+
+multi sub MAIN(
+  Str :$stats-dir is required,
+  Bool :$all, #= Generate all possible stats
+  Natural :$limit = 20,
+) {
+  for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
+    next if $category !~~ Host and $metric !~~ MetricSubset;
+    do-it($stats-dir, $category ~~ Host
+      ?? HostReporter.new(:$metric, :$limit)
+      !! Reporter.new(:$category, :$metric, :$limit));
+    say '';
   }
 }
