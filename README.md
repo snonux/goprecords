@@ -2,9 +2,9 @@
 
 Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 
-```
-Top 20 Boots's by Host:
+## Top 20 Boots's by Host:
 
+```
 +-----+-----------------+-------+
 | Pos |            Host | Boots |
 +-----+-----------------+-------+
@@ -14,24 +14,26 @@ Top 20 Boots's by Host:
 |  4. |          uranus |   150 |
 |  5. |        dionysus |   136 |
 |  6. |       tauceti-e |   120 |
-|  7. |          *earth |   105 |
+|  7. |          *earth |   106 |
 |  8. |           pluto |    51 |
-|  9. |       *makemake |    50 |
-| 10. | *ultramega15289 |    50 |
+|  9. | *ultramega15289 |    50 |
+| 10. |       *makemake |    50 |
 | 11. |          phobos |    40 |
 | 12. |   ultramega8477 |    40 |
 | 13. |             sun |    33 |
 | 14. |           *t450 |    25 |
 | 15. |         *vulcan |    19 |
-| 16. |        blowfish |    16 |
-| 17. |         tauceti |    16 |
+| 16. |         tauceti |    16 |
+| 17. |        blowfish |    16 |
 | 18. |     sagittarius |    15 |
 | 19. |       deltavega |    12 |
-| 20. |           host0 |    10 |
+| 20. |       bernoulli |    10 |
 +-----+-----------------+-------+
+```
 
-Top 20 Uptime's by Host:
+## Top 20 Uptime's by Host:
 
+```
 +-----+-----------------+-----------------------------+
 | Pos |            Host |                      Uptime |
 +-----+-----------------+-----------------------------+
@@ -43,8 +45,8 @@ Top 20 Uptime's by Host:
 |  6. |           pluto | 2 years, 10 months, 29 days |
 |  7. |         tauceti |  2 years, 3 months, 19 days |
 |  8. |       tauceti-f |  1 years, 9 months, 18 days |
-|  9. | *ultramega15289 |  1 years, 7 months, 25 days |
-| 10. |          *earth |  1 years, 4 months, 12 days |
+|  9. | *ultramega15289 |  1 years, 7 months, 27 days |
+| 10. |          *earth |  1 years, 4 months, 17 days |
 | 11. |   ultramega8477 |  1 years, 3 months, 25 days |
 | 12. |           host0 |   1 years, 3 months, 9 days |
 | 13. |       tauceti-e |  1 years, 2 months, 20 days |
@@ -56,9 +58,11 @@ Top 20 Uptime's by Host:
 | 19. |         twofish |  0 years, 8 months, 31 days |
 | 20. |        fishbone |  0 years, 8 months, 12 days |
 +-----+-----------------+-----------------------------+
+```
 
-Top 20 MetaScore's by Host:
+## Top 20 MetaScore's by Host:
 
+```
 +-----+-----------------+-----------+
 | Pos |            Host | MetaScore |
 +-----+-----------------+-----------+
@@ -75,7 +79,7 @@ Top 20 MetaScore's by Host:
 | 11. |       tauceti-e |       111 |
 | 12. |        callisto |       108 |
 | 13. |       tauceti-f |       108 |
-| 14. |          *earth |       103 |
+| 14. |          *earth |       104 |
 | 15. |       *makemake |        98 |
 | 16. |            mars |        85 |
 | 17. |   ultramega8477 |        80 |
@@ -83,9 +87,11 @@ Top 20 MetaScore's by Host:
 | 19. |        blowfish |        58 |
 | 20. |          sirius |        52 |
 +-----+-----------------+-----------+
+```
 
-Top 20 Downtime's by Host:
+## Top 20 Downtime's by Host:
 
+```
 +-----+-----------------+-----------------------------+
 | Pos |            Host |                    Downtime |
 +-----+-----------------+-----------------------------+
@@ -97,9 +103,9 @@ Top 20 Downtime's by Host:
 |  6. |       tauceti-e |  0 years, 12 months, 9 days |
 |  7. |       *makemake | 0 years, 11 months, 22 days |
 |  8. |          sirius |  0 years, 8 months, 20 days |
-|  9. | *ultramega15289 |  0 years, 6 months, 28 days |
+|  9. | *ultramega15289 |   0 years, 7 months, 3 days |
 | 10. |          deimos |  0 years, 5 months, 15 days |
-| 11. |          *earth |   0 years, 5 months, 8 days |
+| 11. |          *earth |  0 years, 5 months, 10 days |
 | 12. |           *t450 |  0 years, 2 months, 23 days |
 | 13. |         joghurt |   0 years, 2 months, 9 days |
 | 14. |           host0 |   0 years, 2 months, 1 days |
@@ -110,9 +116,11 @@ Top 20 Downtime's by Host:
 | 19. |          sentax |   0 years, 1 months, 6 days |
 | 20. |     sagittarius |   0 years, 1 months, 6 days |
 +-----+-----------------+-----------------------------+
+```
 
-Top 20 Lifespan's by Host:
+## Top 20 Lifespan's by Host:
 
+```
 +-----+-----------------+-----------------------------+
 | Pos |            Host |                    Lifespan |
 +-----+-----------------+-----------------------------+
@@ -127,19 +135,21 @@ Top 20 Lifespan's by Host:
 |  9. |         tauceti |  2 years, 3 months, 22 days |
 | 10. |        callisto |  2 years, 3 months, 13 days |
 | 11. |       tauceti-e |  2 years, 1 months, 29 days |
-| 12. | *ultramega15289 |  2 years, 1 months, 19 days |
+| 12. | *ultramega15289 |  2 years, 1 months, 26 days |
 | 13. |       *makemake | 1 years, 11 months, 28 days |
 | 14. |       tauceti-f |  1 years, 9 months, 20 days |
-| 15. |            mars |  1 years, 8 months, 19 days |
-| 16. |          *earth |  1 years, 8 months, 17 days |
+| 15. |          *earth |  1 years, 8 months, 24 days |
+| 16. |            mars |  1 years, 8 months, 19 days |
 | 17. |           host0 |  1 years, 4 months, 10 days |
 | 18. |   ultramega8477 |   1 years, 4 months, 1 days |
 | 19. |          sirius |  1 years, 2 months, 24 days |
 | 20. |        blowfish | 0 years, 11 months, 28 days |
 +-----+-----------------+-----------------------------+
+```
 
-Top 20 Boots's by OS:
+## Top 20 Boots's by OS:
 
+```
 +-----+------------------------------+-------+
 | Pos |                           OS | Boots |
 +-----+------------------------------+-------+
@@ -162,11 +172,13 @@ Top 20 Boots's by OS:
 | 17. |     *FreeBSD 13.1-RELEASE-p3 |    25 |
 | 18. |     FreeBSD 10.1-RELEASE-p31 |    24 |
 | 19. |      FreeBSD 11.4-RELEASE-p5 |    23 |
-| 20. |     FreeBSD 10.1-RELEASE-p41 |    20 |
+| 20. |      FreeBSD 11.3-RELEASE-p9 |    20 |
 +-----+------------------------------+-------+
+```
 
-Top 20 Uptime's by OS:
+## Top 20 Uptime's by OS:
 
+```
 +-----+------------------------------------+-----------------------------+
 | Pos |                                 OS |                      Uptime |
 +-----+------------------------------------+-----------------------------+
@@ -191,9 +203,11 @@ Top 20 Uptime's by OS:
 | 19. |                      Darwin 18.7.0 |  0 years, 7 months, 30 days |
 | 20. |           FreeBSD 10.3-RELEASE-p24 |  0 years, 7 months, 13 days |
 +-----+------------------------------------+-----------------------------+
+```
 
-Top 20 MetaScore's by OS:
+## Top 20 MetaScore's by OS:
 
+```
 +-----+------------------------------------+-----------+
 | Pos |                                 OS | MetaScore |
 +-----+------------------------------------+-----------+
@@ -211,16 +225,18 @@ Top 20 MetaScore's by OS:
 | 12. |            FreeBSD 11.0-RELEASE-p1 |        48 |
 | 13. |                FreeBSD 6.2-RELEASE |        44 |
 | 14. |  Linux 3.10.0-1127.13.1.el7.x86_64 |        43 |
-| 15. |                        OpenBSD 4.1 |        39 |
-| 16. |            FreeBSD 11.1-RELEASE-p4 |        39 |
-| 17. |                        OpenBSD 7.0 |        39 |
+| 15. |            FreeBSD 11.1-RELEASE-p4 |        39 |
+| 16. |                        OpenBSD 7.0 |        39 |
+| 17. |                        OpenBSD 4.1 |        39 |
 | 18. |    Linux 3.10.0-957.1.3.el7.x86_64 |        38 |
 | 19. |                      Darwin 18.7.0 |        37 |
-| 20. |                     *Darwin 21.6.0 |        35 |
+| 20. |           FreeBSD 10.3-RELEASE-p24 |        35 |
 +-----+------------------------------------+-----------+
+```
 
-Top 20 Boots's by OSMajor:
+## Top 20 Boots's by OSMajor:
 
+```
 +-----+----------------+-------+
 | Pos |        OSMajor | Boots |
 +-----+----------------+-------+
@@ -232,21 +248,24 @@ Top 20 Boots's by OSMajor:
 |  6. | *FreeBSD 13... |   123 |
 |  7. |   Darwin 13... |    40 |
 |  8. |   OpenBSD 7... |    32 |
-|  9. |    *Linux 6... |    26 |
+|  9. |    *Linux 6... |    27 |
 | 10. |   FreeBSD 5... |    25 |
 | 11. |     Linux 2... |    22 |
-| 12. |  *Darwin 21... |    21 |
-| 13. |   Darwin 15... |    15 |
-| 14. |   Darwin 18... |    15 |
+| 12. |  *Darwin 21... |    20 |
+| 13. |   Darwin 18... |    15 |
+| 14. |   Darwin 15... |    15 |
 | 15. |   Darwin 20... |    13 |
-| 16. |   OpenBSD 4... |    10 |
-| 17. |   FreeBSD 6... |    10 |
-| 18. |   FreeBSD 7... |    10 |
-| 19. |   Darwin 19... |     1 |
+| 16. |   FreeBSD 6... |    10 |
+| 17. |   FreeBSD 7... |    10 |
+| 18. |   OpenBSD 4... |    10 |
+| 19. |  *Darwin 22... |     1 |
+| 20. |   Darwin 19... |     1 |
 +-----+----------------+-------+
+```
 
-Top 20 Uptime's by OSMajor:
+## Top 20 Uptime's by OSMajor:
 
+```
 +-----+----------------+-----------------------------+
 | Pos |        OSMajor |                      Uptime |
 +-----+----------------+-----------------------------+
@@ -259,20 +278,23 @@ Top 20 Uptime's by OSMajor:
 |  7. |   OpenBSD 7... | 1 years, 10 months, 21 days |
 |  8. |   Darwin 13... |  1 years, 3 months, 25 days |
 |  9. |   FreeBSD 6... |   1 years, 3 months, 9 days |
-| 10. |  *Darwin 21... |  0 years, 8 months, 25 days |
+| 10. |  *Darwin 21... |  0 years, 8 months, 20 days |
 | 11. |   OpenBSD 4... |  0 years, 8 months, 12 days |
 | 12. |   Darwin 18... |  0 years, 7 months, 30 days |
 | 13. |   Darwin 15... |  0 years, 6 months, 15 days |
 | 14. |   FreeBSD 5... |  0 years, 5 months, 18 days |
-| 15. |    *Linux 6... |   0 years, 5 months, 5 days |
+| 15. |    *Linux 6... |  0 years, 5 months, 10 days |
 | 16. |   Darwin 20... |  0 years, 4 months, 27 days |
 | 17. | *FreeBSD 13... |  0 years, 3 months, 29 days |
 | 18. |   FreeBSD 7... |   0 years, 2 months, 5 days |
 | 19. |   Darwin 19... |   0 years, 1 months, 9 days |
+| 20. |  *Darwin 22... |   0 years, 1 months, 7 days |
 +-----+----------------+-----------------------------+
+```
 
-Top 20 MetaScore's by OSMajor:
+## Top 20 MetaScore's by OSMajor:
 
+```
 +-----+----------------+-----------+
 | Pos |        OSMajor | MetaScore |
 +-----+----------------+-----------+
@@ -285,48 +307,56 @@ Top 20 MetaScore's by OSMajor:
 |  7. |   OpenBSD 7... |       116 |
 |  8. |   Darwin 13... |        80 |
 |  9. |   FreeBSD 6... |        75 |
-| 10. |  *Darwin 21... |        45 |
+| 10. |  *Darwin 21... |        44 |
 | 11. |   OpenBSD 4... |        39 |
 | 12. |   Darwin 18... |        37 |
 | 13. |   Darwin 15... |        29 |
 | 14. | *FreeBSD 13... |        28 |
-| 15. |    *Linux 6... |        26 |
+| 15. |    *Linux 6... |        27 |
 | 16. |   FreeBSD 5... |        25 |
 | 17. |   Darwin 20... |        21 |
 | 18. |   FreeBSD 7... |         7 |
-| 19. |   Darwin 19... |         1 |
+| 19. |  *Darwin 22... |         3 |
+| 20. |   Darwin 19... |         1 |
 +-----+----------------+-----------+
+```
 
-Top 20 Boots's by Uname:
+## Top 20 Boots's by Uname:
 
+```
 +-----+----------+-------+
 | Pos |    Uname | Boots |
 +-----+----------+-------+
-|  1. |   *Linux |  1011 |
+|  1. |   *Linux |  1012 |
 |  2. | *FreeBSD |   872 |
 |  3. |  *Darwin |   105 |
 |  4. |  OpenBSD |    42 |
 +-----+----------+-------+
+```
 
-Top 20 Uptime's by Uname:
+## Top 20 Uptime's by Uname:
 
+```
 +-----+----------+-----------------------------+
 | Pos |    Uname |                      Uptime |
 +-----+----------+-----------------------------+
-|  1. |   *Linux |  24 years, 5 months, 5 days |
+|  1. |   *Linux | 24 years, 5 months, 10 days |
 |  2. | *FreeBSD | 9 years, 11 months, 29 days |
-|  3. |  *Darwin |  3 years, 3 months, 30 days |
+|  3. |  *Darwin |   3 years, 4 months, 1 days |
 |  4. |  OpenBSD |  2 years, 5 months, 31 days |
 +-----+----------+-----------------------------+
+```
 
-Top 20 MetaScore's by Uname:
+## Top 20 MetaScore's by Uname:
 
+```
 +-----+----------+-----------+
 | Pos |    Uname | MetaScore |
 +-----+----------+-----------+
-|  1. |   *Linux |      1626 |
+|  1. |   *Linux |      1627 |
 |  2. | *FreeBSD |       703 |
 |  3. |  *Darwin |       216 |
 |  4. |  OpenBSD |       155 |
 +-----+----------+-----------+
 ```
+
