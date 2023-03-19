@@ -3,9 +3,9 @@
 use v6.d;
 
 enum Category <Host OS OSMajor Uname>;
-enum HostMetric <Boots Uptime MetaScore Downtime Lifespan>;
+enum Metric <Boots Uptime MetaScore Downtime Lifespan>;
 
-subset Metric of HostMetric where * ne any <Downtime Lifespan>;
+subset MetricSubset of Metric where * ne any (Downtime, Lifespan);
 subset Natural of Int where * >= 0;
 
 our Natural constant DAY = 1 * 24 * 3600;
@@ -93,20 +93,20 @@ class Aggregator {
 }
 
 class Reporter {
-  has Category $.cat = Host;
+  has Category $.category = Host;
   has Metric $.metric is required;
   has Natural $.limit is required;
   has Hash %.aggregates;
 
   method report {
-    say "Top {$.limit} {$.metric}'s by {$.cat}:\n";
+    say "Top {$.limit} {$.metric}'s by {$.category}:\n";
     with self!table -> (@table, %size) {
       my Str \format = '|' ~ join '|',
         " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
       my Str \border = '+' ~ join '+',  
         '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
       print border;
-      printf format, 'Pos', $.cat, $.metric;
+      printf format, 'Pos', $.category, $.metric;
       print border;
       for @table -> \position, \name, \value {
         printf format, position, name, value;
@@ -121,7 +121,7 @@ class Reporter {
 
     # Initial table size
     my %size =
-      :count('Pos'.chars), :name($.cat.chars),
+      :count('Pos'.chars), :name($.category.chars),
       :value($.metric.chars);
 
     for self.sort-by($.metric) -> Aggregate \what {
@@ -145,7 +145,7 @@ class Reporter {
   multi method sort-by(MetaScore) { self.sort-by: *.meta-score }
 
   multi method sort-by(Code:D $sort-by) {
-    %!aggregates{$!cat}.values.sort(&$sort-by).reverse;
+    %!aggregates{$!category}.values.sort(&$sort-by).reverse;
   }
 
   multi method human-str(Uptime, Aggregate:D $what) { Epoch.new($what.uptime).human-duration }
@@ -168,19 +168,17 @@ sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
   reporter.report;
 }
 
-multi MAIN(
+sub MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
-  Category :$cat is required where * ne Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
+  Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
   Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
   Natural :$limit = 20, #= Limit output to num of entries.
 ) {
-  do-it($stats-dir, Reporter.new(:$cat, :$metric, :$limit));
-}
-
-multi MAIN(
-  Str :$stats-dir is required,
-  HostMetric :$metric = Uptime,
-  Natural :$limit = 20,
-) {
-  do-it($stats-dir, HostReporter.new(:$metric, :$limit));
+  if $category ~~ Host {
+    do-it($stats-dir, HostReporter.new(:$metric, :$limit));
+  } elsif $metric ~~ MetricSubset {
+    do-it($stats-dir, Reporter.new(:$category, :$metric, :$limit));
+  } else {
+    die "Category $category only supports the following metrics: {Metric.^enum_value_list.grep: * ~~ MetricSubset}";
+  }
 }
