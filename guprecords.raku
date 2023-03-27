@@ -66,9 +66,17 @@ class HostAggregate is Aggregate {
 }
 
 class Aggregator {
-  has Hash %.aggregates = { Host => {}, OS => {}, Uname => {}, OSMajor => {} }
+  has Hash %!aggregates = { Host => {}, OS => {}, Uname => {}, OSMajor => {} }
+  has Str $.stats-dir is required;
 
-  method add-file(IO::Path:D $file is readonly) {
+  submethod new (Str:D $stats-dir) { self.bless(:$stats-dir) }
+
+  method aggregate () {
+    self!add-file($_) for dir($!stats-dir, test => { /.records$/ });
+    return %!aggregates;
+  }
+
+  method !add-file(IO::Path:D $file is readonly) {
     my Str $host = $file.IO.basename.split('.').first;
 
     die "Record file for {$host} already processed - duplicate inputs?"
@@ -95,12 +103,12 @@ class Aggregator {
 }
 
 class Reporter {
+  has Hash %.aggregates is required;
   has OutputFormat $.output-format is required;
   has Natural $.limit is required;
   has Natural $.header-indent = 1;
   has Category $.category = Host;
   has Metric $.metric is required;
-  has Hash %.aggregates;
 
   method report {
     say "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n";
@@ -179,16 +187,6 @@ class HostReporter is Reporter {
   multi method human-str(Lifespan, Aggregate:D $what) { Epoch.new($what.lifespan).human-duration }
 }
 
-sub do-it(Str:D \stats-dir, Reporter:D \reporter) {
-  state Aggregator $aggregator = do {
-    my Aggregator \aggregator .= new;
-    aggregator.add-file($_) for dir(stats-dir, test => { /.records$/ });
-    aggregator;
-  };
-  reporter.aggregates = $aggregator.aggregates;
-  reporter.report;
-}
-
 multi sub MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
@@ -196,10 +194,12 @@ multi sub MAIN(
   Natural :$limit = 20, #= Limit output to num of entries.
   OutputFormat :$output-format = Plaintext, #= Output format.
 ) {
+  my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
+
   if $category ~~ Host {
-    do-it($stats-dir, HostReporter.new(:$metric, :$limit, :$output-format));
+    HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format).report;
   } elsif $metric ~~ MetricSubset {
-    do-it($stats-dir, Reporter.new(:$category, :$metric, :$limit, :$output-format));
+    Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format).report;
   } else {
     die "Category $category only supports the following metrics: {Metric.^enum_value_list.grep: * ~~ MetricSubset}";
   }
@@ -209,14 +209,27 @@ multi sub MAIN(
   Str :$stats-dir is required,
   Bool :$all, #= Generate all possible stats
   Natural :$limit = 20,
-  OutputFormat :$output-format = Plaintext, #= Output format.
+  OutputFormat :$output-format = Plaintext,
 ) {
   my Natural $header-indent = 2;
+  my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
+
   for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
     next if $category !~~ Host and $metric !~~ MetricSubset;
-    do-it($stats-dir, $category ~~ Host
-      ?? HostReporter.new(:$metric, :$limit, :$output-format, :$header-indent)
-      !! Reporter.new(:$category, :$metric, :$limit, :$output-format, :$header-indent));
+    if $category ~~ Host {
+      HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format, :$header-indent).report
+    } else {
+      Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format, :$header-indent).report;
+    }
     say '';
   }
+}
+
+multi sub MAIN('test') {
+  use Test;
+  plan 1;
+
+  #do-it('./fixtures', 
+
+  done-testing;
 }
