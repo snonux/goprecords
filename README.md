@@ -14,20 +14,20 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  4. |          uranus |   150 |
 |  5. |        dionysus |   136 |
 |  6. |       tauceti-e |   120 |
-|  7. |          *earth |   106 |
+|  7. |          *earth |   108 |
 |  8. |           pluto |    51 |
-|  9. | *ultramega15289 |    50 |
-| 10. |       *makemake |    50 |
-| 11. |          phobos |    40 |
-| 12. |   ultramega8477 |    40 |
+|  9. |        makemake |    50 |
+| 10. | *ultramega15289 |    50 |
+| 11. |   ultramega8477 |    40 |
+| 12. |          phobos |    40 |
 | 13. |             sun |    33 |
 | 14. |           *t450 |    25 |
 | 15. |         *vulcan |    19 |
 | 16. |         tauceti |    16 |
-| 17. |        blowfish |    16 |
+| 17. |       *blowfish |    16 |
 | 18. |     sagittarius |    15 |
 | 19. |       deltavega |    12 |
-| 20. |       bernoulli |    10 |
+| 20. |           host0 |    10 |
 +-----+-----------------+-------+
 ```
 
@@ -37,7 +37,7 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+-----------------+-----------------------------+
 | Pos |            Host |                      Uptime |
 +-----+-----------------+-----------------------------+
-|  1. |         *vulcan |  4 years, 2 months, 12 days |
+|  1. |         *vulcan |   4 years, 4 months, 7 days |
 |  2. |          uranus | 3 years, 11 months, 21 days |
 |  3. |             sun |  3 years, 9 months, 26 days |
 |  4. |           uugrn |   3 years, 5 months, 5 days |
@@ -45,13 +45,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  6. |           pluto | 2 years, 10 months, 29 days |
 |  7. |         tauceti |  2 years, 3 months, 19 days |
 |  8. |       tauceti-f |  1 years, 9 months, 18 days |
-|  9. | *ultramega15289 |  1 years, 7 months, 27 days |
-| 10. |          *earth |  1 years, 4 months, 17 days |
+|  9. | *ultramega15289 |  1 years, 7 months, 29 days |
+| 10. |          *earth |  1 years, 4 months, 24 days |
 | 11. |   ultramega8477 |  1 years, 3 months, 25 days |
-| 12. |           host0 |   1 years, 3 months, 9 days |
-| 13. |       tauceti-e |  1 years, 2 months, 20 days |
-| 14. |       *makemake |   1 years, 1 months, 6 days |
-| 15. |        blowfish | 0 years, 11 months, 28 days |
+| 12. |       *blowfish |  1 years, 3 months, 24 days |
+| 13. |           host0 |   1 years, 3 months, 9 days |
+| 14. |       tauceti-e |  1 years, 2 months, 20 days |
+| 15. |        makemake |   1 years, 1 months, 6 days |
 | 16. |        callisto | 0 years, 10 months, 31 days |
 | 17. |   alphacentauri | 0 years, 10 months, 28 days |
 | 18. |          london |  0 years, 9 months, 16 days |
@@ -69,22 +69,22 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  1. |          uranus |       360 |
 |  2. |   alphacentauri |       294 |
 |  3. |        dionysus |       285 |
-|  4. |         *vulcan |       263 |
+|  4. |         *vulcan |       273 |
 |  5. |             sun |       238 |
 |  6. |           uugrn |       211 |
 |  7. |       deltavega |       193 |
 |  8. |           pluto |       182 |
 |  9. |         tauceti |       141 |
-| 10. | *ultramega15289 |       120 |
+| 10. | *ultramega15289 |       122 |
 | 11. |       tauceti-e |       111 |
 | 12. |        callisto |       108 |
 | 13. |       tauceti-f |       108 |
-| 14. |          *earth |       104 |
-| 15. |       *makemake |        98 |
+| 14. |          *earth |       105 |
+| 15. |        makemake |        96 |
 | 16. |            mars |        85 |
-| 17. |   ultramega8477 |        80 |
-| 18. |           host0 |        77 |
-| 19. |        blowfish |        58 |
+| 17. |       *blowfish |        81 |
+| 18. |   ultramega8477 |        80 |
+| 19. |           host0 |        77 |
 | 20. |          sirius |        52 |
 +-----+-----------------+-----------+
 ```
@@ -101,9 +101,9 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  4. |        callisto |  1 years, 5 months, 15 days |
 |  5. |            mars |  1 years, 2 months, 10 days |
 |  6. |       tauceti-e |  0 years, 12 months, 9 days |
-|  7. |       *makemake | 0 years, 11 months, 22 days |
+|  7. |        makemake | 0 years, 11 months, 22 days |
 |  8. |          sirius |  0 years, 8 months, 20 days |
-|  9. | *ultramega15289 |   0 years, 7 months, 3 days |
+|  9. | *ultramega15289 |   0 years, 7 months, 8 days |
 | 10. |          deimos |  0 years, 5 months, 15 days |
 | 11. |          *earth |  0 years, 5 months, 10 days |
 | 12. |           *t450 |  0 years, 2 months, 23 days |
@@ -127,23 +127,23 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  1. |        dionysus |  8 years, 6 months, 17 days |
 |  2. |          uranus |  7 years, 2 months, 16 days |
 |  3. |   alphacentauri |  6 years, 9 months, 13 days |
-|  4. |         *vulcan |  4 years, 2 months, 12 days |
+|  4. |         *vulcan |   4 years, 4 months, 7 days |
 |  5. |             sun |  3 years, 10 months, 2 days |
 |  6. |           uugrn |   3 years, 5 months, 5 days |
 |  7. |       deltavega |  3 years, 1 months, 21 days |
 |  8. |           pluto | 2 years, 10 months, 30 days |
 |  9. |         tauceti |  2 years, 3 months, 22 days |
 | 10. |        callisto |  2 years, 3 months, 13 days |
-| 11. |       tauceti-e |  2 years, 1 months, 29 days |
-| 12. | *ultramega15289 |  2 years, 1 months, 26 days |
-| 13. |       *makemake | 1 years, 11 months, 28 days |
+| 11. | *ultramega15289 |   2 years, 2 months, 3 days |
+| 12. |       tauceti-e |  2 years, 1 months, 29 days |
+| 13. |        makemake | 1 years, 11 months, 28 days |
 | 14. |       tauceti-f |  1 years, 9 months, 20 days |
-| 15. |          *earth |  1 years, 8 months, 24 days |
+| 15. |          *earth |  1 years, 8 months, 31 days |
 | 16. |            mars |  1 years, 8 months, 19 days |
 | 17. |           host0 |  1 years, 4 months, 10 days |
 | 18. |   ultramega8477 |   1 years, 4 months, 1 days |
-| 19. |          sirius |  1 years, 2 months, 24 days |
-| 20. |        blowfish | 0 years, 11 months, 28 days |
+| 19. |       *blowfish |  1 years, 3 months, 24 days |
+| 20. |          sirius |  1 years, 2 months, 24 days |
 +-----+-----------------+-----------------------------+
 ```
 
@@ -162,8 +162,8 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  7. |                Darwin 13.4.0 |    40 |
 |  8. |     FreeBSD 10.3-RELEASE-p20 |    39 |
 |  9. |     FreeBSD 10.3-RELEASE-p11 |    39 |
-| 10. |      FreeBSD 10.0-RELEASE-p7 |    38 |
-| 11. |     FreeBSD 10.1-RELEASE-p10 |    38 |
+| 10. |     FreeBSD 10.1-RELEASE-p10 |    38 |
+| 11. |      FreeBSD 10.0-RELEASE-p7 |    38 |
 | 12. |     FreeBSD 10.1-RELEASE-p35 |    34 |
 | 13. |      FreeBSD 10.0-RELEASE-p9 |    29 |
 | 14. |      FreeBSD 13.0-RELEASE-p4 |    29 |
@@ -172,7 +172,7 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 17. |     *FreeBSD 13.1-RELEASE-p3 |    25 |
 | 18. |     FreeBSD 10.1-RELEASE-p31 |    24 |
 | 19. |      FreeBSD 11.4-RELEASE-p5 |    23 |
-| 20. |      FreeBSD 11.3-RELEASE-p9 |    20 |
+| 20. |     FreeBSD 10.1-RELEASE-p41 |    20 |
 +-----+------------------------------+-------+
 ```
 
@@ -196,12 +196,12 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 12. |        Linux 4.0.4-303.fc22.x86_64 |  0 years, 9 months, 17 days |
 | 13. |                FreeBSD 6.2-RELEASE |  0 years, 9 months, 14 days |
 | 14. |  Linux 3.10.0-1127.13.1.el7.x86_64 |   0 years, 9 months, 9 days |
-| 15. |            FreeBSD 11.1-RELEASE-p4 |  0 years, 8 months, 18 days |
-| 16. |                        OpenBSD 4.1 |  0 years, 8 months, 12 days |
-| 17. |    Linux 3.10.0-957.1.3.el7.x86_64 |  0 years, 8 months, 12 days |
-| 18. |                        OpenBSD 7.0 |  0 years, 8 months, 10 days |
-| 19. |                      Darwin 18.7.0 |  0 years, 7 months, 30 days |
-| 20. |           FreeBSD 10.3-RELEASE-p24 |  0 years, 7 months, 13 days |
+| 15. |                       *OpenBSD 7.2 |   0 years, 9 months, 3 days |
+| 16. |            FreeBSD 11.1-RELEASE-p4 |  0 years, 8 months, 18 days |
+| 17. |                        OpenBSD 4.1 |  0 years, 8 months, 12 days |
+| 18. |    Linux 3.10.0-957.1.3.el7.x86_64 |  0 years, 8 months, 12 days |
+| 19. |                        OpenBSD 7.0 |  0 years, 8 months, 10 days |
+| 20. |                      Darwin 18.7.0 |  0 years, 7 months, 30 days |
 +-----+------------------------------------+-----------------------------+
 ```
 
@@ -223,14 +223,14 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 10. |  Linux 3.10.0-1160.11.1.el7.x86_64 |        61 |
 | 11. |        Linux 4.0.4-303.fc22.x86_64 |        53 |
 | 12. |            FreeBSD 11.0-RELEASE-p1 |        48 |
-| 13. |                FreeBSD 6.2-RELEASE |        44 |
-| 14. |  Linux 3.10.0-1127.13.1.el7.x86_64 |        43 |
-| 15. |            FreeBSD 11.1-RELEASE-p4 |        39 |
-| 16. |                        OpenBSD 7.0 |        39 |
+| 13. |                       *OpenBSD 7.2 |        45 |
+| 14. |                FreeBSD 6.2-RELEASE |        44 |
+| 15. |  Linux 3.10.0-1127.13.1.el7.x86_64 |        43 |
+| 16. |            FreeBSD 11.1-RELEASE-p4 |        39 |
 | 17. |                        OpenBSD 4.1 |        39 |
-| 18. |    Linux 3.10.0-957.1.3.el7.x86_64 |        38 |
-| 19. |                      Darwin 18.7.0 |        37 |
-| 20. |           FreeBSD 10.3-RELEASE-p24 |        35 |
+| 18. |                        OpenBSD 7.0 |        39 |
+| 19. |    Linux 3.10.0-957.1.3.el7.x86_64 |        38 |
+| 20. |                      Darwin 18.7.0 |        37 |
 +-----+------------------------------------+-----------+
 ```
 
@@ -247,18 +247,18 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  5. |  FreeBSD 11... |   153 |
 |  6. | *FreeBSD 13... |   123 |
 |  7. |   Darwin 13... |    40 |
-|  8. |   OpenBSD 7... |    32 |
-|  9. |    *Linux 6... |    27 |
+|  8. |  *OpenBSD 7... |    34 |
+|  9. |    *Linux 6... |    29 |
 | 10. |   FreeBSD 5... |    25 |
 | 11. |     Linux 2... |    22 |
 | 12. |  *Darwin 21... |    20 |
 | 13. |   Darwin 18... |    15 |
 | 14. |   Darwin 15... |    15 |
-| 15. |   Darwin 20... |    13 |
-| 16. |   FreeBSD 6... |    10 |
-| 17. |   FreeBSD 7... |    10 |
-| 18. |   OpenBSD 4... |    10 |
-| 19. |  *Darwin 22... |     1 |
+| 15. |   Darwin 20... |    12 |
+| 16. |   FreeBSD 7... |    10 |
+| 17. |   OpenBSD 4... |    10 |
+| 18. |   FreeBSD 6... |    10 |
+| 19. |  *Darwin 22... |     2 |
 | 20. |   Darwin 19... |     1 |
 +-----+----------------+-------+
 ```
@@ -269,13 +269,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------------+-----------------------------+
 | Pos |        OSMajor |                      Uptime |
 +-----+----------------+-----------------------------+
-|  1. |    *Linux 3... |  15 years, 8 months, 3 days |
+|  1. |    *Linux 3... | 15 years, 9 months, 26 days |
 |  2. |  FreeBSD 10... |   5 years, 9 months, 9 days |
 |  3. |     Linux 5... |  3 years, 12 months, 2 days |
 |  4. |     Linux 4... |   2 years, 8 months, 9 days |
-|  5. |  FreeBSD 11... |  2 years, 4 months, 28 days |
-|  6. |     Linux 2... | 1 years, 11 months, 21 days |
-|  7. |   OpenBSD 7... | 1 years, 10 months, 21 days |
+|  5. |  *OpenBSD 7... |   2 years, 6 months, 9 days |
+|  6. |  FreeBSD 11... |  2 years, 4 months, 28 days |
+|  7. |     Linux 2... | 1 years, 11 months, 21 days |
 |  8. |   Darwin 13... |  1 years, 3 months, 25 days |
 |  9. |   FreeBSD 6... |   1 years, 3 months, 9 days |
 | 10. |  *Darwin 21... |  0 years, 8 months, 20 days |
@@ -283,12 +283,12 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 12. |   Darwin 18... |  0 years, 7 months, 30 days |
 | 13. |   Darwin 15... |  0 years, 6 months, 15 days |
 | 14. |   FreeBSD 5... |  0 years, 5 months, 18 days |
-| 15. |    *Linux 6... |  0 years, 5 months, 10 days |
-| 16. |   Darwin 20... |  0 years, 4 months, 27 days |
+| 15. |    *Linux 6... |  0 years, 5 months, 17 days |
+| 16. |   Darwin 20... |  0 years, 4 months, 22 days |
 | 17. | *FreeBSD 13... |  0 years, 3 months, 29 days |
 | 18. |   FreeBSD 7... |   0 years, 2 months, 5 days |
-| 19. |   Darwin 19... |   0 years, 1 months, 9 days |
-| 20. |  *Darwin 22... |   0 years, 1 months, 7 days |
+| 19. |  *Darwin 22... |  0 years, 1 months, 14 days |
+| 20. |   Darwin 19... |   0 years, 1 months, 9 days |
 +-----+----------------+-----------------------------+
 ```
 
@@ -298,25 +298,25 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------------+-----------+
 | Pos |        OSMajor | MetaScore |
 +-----+----------------+-----------+
-|  1. |    *Linux 3... |      1033 |
+|  1. |    *Linux 3... |      1043 |
 |  2. |  FreeBSD 10... |       406 |
 |  3. |     Linux 5... |       268 |
 |  4. |     Linux 4... |       178 |
-|  5. |  FreeBSD 11... |       159 |
-|  6. |     Linux 2... |       121 |
-|  7. |   OpenBSD 7... |       116 |
+|  5. |  *OpenBSD 7... |       159 |
+|  6. |  FreeBSD 11... |       159 |
+|  7. |     Linux 2... |       121 |
 |  8. |   Darwin 13... |        80 |
 |  9. |   FreeBSD 6... |        75 |
 | 10. |  *Darwin 21... |        44 |
 | 11. |   OpenBSD 4... |        39 |
 | 12. |   Darwin 18... |        37 |
 | 13. |   Darwin 15... |        29 |
-| 14. | *FreeBSD 13... |        28 |
-| 15. |    *Linux 6... |        27 |
+| 14. |    *Linux 6... |        28 |
+| 15. | *FreeBSD 13... |        28 |
 | 16. |   FreeBSD 5... |        25 |
-| 17. |   Darwin 20... |        21 |
+| 17. |   Darwin 20... |        20 |
 | 18. |   FreeBSD 7... |         7 |
-| 19. |  *Darwin 22... |         3 |
+| 19. |  *Darwin 22... |         5 |
 | 20. |   Darwin 19... |         1 |
 +-----+----------------+-----------+
 ```
@@ -327,10 +327,10 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------+-------+
 | Pos |    Uname | Boots |
 +-----+----------+-------+
-|  1. |   *Linux |  1012 |
+|  1. |   *Linux |  1014 |
 |  2. | *FreeBSD |   872 |
 |  3. |  *Darwin |   105 |
-|  4. |  OpenBSD |    42 |
+|  4. | *OpenBSD |    44 |
 +-----+----------+-------+
 ```
 
@@ -340,10 +340,10 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------+-----------------------------+
 | Pos |    Uname |                      Uptime |
 +-----+----------+-----------------------------+
-|  1. |   *Linux | 24 years, 5 months, 10 days |
+|  1. |   *Linux | 24 years, 7 months, 10 days |
 |  2. | *FreeBSD | 9 years, 11 months, 29 days |
-|  3. |  *Darwin |   3 years, 4 months, 1 days |
-|  4. |  OpenBSD |  2 years, 5 months, 31 days |
+|  3. |  *Darwin |   3 years, 4 months, 3 days |
+|  4. | *OpenBSD |  3 years, 1 months, 18 days |
 +-----+----------+-----------------------------+
 ```
 
@@ -353,10 +353,9 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------+-----------+
 | Pos |    Uname | MetaScore |
 +-----+----------+-----------+
-|  1. |   *Linux |      1627 |
+|  1. |   *Linux |      1637 |
 |  2. | *FreeBSD |       703 |
-|  3. |  *Darwin |       216 |
-|  4. |  OpenBSD |       155 |
+|  3. |  *Darwin |       217 |
+|  4. | *OpenBSD |       198 |
 +-----+----------+-----------+
 ```
-
