@@ -240,8 +240,7 @@ multi sub MAIN('test') {
   }
 
   plan @combs;
-  my $limit = 5;
-  my $output-format = Plaintext;
+  my $limit = 3;
   my %aggregates = Aggregator.new('./fixtures').aggregate;
 
   for @combs -> (Category $category, Metric $metric, OutputFormat $output-format) {
