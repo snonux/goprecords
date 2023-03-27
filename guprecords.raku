@@ -232,9 +232,10 @@ multi sub MAIN('test') {
   use Test;
 
   my @combs = gather {
-    for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
+    for Category.^enum_value_list X Metric.^enum_value_list X OutputFormat.^enum_value_list
+    -> (Category $category, Metric $metric, OutputFormat $output-format) {
       next if $category !~~ Host and $metric !~~ MetricSubset;
-      take $category, $metric;
+      take $category, $metric, $output-format;
     }
   }
 
@@ -243,11 +244,11 @@ multi sub MAIN('test') {
   my $output-format = Plaintext;
   my %aggregates = Aggregator.new('./fixtures').aggregate;
 
-  for @combs -> (Category $category, Metric $metric) {
+  for @combs -> (Category $category, Metric $metric, OutputFormat $output-format) {
     my \reporter = $category ~~ Host
       ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
       !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
-    is reporter.report, "./fixtures/$category.$metric.expected-output".IO.slurp;
+    is reporter.report, "./fixtures/$category.$metric.$output-format.expected".IO.slurp;
   }
 
   done-testing;
