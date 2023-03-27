@@ -5,7 +5,7 @@ use v6.d;
 enum Category <Host OS OSMajor Uname>;
 enum Metric <Boots Uptime MetaScore Downtime Lifespan>;
 
-enum OutputFormat <Plaintext Markdown>;
+enum OutputFormat <Plaintext Markdown Gemtext>;
 
 subset MetricSubset of Metric where * ne any (Downtime, Lifespan);
 subset Natural of Int where * >= 0;
@@ -98,8 +98,13 @@ role OutputFormatter {
   has OutputFormat $.output-format is required;
   has Natural $.header-indent = 1;
 
-  method output-header { $.output-format ~~ Markdown ??  '#' x $.header-indent ~ ' ' !! '' }
-  method output-block { $.output-format ~~ Markdown ?? '```' !! '' }
+  method output-header {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
+  }
+
+  method output-block {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? '```' !! ''
+  }
 }
 
 class Reporter does OutputFormatter {
