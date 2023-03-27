@@ -229,6 +229,9 @@ multi sub MAIN('test') {
   use Test;
   plan 1;
 
+  my Hash %aggregates = Aggregator.new('./fixtures').aggregate;
+
+  say %aggregates.raku;
   #do-it('./fixtures', 
 
   done-testing;
