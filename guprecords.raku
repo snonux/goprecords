@@ -94,27 +94,16 @@ class Aggregator {
   }
 }
 
-role OutputFormatter {
+class Reporter {
   has OutputFormat $.output-format is required;
+  has Natural $.limit is required;
   has Natural $.header-indent = 1;
-
-  method output-header {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
-  }
-
-  method output-block {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? '```' !! ''
-  }
-}
-
-class Reporter does OutputFormatter {
   has Category $.category = Host;
   has Metric $.metric is required;
-  has Natural $.limit is required;
   has Hash %.aggregates;
 
   method report {
-    say "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}:\n";
+    say "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n";
 
     with self!table -> (@table, %size) {
       my Str \format = '|' ~ join '|',
@@ -122,7 +111,7 @@ class Reporter does OutputFormatter {
       my Str \border = '+' ~ join '+',  
         '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
 
-      say self.output-block;
+      say self!output-block;
       print border;
       printf format, 'Pos', $.category, $.metric;
       print border;
@@ -132,7 +121,7 @@ class Reporter does OutputFormatter {
       }
 
       print border;
-      say self.output-block;
+      say self!output-block;
     }
   }
 
@@ -159,6 +148,14 @@ class Reporter does OutputFormatter {
     }
 
     return @table, %size;
+  }
+
+  method !output-header {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
+  }
+
+  method !output-block {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? '```' !! ''
   }
 
   multi method sort-by(Uptime) { self.sort-by: *.uptime }
