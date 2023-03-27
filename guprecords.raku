@@ -110,8 +110,9 @@ class Reporter {
   has Category $.category = Host;
   has Metric $.metric is required;
 
-  method report {
-    say "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n";
+  method report returns Str {
+    my Str @ret;
+    push @ret, "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n\n";
 
     with self!table -> (@table, %size) {
       my Str \format = '|' ~ join '|',
@@ -119,18 +120,20 @@ class Reporter {
       my Str \border = '+' ~ join '+',  
         '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
 
-      say self!output-block;
-      print border;
-      printf format, 'Pos', $.category, $.metric;
-      print border;
+      push @ret, self!output-block;
+      push @ret, border;
+      push @ret, sprintf format, 'Pos', $.category, $.metric;
+      push @ret, border;
 
       for @table -> \position, \name, \value {
-        printf format, position, name, value;
+        push @ret, sprintf format, position, name, value;
       }
 
-      print border;
-      say self!output-block;
+      push @ret, border;
+      push @ret, self!output-block;
     }
+
+    return @ret.join('');
   }
 
   method !table returns List {
@@ -163,7 +166,7 @@ class Reporter {
   }
 
   method !output-block {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? '```' !! ''
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? "```\n" !! ''
   }
 
   multi method sort-by(Uptime) { self.sort-by: *.uptime }
@@ -197,9 +200,9 @@ multi sub MAIN(
   my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
 
   if $category ~~ Host {
-    HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format).report;
+    print HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format).report;
   } elsif $metric ~~ MetricSubset {
-    Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format).report;
+    print Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format).report;
   } else {
     die "Category $category only supports the following metrics: {Metric.^enum_value_list.grep: * ~~ MetricSubset}";
   }
@@ -217,9 +220,9 @@ multi sub MAIN(
   for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
     next if $category !~~ Host and $metric !~~ MetricSubset;
     if $category ~~ Host {
-      HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format, :$header-indent).report
+      print HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format, :$header-indent).report
     } else {
-      Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format, :$header-indent).report;
+      print Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format, :$header-indent).report;
     }
     say '';
   }
@@ -227,12 +230,25 @@ multi sub MAIN(
 
 multi sub MAIN('test') {
   use Test;
-  plan 1;
 
-  my Hash %aggregates = Aggregator.new('./fixtures').aggregate;
+  my @combs = gather {
+    for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
+      next if $category !~~ Host and $metric !~~ MetricSubset;
+      take $category, $metric;
+    }
+  }
 
-  say %aggregates.raku;
-  #do-it('./fixtures', 
+  plan @combs;
+  my $limit = 5;
+  my $output-format = Plaintext;
+  my %aggregates = Aggregator.new('./fixtures').aggregate;
+
+  for @combs -> (Category $category, Metric $metric) {
+    my \reporter = $category ~~ Host
+      ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
+      !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
+    is reporter.report, "./fixtures/$category.$metric.expected-output".IO.slurp;
+  }
 
   done-testing;
 }
