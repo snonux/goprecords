@@ -1,4 +1,7 @@
-Top 3 Downtime's by Host:
+Top 3 Downtime's by Host
+
+ Downtime is the total downtime of a host over the
+entire lifespan.
 
 +-----+----------------+-----------------------------+
 | Pos |           Host |                    Downtime |

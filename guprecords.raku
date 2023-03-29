@@ -2,10 +2,18 @@
 
 use v6.d;
 
-enum Category <Host OS OSMajor Uname>;
-enum Metric <Boots Uptime MetaScore Downtime Lifespan>;
+enum Category <Host Kernel KernelMajor KernelName>;
+enum Metric <Boots Uptime Score Downtime Lifespan>;
 enum OutputFormat <Plaintext Markdown Gemtext>;
 subset MetricSubset of Metric where * ne any (Downtime, Lifespan);
+
+our constant %DESCRIPTION = {
+    Boots => 'Boots is the total number of host boots over the entire lifespan.',
+    Uptime => 'Uptime is the total uptime of a host over the entire lifespan.',
+    Downtime => 'Downtime is the total downtime of a host over the entire lifespan.',
+    Lifespan => 'Lifespan is the total uptime + the total downtime of a host.',
+    Score => 'Score is calculated by combining all other metrics.',
+};
 
 our UInt constant DAY = 1 * 24 * 3600;
 our UInt constant MONTH = 30 * DAY;
@@ -63,7 +71,7 @@ class HostAggregate is Aggregate {
 }
 
 class Aggregator {
-  has Hash %!aggregates = { Host => {}, OS => {}, Uname => {}, OSMajor => {} }
+  has Hash %!aggregates = { Host => {}, Kernel => {}, KernelName => {}, KernelMajor => {} }
   has Str $.stats-dir is required;
 
   submethod new (Str:D $stats-dir) { self.bless(:$stats-dir) }
@@ -88,36 +96,65 @@ class Aggregator {
     my $uname = $os.split(' ').first;
     my $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
 
-    %!aggregates<OS>{$os} //= Aggregate.new($os);
-    %!aggregates<Uname>{$uname} //= Aggregate.new($uname);
-    %!aggregates<OSMajor>{$os-major} //= Aggregate.new($os-major);
+    %!aggregates<Kernel>{$os} //= Aggregate.new($os);
+    %!aggregates<KernelName>{$uname} //= Aggregate.new($uname);
+    %!aggregates<KernelMajor>{$os-major} //= Aggregate.new($os-major);
 
-    for %!aggregates<Host>{$host}, %!aggregates<OS>{$os},
-        %!aggregates<Uname>{$uname}, %!aggregates<OSMajor>{$os-major} {
+    for %!aggregates<Host>{$host}, %!aggregates<Kernel>{$os},
+        %!aggregates<KernelName>{$uname}, %!aggregates<KernelMajor>{$os-major} {
       .add-record(:$uptime, :$boot-time);
     }
   }
 }
 
-class Reporter {
-  has Hash %.aggregates is required;
+role OutputHelper {
   has OutputFormat $.output-format is required;
-  has UInt $.limit is required;
   has UInt $.header-indent = 1;
+
+  method output-header {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
+  }
+
+  method output-trim(Str \str, UInt \line-limit) returns Str {
+    if $.output-format ~~ Plaintext and str.chars > line-limit {
+      return join '', gather {
+        my $chars = 0;
+        for str.split(' ') -> \word {
+          if ($chars += (word.chars + 1)) > line-limit {
+            take "\n" ~ word;
+            $chars = word.chars;
+          } else {
+            take ' ' ~ word;
+          }
+        }
+      }
+    }
+    return str;
+  }
+
+  method output-block {
+    ($.output-format ~~ any (Markdown, Gemtext)) ?? "```\n" !! ''
+  }
+}
+
+class Reporter does OutputHelper {
+  has Hash %.aggregates is required;
+  has UInt $.limit is required;
   has Category $.category = Host;
   has Metric $.metric is required;
 
   method report returns Str {
     join '', gather {
-      take "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n\n";
-
       with self!table -> (@table, %size) {
         my \format = '|' ~ join '|',
           " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
         my \border = '+' ~ join '+',  
           '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
 
-        take self!output-block;
+        take "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}\n\n";
+        take self.output-trim(%DESCRIPTION{$.metric}, border.chars), "\n\n";
+
+        take self.output-block;
         take border;
         take sprintf format, 'Pos', $.category, $.metric;
         take border;
@@ -127,13 +164,13 @@ class Reporter {
         }
 
         take border;
-        take self!output-block;
+        take self.output-block;
       }
     }
   }
 
   method !table returns List {
-    my UInt $count = 0;
+    my $count = 0;
     my @table;
 
     # Initial table size
@@ -156,18 +193,9 @@ class Reporter {
 
     return @table, %size;
   }
-
-  method !output-header {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
-  }
-
-  method !output-block {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? "```\n" !! ''
-  }
-
   multi method sort-by(Uptime) { self.sort-by: *.uptime }
   multi method sort-by(Boots) { self.sort-by: *.boots }
-  multi method sort-by(MetaScore) { self.sort-by: *.meta-score }
+  multi method sort-by(Score) { self.sort-by: *.meta-score }
 
   multi method sort-by(Code:D $sort-by) {
     %!aggregates{$!category}.values.sort(&$sort-by).reverse;
@@ -175,7 +203,7 @@ class Reporter {
 
   multi method human-str(Uptime, Aggregate:D $what) { Epoch.new($what.uptime).human-duration }
   multi method human-str(Boots, Aggregate:D $what) { $what.boots }
-  multi method human-str(MetaScore, Aggregate:D $what) { $what.meta-score }
+  multi method human-str(Score, Aggregate:D $what) { $what.meta-score }
 }
 
 class HostReporter is Reporter {
@@ -186,10 +214,10 @@ class HostReporter is Reporter {
   multi method human-str(Lifespan, Aggregate:D $what) { Epoch.new($what.lifespan).human-duration }
 }
 
-multi sub MAIN(
+multi MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
-  Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
-  Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
+  Category :$category = Host, #= The category, one of Host, Kernel, KernelMajor, KernelName [default: 'Host']
+  Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, Score, Downtime, Lifespan
   UInt :$limit = 20, #= Limit output to num of entries.
   OutputFormat :$output-format = Plaintext, #= Output format.
 ) {
@@ -204,7 +232,7 @@ multi sub MAIN(
   }
 }
 
-multi sub MAIN(
+multi MAIN(
   Str :$stats-dir is required,
   Bool :$all, #= Generate all possible stats
   UInt :$limit = 20,
@@ -224,7 +252,7 @@ multi sub MAIN(
   }
 }
 
-multi sub MAIN('test') {
+multi MAIN('test') {
   use Test;
 
   my @combs = gather {
@@ -243,6 +271,9 @@ multi sub MAIN('test') {
     my \reporter = $category ~~ Host
       ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
       !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
+      #my $fh = open "./fixtures/$category.$metric.$output-format.expected", :w;
+      #$fh.print(reporter.report);
+      #$fh.close;
     is reporter.report, "./fixtures/$category.$metric.$output-format.expected".IO.slurp;
   }
 

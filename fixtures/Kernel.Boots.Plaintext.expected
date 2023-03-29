@@ -1,7 +1,10 @@
-Top 3 Boots's by OS:
+Top 3 Boots's by Kernel
+
+ Boots is the total number of host boots over
+the entire lifespan.
 
 +-----+------------------------------+-------+
-| Pos |                           OS | Boots |
+| Pos |                       Kernel | Boots |
 +-----+------------------------------+-------+
 |  1. |          Linux 3.2.0-4-amd64 |   321 |
 |  2. |  Linux 4.0.4-303.fc22.x86_64 |   103 |

@@ -1,7 +1,11 @@
-Top 3 Boots's by OSMajor:
+Top 3 Boots's by KernelMajor
+
+ Boots is the total number of
+host boots over the entire
+lifespan.
 
 +-----+----------------+-------+
-| Pos |        OSMajor | Boots |
+| Pos |    KernelMajor | Boots |
 +-----+----------------+-------+
 |  1. |  FreeBSD 10... |   551 |
 |  2. |    *Linux 3... |   410 |

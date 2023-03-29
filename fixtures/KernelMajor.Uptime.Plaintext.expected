@@ -1,11 +1,12 @@
-# Top 3 Uptime's by OSMajor:
+Top 3 Uptime's by KernelMajor
 
-```
+ Uptime is the total uptime of a host over the entire
+lifespan.
+
 +-----+----------------+-----------------------------+
-| Pos |        OSMajor |                      Uptime |
+| Pos |    KernelMajor |                      Uptime |
 +-----+----------------+-----------------------------+
 |  1. |    *Linux 3... | 11 years, 2 months, 11 days |
 |  2. |  FreeBSD 10... |   5 years, 9 months, 9 days |
 |  3. |     Linux 5... |  3 years, 12 months, 2 days |
 +-----+----------------+-----------------------------+
-```
