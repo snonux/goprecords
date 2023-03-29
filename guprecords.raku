@@ -108,29 +108,28 @@ class Reporter {
   has Metric $.metric is required;
 
   method report returns Str {
-    my @ret;
-    push @ret, "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n\n";
+    join '', gather {
+      take "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n\n";
 
-    with self!table -> (@table, %size) {
-      my \format = '|' ~ join '|',
-        " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
-      my \border = '+' ~ join '+',  
-        '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
+      with self!table -> (@table, %size) {
+        my \format = '|' ~ join '|',
+          " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
+        my \border = '+' ~ join '+',  
+          '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
 
-      push @ret, self!output-block;
-      push @ret, border;
-      push @ret, sprintf format, 'Pos', $.category, $.metric;
-      push @ret, border;
+        take self!output-block;
+        take border;
+        take sprintf format, 'Pos', $.category, $.metric;
+        take border;
 
-      for @table -> \position, \name, \value {
-        push @ret, sprintf format, position, name, value;
+        for @table -> \position, \name, \value {
+          take sprintf format, position, name, value;
+        }
+
+        take border;
+        take self!output-block;
       }
-
-      push @ret, border;
-      push @ret, self!output-block;
     }
-
-    return @ret.join('');
   }
 
   method !table returns List {
