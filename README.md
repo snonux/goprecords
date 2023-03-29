@@ -2,7 +2,9 @@
 
 Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 
-## Top 20 Boots's by Host:
+## Top 20 Boots's by Host
+
+Boots is the total number of host boots over the entire lifespan.
 
 ```
 +-----+-----------------+-------+
@@ -16,8 +18,8 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  6. |       tauceti-e |   120 |
 |  7. |          *earth |   108 |
 |  8. |           pluto |    51 |
-|  9. |        makemake |    50 |
-| 10. | *ultramega15289 |    50 |
+|  9. | *ultramega15289 |    50 |
+| 10. |        makemake |    50 |
 | 11. |   ultramega8477 |    40 |
 | 12. |          phobos |    40 |
 | 13. |             sun |    33 |
@@ -27,11 +29,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 17. |       *blowfish |    16 |
 | 18. |     sagittarius |    15 |
 | 19. |       deltavega |    12 |
-| 20. |           host0 |    10 |
+| 20. |         twofish |    10 |
 +-----+-----------------+-------+
 ```
 
-## Top 20 Uptime's by Host:
+## Top 20 Uptime's by Host
+
+Uptime is the total uptime of a host over the entire lifespan.
 
 ```
 +-----+-----------------+-----------------------------+
@@ -60,36 +64,40 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+-----------------+-----------------------------+
 ```
 
-## Top 20 MetaScore's by Host:
+## Top 20 Score's by Host
+
+Score is calculated by combining all other metrics.
 
 ```
-+-----+-----------------+-----------+
-| Pos |            Host | MetaScore |
-+-----+-----------------+-----------+
-|  1. |          uranus |       360 |
-|  2. |   alphacentauri |       294 |
-|  3. |        dionysus |       285 |
-|  4. |         *vulcan |       273 |
-|  5. |             sun |       238 |
-|  6. |           uugrn |       211 |
-|  7. |       deltavega |       193 |
-|  8. |           pluto |       182 |
-|  9. |         tauceti |       141 |
-| 10. | *ultramega15289 |       122 |
-| 11. |       tauceti-e |       111 |
-| 12. |        callisto |       108 |
-| 13. |       tauceti-f |       108 |
-| 14. |          *earth |       105 |
-| 15. |        makemake |        96 |
-| 16. |            mars |        85 |
-| 17. |       *blowfish |        81 |
-| 18. |   ultramega8477 |        80 |
-| 19. |           host0 |        77 |
-| 20. |          sirius |        52 |
-+-----+-----------------+-----------+
++-----+-----------------+-------+
+| Pos |            Host | Score |
++-----+-----------------+-------+
+|  1. |          uranus |   360 |
+|  2. |   alphacentauri |   294 |
+|  3. |        dionysus |   285 |
+|  4. |         *vulcan |   273 |
+|  5. |             sun |   238 |
+|  6. |           uugrn |   211 |
+|  7. |       deltavega |   193 |
+|  8. |           pluto |   182 |
+|  9. |         tauceti |   141 |
+| 10. | *ultramega15289 |   122 |
+| 11. |       tauceti-e |   111 |
+| 12. |       tauceti-f |   108 |
+| 13. |        callisto |   108 |
+| 14. |          *earth |   105 |
+| 15. |        makemake |    96 |
+| 16. |            mars |    85 |
+| 17. |       *blowfish |    81 |
+| 18. |   ultramega8477 |    80 |
+| 19. |           host0 |    77 |
+| 20. |          sirius |    52 |
++-----+-----------------+-------+
 ```
 
-## Top 20 Downtime's by Host:
+## Top 20 Downtime's by Host
+
+Downtime is the total downtime of a host over the entire lifespan.
 
 ```
 +-----+-----------------+-----------------------------+
@@ -118,7 +126,9 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+-----------------+-----------------------------+
 ```
 
-## Top 20 Lifespan's by Host:
+## Top 20 Lifespan's by Host
+
+Lifespan is the total uptime + the total downtime of a host.
 
 ```
 +-----+-----------------+-----------------------------+
@@ -147,11 +157,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+-----------------+-----------------------------+
 ```
 
-## Top 20 Boots's by OS:
+## Top 20 Boots's by Kernel
+
+Boots is the total number of host boots over the entire lifespan.
 
 ```
 +-----+------------------------------+-------+
-| Pos |                           OS | Boots |
+| Pos |                       Kernel | Boots |
 +-----+------------------------------+-------+
 |  1. |          Linux 3.2.0-4-amd64 |   452 |
 |  2. |  Linux 4.0.4-303.fc22.x86_64 |   103 |
@@ -160,13 +172,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 |  5. |     FreeBSD 10.1-RELEASE-p19 |    48 |
 |  6. |     FreeBSD 11.1-RELEASE-p10 |    46 |
 |  7. |                Darwin 13.4.0 |    40 |
-|  8. |     FreeBSD 10.3-RELEASE-p20 |    39 |
-|  9. |     FreeBSD 10.3-RELEASE-p11 |    39 |
+|  8. |     FreeBSD 10.3-RELEASE-p11 |    39 |
+|  9. |     FreeBSD 10.3-RELEASE-p20 |    39 |
 | 10. |     FreeBSD 10.1-RELEASE-p10 |    38 |
 | 11. |      FreeBSD 10.0-RELEASE-p7 |    38 |
 | 12. |     FreeBSD 10.1-RELEASE-p35 |    34 |
-| 13. |      FreeBSD 10.0-RELEASE-p9 |    29 |
-| 14. |      FreeBSD 13.0-RELEASE-p4 |    29 |
+| 13. |      FreeBSD 13.0-RELEASE-p4 |    29 |
+| 14. |      FreeBSD 10.0-RELEASE-p9 |    29 |
 | 15. |     FreeBSD 10.3-RELEASE-p24 |    28 |
 | 16. |         FreeBSD 13.0-RELEASE |    26 |
 | 17. |     *FreeBSD 13.1-RELEASE-p3 |    25 |
@@ -176,11 +188,13 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+------------------------------+-------+
 ```
 
-## Top 20 Uptime's by OS:
+## Top 20 Uptime's by Kernel
+
+Uptime is the total uptime of a host over the entire lifespan.
 
 ```
 +-----+------------------------------------+-----------------------------+
-| Pos |                                 OS |                      Uptime |
+| Pos |                             Kernel |                      Uptime |
 +-----+------------------------------------+-----------------------------+
 |  1. |                Linux 3.2.0-4-amd64 |  6 years, 4 months, 20 days |
 |  2. | *Linux 3.10.0-1160.15.2.el7.x86_64 | 1 years, 12 months, 15 days |
@@ -205,40 +219,44 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+------------------------------------+-----------------------------+
 ```
 
-## Top 20 MetaScore's by OS:
+## Top 20 Score's by Kernel
+
+Score is calculated by combining all other metrics.
 
 ```
-+-----+------------------------------------+-----------+
-| Pos |                                 OS | MetaScore |
-+-----+------------------------------------+-----------+
-|  1. |                Linux 3.2.0-4-amd64 |       436 |
-|  2. | *Linux 3.10.0-1160.15.2.el7.x86_64 |       126 |
-|  3. |                Linux 3.2.0-3-amd64 |       108 |
-|  4. |   Linux 3.10.0-957.21.3.el7.x86_64 |        96 |
-|  5. |           FreeBSD 10.1-RELEASE-p16 |        88 |
-|  6. |                      Darwin 13.4.0 |        80 |
-|  7. |               Linux 2.6.32-5-amd64 |        77 |
-|  8. |               FreeBSD 10.2-RELEASE |        75 |
-|  9. |                        OpenBSD 7.1 |        73 |
-| 10. |  Linux 3.10.0-1160.11.1.el7.x86_64 |        61 |
-| 11. |        Linux 4.0.4-303.fc22.x86_64 |        53 |
-| 12. |            FreeBSD 11.0-RELEASE-p1 |        48 |
-| 13. |                       *OpenBSD 7.2 |        45 |
-| 14. |                FreeBSD 6.2-RELEASE |        44 |
-| 15. |  Linux 3.10.0-1127.13.1.el7.x86_64 |        43 |
-| 16. |            FreeBSD 11.1-RELEASE-p4 |        39 |
-| 17. |                        OpenBSD 4.1 |        39 |
-| 18. |                        OpenBSD 7.0 |        39 |
-| 19. |    Linux 3.10.0-957.1.3.el7.x86_64 |        38 |
-| 20. |                      Darwin 18.7.0 |        37 |
-+-----+------------------------------------+-----------+
++-----+------------------------------------+-------+
+| Pos |                             Kernel | Score |
++-----+------------------------------------+-------+
+|  1. |                Linux 3.2.0-4-amd64 |   436 |
+|  2. | *Linux 3.10.0-1160.15.2.el7.x86_64 |   126 |
+|  3. |                Linux 3.2.0-3-amd64 |   108 |
+|  4. |   Linux 3.10.0-957.21.3.el7.x86_64 |    96 |
+|  5. |           FreeBSD 10.1-RELEASE-p16 |    88 |
+|  6. |                      Darwin 13.4.0 |    80 |
+|  7. |               Linux 2.6.32-5-amd64 |    77 |
+|  8. |               FreeBSD 10.2-RELEASE |    75 |
+|  9. |                        OpenBSD 7.1 |    73 |
+| 10. |  Linux 3.10.0-1160.11.1.el7.x86_64 |    61 |
+| 11. |        Linux 4.0.4-303.fc22.x86_64 |    53 |
+| 12. |            FreeBSD 11.0-RELEASE-p1 |    48 |
+| 13. |                       *OpenBSD 7.2 |    45 |
+| 14. |                FreeBSD 6.2-RELEASE |    44 |
+| 15. |  Linux 3.10.0-1127.13.1.el7.x86_64 |    43 |
+| 16. |            FreeBSD 11.1-RELEASE-p4 |    39 |
+| 17. |                        OpenBSD 7.0 |    39 |
+| 18. |                        OpenBSD 4.1 |    39 |
+| 19. |    Linux 3.10.0-957.1.3.el7.x86_64 |    38 |
+| 20. |                      Darwin 18.7.0 |    37 |
++-----+------------------------------------+-------+
 ```
 
-## Top 20 Boots's by OSMajor:
+## Top 20 Boots's by KernelMajor
+
+Boots is the total number of host boots over the entire lifespan.
 
 ```
 +-----+----------------+-------+
-| Pos |        OSMajor | Boots |
+| Pos |    KernelMajor | Boots |
 +-----+----------------+-------+
 |  1. |  FreeBSD 10... |   551 |
 |  2. |    *Linux 3... |   550 |
@@ -252,22 +270,24 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 | 10. |   FreeBSD 5... |    25 |
 | 11. |     Linux 2... |    22 |
 | 12. |  *Darwin 21... |    20 |
-| 13. |   Darwin 18... |    15 |
-| 14. |   Darwin 15... |    15 |
+| 13. |   Darwin 15... |    15 |
+| 14. |   Darwin 18... |    15 |
 | 15. |   Darwin 20... |    12 |
 | 16. |   FreeBSD 7... |    10 |
-| 17. |   OpenBSD 4... |    10 |
-| 18. |   FreeBSD 6... |    10 |
+| 17. |   FreeBSD 6... |    10 |
+| 18. |   OpenBSD 4... |    10 |
 | 19. |  *Darwin 22... |     2 |
 | 20. |   Darwin 19... |     1 |
 +-----+----------------+-------+
 ```
 
-## Top 20 Uptime's by OSMajor:
+## Top 20 Uptime's by KernelMajor
+
+Uptime is the total uptime of a host over the entire lifespan.
 
 ```
 +-----+----------------+-----------------------------+
-| Pos |        OSMajor |                      Uptime |
+| Pos |    KernelMajor |                      Uptime |
 +-----+----------------+-----------------------------+
 |  1. |    *Linux 3... | 15 years, 9 months, 26 days |
 |  2. |  FreeBSD 10... |   5 years, 9 months, 9 days |
@@ -292,70 +312,79 @@ Shows uprecord stats (collected by `uptimed`) of several hosts at once.
 +-----+----------------+-----------------------------+
 ```
 
-## Top 20 MetaScore's by OSMajor:
+## Top 20 Score's by KernelMajor
+
+Score is calculated by combining all other metrics.
 
 ```
-+-----+----------------+-----------+
-| Pos |        OSMajor | MetaScore |
-+-----+----------------+-----------+
-|  1. |    *Linux 3... |      1043 |
-|  2. |  FreeBSD 10... |       406 |
-|  3. |     Linux 5... |       268 |
-|  4. |     Linux 4... |       178 |
-|  5. |  *OpenBSD 7... |       159 |
-|  6. |  FreeBSD 11... |       159 |
-|  7. |     Linux 2... |       121 |
-|  8. |   Darwin 13... |        80 |
-|  9. |   FreeBSD 6... |        75 |
-| 10. |  *Darwin 21... |        44 |
-| 11. |   OpenBSD 4... |        39 |
-| 12. |   Darwin 18... |        37 |
-| 13. |   Darwin 15... |        29 |
-| 14. |    *Linux 6... |        28 |
-| 15. | *FreeBSD 13... |        28 |
-| 16. |   FreeBSD 5... |        25 |
-| 17. |   Darwin 20... |        20 |
-| 18. |   FreeBSD 7... |         7 |
-| 19. |  *Darwin 22... |         5 |
-| 20. |   Darwin 19... |         1 |
-+-----+----------------+-----------+
++-----+----------------+-------+
+| Pos |    KernelMajor | Score |
++-----+----------------+-------+
+|  1. |    *Linux 3... |  1043 |
+|  2. |  FreeBSD 10... |   406 |
+|  3. |     Linux 5... |   268 |
+|  4. |     Linux 4... |   178 |
+|  5. |  *OpenBSD 7... |   159 |
+|  6. |  FreeBSD 11... |   159 |
+|  7. |     Linux 2... |   121 |
+|  8. |   Darwin 13... |    80 |
+|  9. |   FreeBSD 6... |    75 |
+| 10. |  *Darwin 21... |    44 |
+| 11. |   OpenBSD 4... |    39 |
+| 12. |   Darwin 18... |    37 |
+| 13. |   Darwin 15... |    29 |
+| 14. | *FreeBSD 13... |    28 |
+| 15. |    *Linux 6... |    28 |
+| 16. |   FreeBSD 5... |    25 |
+| 17. |   Darwin 20... |    20 |
+| 18. |   FreeBSD 7... |     7 |
+| 19. |  *Darwin 22... |     5 |
+| 20. |   Darwin 19... |     1 |
++-----+----------------+-------+
 ```
 
-## Top 20 Boots's by Uname:
+## Top 20 Boots's by KernelName
+
+Boots is the total number of host boots over the entire lifespan.
 
 ```
-+-----+----------+-------+
-| Pos |    Uname | Boots |
-+-----+----------+-------+
-|  1. |   *Linux |  1014 |
-|  2. | *FreeBSD |   872 |
-|  3. |  *Darwin |   105 |
-|  4. | *OpenBSD |    44 |
-+-----+----------+-------+
++-----+------------+-------+
+| Pos | KernelName | Boots |
++-----+------------+-------+
+|  1. |     *Linux |  1014 |
+|  2. |   *FreeBSD |   872 |
+|  3. |    *Darwin |   105 |
+|  4. |   *OpenBSD |    44 |
++-----+------------+-------+
 ```
 
-## Top 20 Uptime's by Uname:
+## Top 20 Uptime's by KernelName
+
+Uptime is the total uptime of a host over the entire lifespan.
 
 ```
-+-----+----------+-----------------------------+
-| Pos |    Uname |                      Uptime |
-+-----+----------+-----------------------------+
-|  1. |   *Linux | 24 years, 7 months, 10 days |
-|  2. | *FreeBSD | 9 years, 11 months, 29 days |
-|  3. |  *Darwin |   3 years, 4 months, 3 days |
-|  4. | *OpenBSD |  3 years, 1 months, 18 days |
-+-----+----------+-----------------------------+
++-----+------------+-----------------------------+
+| Pos | KernelName |                      Uptime |
++-----+------------+-----------------------------+
+|  1. |     *Linux | 24 years, 7 months, 10 days |
+|  2. |   *FreeBSD | 9 years, 11 months, 29 days |
+|  3. |    *Darwin |   3 years, 4 months, 3 days |
+|  4. |   *OpenBSD |  3 years, 1 months, 18 days |
++-----+------------+-----------------------------+
 ```
 
-## Top 20 MetaScore's by Uname:
+## Top 20 Score's by KernelName
+
+Score is calculated by combining all other metrics.
 
 ```
-+-----+----------+-----------+
-| Pos |    Uname | MetaScore |
-+-----+----------+-----------+
-|  1. |   *Linux |      1637 |
-|  2. | *FreeBSD |       703 |
-|  3. |  *Darwin |       217 |
-|  4. | *OpenBSD |       198 |
-+-----+----------+-----------+
++-----+------------+-------+
+| Pos | KernelName | Score |
++-----+------------+-------+
+|  1. |     *Linux |  1637 |
+|  2. |   *FreeBSD |   703 |
+|  3. |    *Darwin |   217 |
+|  4. |   *OpenBSD |   198 |
++-----+------------+-------+
 ```
+
