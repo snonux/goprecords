@@ -39,7 +39,7 @@ class Aggregate {
   method new (Str:D $name) { self.bless(:$name) }
 
   method add-record(Str:D :$uptime is readonly, Str:D :$boot-time is readonly) {
-      my Int $last-seen = $uptime + $boot-time;
+      my $last-seen = $uptime + $boot-time;
       $!uptime += $uptime;
       $!boots++;
 
@@ -74,19 +74,19 @@ class Aggregator {
   }
 
   method !add-file(IO::Path:D $file is readonly) {
-    my Str $host = $file.IO.basename.split('.').first;
+    my $host = $file.IO.basename.split('.').first;
 
     die "Record file for {$host} already processed - duplicate inputs?"
       if %!aggregates<Host>{$host}:exists;
     %!aggregates<Host>{$host} = HostAggregate.new($host);
 
-    for $file.IO.lines -> Str $line { self!add-line(:$line, :$host) }
+    for $file.IO.lines -> $line { self!add-line(:$line, :$host) }
   }
 
   method !add-line(Str:D :$line is readonly, Str:D :$host is readonly) {
-    my Str ($uptime, $boot-time, $os) = $line.trim.split(':');
-    my Str $uname = $os.split(' ').first;
-    my Str $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
+    my ($uptime, $boot-time, $os) = $line.trim.split(':');
+    my $uname = $os.split(' ').first;
+    my $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
 
     %!aggregates<OS>{$os} //= Aggregate.new($os);
     %!aggregates<Uname>{$uname} //= Aggregate.new($uname);
@@ -108,13 +108,13 @@ class Reporter {
   has Metric $.metric is required;
 
   method report returns Str {
-    my Str @ret;
+    my @ret;
     push @ret, "{self!output-header}Top {$.limit} {$.metric}'s by {$.category}:\n\n";
 
     with self!table -> (@table, %size) {
-      my Str \format = '|' ~ join '|',
+      my \format = '|' ~ join '|',
         " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
-      my Str \border = '+' ~ join '+',  
+      my \border = '+' ~ join '+',  
         '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
 
       push @ret, self!output-block;
@@ -143,9 +143,9 @@ class Reporter {
       :value($.metric.chars);
 
     for self.sort-by($.metric) -> Aggregate \what {
-      my Str \active = what.is-active ?? '*' !! ' ';
-      my Str \name = active ~ what.name;
-      my Str \value = self.human-str($.metric, what).Str;
+      my \active = what.is-active ?? '*' !! ' ';
+      my \name = active ~ what.name;
+      my \value = self.human-str($.metric, what).Str;
 
       # Adjust size
       %size{.key} = .value if %size{.key} < .value for
@@ -211,10 +211,10 @@ multi sub MAIN(
   UInt :$limit = 20,
   OutputFormat :$output-format = Plaintext,
 ) {
-  my UInt $header-indent = 2;
-  my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
+  my $header-indent = 2;
+  my %aggregates = Aggregator.new($stats-dir).aggregate;
 
-  for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
+  for Category.^enum_value_list X Metric.^enum_value_list -> ($category, $metric) {
     next if $category !~~ Host and $metric !~~ MetricSubset;
     if $category ~~ Host {
       print HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format, :$header-indent).report
@@ -230,7 +230,7 @@ multi sub MAIN('test') {
 
   my @combs = gather {
     for Category.^enum_value_list X Metric.^enum_value_list X OutputFormat.^enum_value_list
-    -> (Category $category, Metric $metric, OutputFormat $output-format) {
+    -> ($category, $metric, $output-format) {
       next if $category !~~ Host and $metric !~~ MetricSubset;
       take $category, $metric, $output-format;
     }
@@ -240,7 +240,7 @@ multi sub MAIN('test') {
   my $limit = 3;
   my %aggregates = Aggregator.new('./fixtures').aggregate;
 
-  for @combs -> (Category $category, Metric $metric, OutputFormat $output-format) {
+  for @combs -> ($category, $metric, $output-format) {
     my \reporter = $category ~~ Host
       ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
       !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
