@@ -4,19 +4,16 @@ use v6.d;
 
 enum Category <Host OS OSMajor Uname>;
 enum Metric <Boots Uptime MetaScore Downtime Lifespan>;
-
 enum OutputFormat <Plaintext Markdown Gemtext>;
-
 subset MetricSubset of Metric where * ne any (Downtime, Lifespan);
-subset Natural of Int where * >= 0;
 
-our Natural constant DAY = 1 * 24 * 3600;
-our Natural constant MONTH = 30 * DAY;
+our UInt constant DAY = 1 * 24 * 3600;
+our UInt constant MONTH = 30 * DAY;
 
 class Epoch {
-  has Natural $.value is required;
+  has UInt $.value is required;
 
-  submethod new (Natural $value) { self.bless(:$value) }
+  submethod new (UInt $value) { self.bless(:$value) }
 
   method human-duration returns Str {
     my DateTime \dt .= new(Instant.from-posix: $!value);
@@ -27,17 +24,17 @@ class Epoch {
     DateTime.new(Instant.from-posix: $!value).yyyy-mm-dd;
   }
 
-  method newer-than(Natural:D \limit) returns Bool {
+  method newer-than(UInt:D \limit) returns Bool {
     (DateTime.now - DateTime.new(Instant.from-posix: $!value)) < limit * DAY;
   }
 }
 
 class Aggregate {
   has Str $.name is required;
-  has Natural $.uptime;
-  has Natural $.first-boot;
-  has Natural $.last-seen;
-  has Natural $.boots;
+  has UInt $.uptime;
+  has UInt $.first-boot;
+  has UInt $.last-seen;
+  has UInt $.boots;
 
   method new (Str:D $name) { self.bless(:$name) }
 
@@ -50,19 +47,19 @@ class Aggregate {
       $!last-seen = $last-seen if not defined $!last-seen or $!last-seen < $last-seen;
   }
 
-  method meta-score returns Natural {
-    Natural((($!uptime * 2) + ($!boots * DAY) + (self.is-active ?? MONTH !! 0))/1000000)
+  method meta-score returns UInt {
+    UInt((($!uptime * 2) + ($!boots * DAY) + (self.is-active ?? MONTH !! 0))/1000000)
   }
 
-  method is-active(Natural:D \limit = 90) returns Bool {
+  method is-active(UInt:D \limit = 90) returns Bool {
     Epoch.new($!last-seen).newer-than: limit;
   }
 }
 
 class HostAggregate is Aggregate {
-  method lifespan returns Natural { $.last-seen - $.first-boot }
-  method downtime returns Natural { self.lifespan - $.uptime }
-  method meta-score returns Natural { Natural(self.downtime / 1000000) + callsame }
+  method lifespan returns UInt { $.last-seen - $.first-boot }
+  method downtime returns UInt { self.lifespan - $.uptime }
+  method meta-score returns UInt { UInt(self.downtime / 1000000) + callsame }
 }
 
 class Aggregator {
@@ -105,8 +102,8 @@ class Aggregator {
 class Reporter {
   has Hash %.aggregates is required;
   has OutputFormat $.output-format is required;
-  has Natural $.limit is required;
-  has Natural $.header-indent = 1;
+  has UInt $.limit is required;
+  has UInt $.header-indent = 1;
   has Category $.category = Host;
   has Metric $.metric is required;
 
@@ -137,7 +134,7 @@ class Reporter {
   }
 
   method !table returns List {
-    my Natural $count = 0;
+    my UInt $count = 0;
     my @table;
 
     # Initial table size
@@ -194,7 +191,7 @@ multi sub MAIN(
   Str :$stats-dir is required, #= The uptimed raw record input dir.
   Category :$category = Host, #= The category, one of Host, OS, OSMajor, Uname [default: 'Host']
   Metric :$metric = Uptime, #= The metric, one of Boots, Uptime, MetaScore, Downtime, Lifespan
-  Natural :$limit = 20, #= Limit output to num of entries.
+  UInt :$limit = 20, #= Limit output to num of entries.
   OutputFormat :$output-format = Plaintext, #= Output format.
 ) {
   my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
@@ -211,10 +208,10 @@ multi sub MAIN(
 multi sub MAIN(
   Str :$stats-dir is required,
   Bool :$all, #= Generate all possible stats
-  Natural :$limit = 20,
+  UInt :$limit = 20,
   OutputFormat :$output-format = Plaintext,
 ) {
-  my Natural $header-indent = 2;
+  my UInt $header-indent = 2;
   my Hash %aggregates = Aggregator.new($stats-dir).aggregate;
 
   for Category.^enum_value_list X Metric.^enum_value_list -> (Category $category, Metric $metric) {
