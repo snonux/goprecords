@@ -32,7 +32,7 @@ class Epoch {
     DateTime.new(Instant.from-posix: $!value).yyyy-mm-dd;
   }
 
-  method newer-than(UInt:D \limit) returns Bool {
+  method newer-than(UInt:D \limit --> Bool) {
     (DateTime.now - DateTime.new(Instant.from-posix: $!value)) < limit * DAY;
   }
 }
@@ -46,7 +46,7 @@ class Aggregate {
 
   method new (Str:D $name) { self.bless(:$name) }
 
-  method add-record(Str:D :$uptime is readonly, Str:D :$boot-time is readonly) {
+  method add-record(Str:D :$uptime, Str:D :$boot-time) {
       my $last-seen = $uptime + $boot-time;
       $!uptime += $uptime;
       $!boots++;
@@ -59,7 +59,7 @@ class Aggregate {
     UInt((($!uptime * 2) + ($!boots * DAY) + (self.is-active ?? MONTH !! 0))/1000000)
   }
 
-  method is-active(UInt:D \limit = 90) returns Bool {
+  method is-active(UInt:D \limit = 90 --> Bool) {
     Epoch.new($!last-seen).newer-than: limit;
   }
 }
@@ -81,7 +81,7 @@ class Aggregator {
     return %!aggregates;
   }
 
-  method !add-file(IO::Path:D $file is readonly) {
+  method !add-file(IO::Path:D $file) {
     my $host = $file.IO.basename.split('.').first;
 
     die "Record file for {$host} already processed - duplicate inputs?"
@@ -91,7 +91,7 @@ class Aggregator {
     for $file.IO.lines -> $line { self!add-line(:$line, :$host) }
   }
 
-  method !add-line(Str:D :$line is readonly, Str:D :$host is readonly) {
+  method !add-line(Str:D :$line, Str:D :$host) {
     my ($uptime, $boot-time, $os) = $line.trim.split(':');
     my $uname = $os.split(' ').first;
     my $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
@@ -115,7 +115,7 @@ role OutputHelper {
     ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
   }
 
-  method output-trim(Str \str, UInt \line-limit) returns Str {
+  method output-trim(Str \str, UInt \line-limit --> Str) {
     if $.output-format ~~ Plaintext and str.chars > line-limit {
       return join '', gather {
         my $chars = 0;
