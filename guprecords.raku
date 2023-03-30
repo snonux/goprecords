@@ -146,25 +146,22 @@ class Reporter does OutputHelper {
   method report returns Str {
     join '', gather {
       with self!table -> (@table, %size) {
-        my \format = '|' ~ join '|',
-          " %{%size<count>}s ", " %{%size<name>}s ", " %{%size<value>}s ", "\n";
-        my \border = '+' ~ join '+',  
-          '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
-
-        take "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}\n\n";
-        take self.output-trim(%DESCRIPTION{$.metric}, border.chars), "\n\n";
-
-        take self.output-block;
-        take border;
-        take sprintf format, 'Pos', $.category, $.metric;
-        take border;
+        my \format = '|' ~ join '|', " %{%size<count>}s ",
+                     " %{%size<name>}s ", " %{%size<value>}s ", "\n";
+        my \border = '+' ~ join '+',  '-' x (2+%size<count>),
+                     '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
+        take
+          "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}\n\n", 
+          self.output-trim(%DESCRIPTION{$.metric}, border.chars), "\n\n",
+          self.output-block, border,
+          sprintf(format, 'Pos', $.category, $.metric),
+          border;
 
         for @table -> \position, \name, \value {
           take sprintf format, position, name, value;
         }
 
-        take border;
-        take self.output-block;
+        take border, self.output-block;
       }
     }
   }
@@ -255,7 +252,7 @@ multi MAIN(
 multi MAIN('test') {
   use Test;
 
-  my @combs = gather {
+  my @cross-product = gather {
     for Category.^enum_value_list X Metric.^enum_value_list X OutputFormat.^enum_value_list
     -> ($category, $metric, $output-format) {
       next if $category !~~ Host and $metric !~~ MetricSubset;
@@ -263,11 +260,11 @@ multi MAIN('test') {
     }
   }
 
-  plan @combs;
+  plan @cross-product;
   my $limit = 3;
   my %aggregates = Aggregator.new('./fixtures').aggregate;
 
-  for @combs -> ($category, $metric, $output-format) {
+  for @cross-product -> ($category, $metric, $output-format) {
     my \reporter = $category ~~ Host
       ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
       !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
