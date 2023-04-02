@@ -59,7 +59,7 @@ push: manual
 Third, now you can finally run:
 
 ```
-raku guprecords --stats=dir=$HOME/git/uprecords/stats --all
+raku guprecords.raku --stats=dir=$HOME/git/uprecords/stats --all
 ```
 
 ... to generate something like the following:
