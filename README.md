@@ -1,6 +1,68 @@
 # guprecords - Global uptime records
 
-Shows uprecord stats (collected by `uptimed`) of several hosts at once.
+`guprecords` is a program developed in Raku which combines and analysis a bunch of uptime records collected by `uptimed` from multiple hosts. `uptimed` can only analyse and display stats from one single host, whereas `guprecords` combines the stats (records files) of many hosts.
+
+## Usage
+
+### Use `uptimed` to produce uptime statistics
+
+First, you need to generate uptime statistics from all hosts by installing and running `uptimed`. There's a package available for most common Linux and *BSD distributions nowadays. It's also available for macOS (Darwin) via Homebrew. For example, under Fedora, run `sudo dnf install uptimed`. https://github.com/rpodgorny/uptimed
+
+### Collect all uptime records to a central location
+
+Second, you must collect the `records` files produced by `uptimed`. Which are the raw uptime statistic files continuously updated by `uptimed`. Depending on the operating system used, the location of the records file can vary. It is advisable to store all the record files in a central git repository. 
+
+An example records file looks like this:
+
+```
+11175544:1658053426:OpenBSD 7.1
+10033984:1669229566:OpenBSD 7.2
+7701011:1642849465:OpenBSD 7.0
+3900089:1650550947:OpenBSD 7.1
+3573912:1654452258:OpenBSD 7.1
+2132201:1640713822:OpenBSD 7.0
+88762:1640625045:OpenBSD 7.0
+18452:1640603646:OpenBSD 7.0
+3408:1642846040:OpenBSD 7.0
+2315:1640622113:OpenBSD 7.0
+1190:1654451052:OpenBSD 7.1
+334:1650550601:OpenBSD 7.1
+310:1669229245:OpenBSD 7.2
+310:1640624443:OpenBSD 7.0
+261:1640624769:OpenBSD 7.0
+144:1669229090:OpenBSD 7.2
+```
+
+... whereas the first number is the total uptime since boot, and the second is the boot time. The last column identifies the operating system and kernel version.
+
+`guprecords` does not provide any out-of-the-box solution for the collection part. I use a quick-and-dirty `Makefile` in a `uptimes.git` repository, where I can run `make push` to manually collect and push the uptime statistics of the current host to the git repository. I log in to all my machines anyway, sooner or later, and I also automatically run a shell script (via my login RC file) to re-collect the stats when they weren't collected for a week or so. So this solution is "just good enough" for me for now:
+
+```
+manual:
+    records_path=/var/spool/uptimed/records; \
+    test -f /usr/local/var/uptimed/records && records_path=/usr/local/var/uptimed/records; \
+    test -f /var/db/uptimed/records && records_path=/var/db/uptimed/records; \
+    cp $$records_path ./stats/$$(hostname | cut -d. -f1).records
+    uprecords -a -m 100 > ./stats/$$(hostname | cut -d. -f1).txt
+    uprecords -a | grep '^->' > ./stats/$$(hostname | cut -d. -f1).cur.txt
+    git add ./stats/*
+    git commit -a -m 'new uptime
+push: manual
+    git add ./stats/$(hostname)*
+    git commit -a -m 'new stats'
+    git pull origin master
+    git push origin master
+```
+
+### Generate global uptime stats
+
+Third, now you can finally run:
+
+```
+raku guprecords --stats=dir=$HOME/git/uprecords/stats --all
+```
+
+... to generate something like the following:
 
 ## Top 20 Boots's by Host
 
