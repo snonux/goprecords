@@ -231,7 +231,8 @@ multi MAIN(
 
 multi MAIN(
   Str :$stats-dir is required,
-  Bool :$all, #= Generate all possible stats but Kernel
+  Bool :$all, #= Generate all possible stats but Kernel (too verbose)
+  Bool :$include-kernel, #= Also include Kernel
   UInt :$limit = 20,
   OutputFormat :$output-format = Plaintext,
 ) {
@@ -239,7 +240,7 @@ multi MAIN(
   my %aggregates = Aggregator.new($stats-dir).aggregate;
 
   for Category.^enum_value_list X Metric.^enum_value_list -> ($category, $metric) {
-    next if $category ~~ Kernel;
+    next if !$include-kernel and $category ~~ Kernel;
     next if $category !~~ Host and $metric !~~ MetricSubset;
     if $category ~~ Host {
       print HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format, :$header-indent).report
