@@ -1,8 +1,57 @@
 # guprecords - Global uptime records
 
-`guprecords` is a program developed in Raku which combines and analysis a bunch of uptime records collected by `uptimed` from multiple hosts. `uptimed` can only analyse and display stats from one single host, whereas `guprecords` combines the stats (records files) of many hosts.
+`guprecords` is a Raku-based command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It allows you to create reports for different categories and metrics, and supports multiple output formats.
+
+## Features
+
+- Supports multiple categories: `Host`, `Kernel`, `KernelMajor`, and `KernelName`
+- Supports multiple metrics: `Boots`, `Uptime`, `Score`, `Downtime`, and `Lifespan`
+- Output formats available: `Plaintext`, `Markdown`, and `Gemtext`
+- Provides top entries based on the specified limit
+- Allows generating reports for all possible combinations of categories and metrics
+- Can include or exclude the `Kernel` category as needed
 
 ## Usage
+
+The program can be invoked with various command-line options to customize the generated reports. The following are the command-line options available:
+
+- `--stats-dir`: The path to the directory containing the uptimed raw record input files (required)
+- `--category`: The category to generate the report for, one of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`)
+- `--metric`: The metric to use for the report, one of `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan` (default: `Uptime`)
+- `--limit`: Limit the output to the specified number of entries (default: 20)
+- `--output-format`: The output format for the report, one of `Plaintext`, `Markdown`, `Gemtext` (default: `Plaintext`)
+- `--all`: Generate all possible reports except `Kernel` (optional)
+- `--include-kernel`: Include the `Kernel` category when generating all reports (optional)
+
+### Example Usage
+
+```bash
+./guprecords.raku --stats-dir="./records" --category=Host --metric=Uptime --limit=10 --output-format=Markdown
+```
+
+This command generates a Markdown-formatted report for the top 10 hosts with the highest uptime.
+
+## Classes
+
+- `Epoch`: A class representing the epoch value.
+- `Aggregate`: A class representing the aggregate data for a specific category.
+- `HostAggregate`: A subclass of `Aggregate` for handling host-related data.
+- `Aggregator`: A class responsible for aggregating data from the record files.
+- `OutputHelper`: A role providing helper methods for report output formatting.
+- `Reporter`: A class generating reports based on specified category, metric, limit, and output format.
+- `HostReporter`: A subclass of `Reporter` for handling host-related data.
+
+## Test
+
+The program includes test functionality. To run the tests, invoke the program with the `test` argument:
+
+```bash
+./guprecords.raku test
+```
+
+This will run the tests and report the results.
+
+## End-to-end usage
 
 ### Use `uptimed` to produce uptime statistics
 
@@ -449,4 +498,3 @@ Score is calculated by combining all other metrics.
 |  4. |   *OpenBSD |   198 |
 +-----+------------+-------+
 ```
-
