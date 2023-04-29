@@ -8,8 +8,14 @@
 - Supports multiple metrics: `Boots`, `Uptime`, `Score`, `Downtime`, and `Lifespan`
 - Output formats available: `Plaintext`, `Markdown`, and `Gemtext`
 - Provides top entries based on the specified limit
-- Allows generating reports for all possible combinations of categories and metrics
-- Can include or exclude the `Kernel` category as needed
+
+Whereas:
+
+* `Boots`: Total count of system boots.
+* `Uptime`: Total hosts uptimes.
+* `Score`: A meta score, calculated combining all other metrics.
+* `Downtime`: Total hosts downtimes.
+* `Lifespan`: Downtimes plus uptimes.
 
 ## Usage
 
