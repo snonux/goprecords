@@ -67,7 +67,7 @@ class Aggregate {
 class HostAggregate is Aggregate {
   method lifespan returns UInt { $.last-seen - $.first-boot }
   method downtime returns UInt { self.lifespan - $.uptime }
-  method meta-score returns UInt { UInt(self.downtime / 1000000) + callsame }
+  method meta-score returns UInt { UInt(self.downtime / 2000000) + callsame }
 }
 
 class Aggregator {
