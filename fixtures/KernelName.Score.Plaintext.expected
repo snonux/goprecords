@@ -7,6 +7,6 @@ combining all other metrics.
 | Pos | KernelName | Score |
 +-----+------------+-------+
 |  1. |     *Linux |  1295 |
-|  2. |   *FreeBSD |   703 |
+|  2. |    FreeBSD |   700 |
 |  3. |   *OpenBSD |   198 |
 +-----+------------+-------+

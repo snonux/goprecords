@@ -1,12 +1,13 @@
 Top 3 Score's by Host
 
- Score is calculated by combining
-all other metrics.
+ Score is calculated by
+combining all other
+metrics.
 
-+-----+----------------+-------+
-| Pos |           Host | Score |
-+-----+----------------+-------+
-|  1. |         uranus |   360 |
-|  2. |  alphacentauri |   294 |
-|  3. |       dionysus |   285 |
-+-----+----------------+-------+
++-----+---------+-------+
+| Pos |    Host | Score |
++-----+---------+-------+
+|  1. |  uranus |   309 |
+|  2. | *vulcan |   273 |
+|  3. |     sun |   238 |
++-----+---------+-------+

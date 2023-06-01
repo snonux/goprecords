@@ -6,7 +6,7 @@ Boots is the total number of host boots over the entire lifespan.
 +-----+------------+-------+
 | Pos | KernelName | Boots |
 +-----+------------+-------+
-|  1. |   *FreeBSD |   872 |
+|  1. |    FreeBSD |   872 |
 |  2. |     *Linux |   867 |
 |  3. |   *OpenBSD |    44 |
 +-----+------------+-------+
