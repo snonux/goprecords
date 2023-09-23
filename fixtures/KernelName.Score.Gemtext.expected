@@ -6,8 +6,8 @@ Score is calculated by combining all other metrics.
 +-----+------------+-------+
 | Pos | KernelName | Score |
 +-----+------------+-------+
-|  1. |     *Linux |  1295 |
+|  1. |      Linux |  1292 |
 |  2. |    FreeBSD |   700 |
-|  3. |   *OpenBSD |   198 |
+|  3. |    OpenBSD |   196 |
 +-----+------------+-------+
 ```

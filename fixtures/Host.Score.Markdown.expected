@@ -7,7 +7,7 @@ Score is calculated by combining all other metrics.
 | Pos |    Host | Score |
 +-----+---------+-------+
 |  1. |  uranus |   309 |
-|  2. | *vulcan |   273 |
+|  2. |  vulcan |   270 |
 |  3. |     sun |   238 |
 +-----+---------+-------+
 ```

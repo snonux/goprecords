@@ -6,7 +6,7 @@ lifespan.
 +-----+----------------+-----------------------------+
 | Pos |    KernelMajor |                      Uptime |
 +-----+----------------+-----------------------------+
-|  1. |    *Linux 3... | 11 years, 2 months, 11 days |
+|  1. |     Linux 3... | 11 years, 2 months, 11 days |
 |  2. |  FreeBSD 10... |   5 years, 9 months, 9 days |
 |  3. |     Linux 5... |  3 years, 12 months, 2 days |
 +-----+----------------+-----------------------------+
