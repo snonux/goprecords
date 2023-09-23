@@ -21,10 +21,10 @@ our UInt constant MONTH = 30 * DAY;
 class Epoch {
   has UInt $.value is required;
 
-  submethod new (UInt $value) { self.bless(:$value) }
+  submethod new (UInt $value) { self.bless: :$value }
 
   method human-duration returns Str {
-    my DateTime \dt .= new(Instant.from-posix: $!value);
+    my DateTime \dt .= new: Instant.from-posix: $!value;
     "{dt.year-1970} years, {dt.month} months, {dt.day} days";
   }
 
@@ -33,7 +33,7 @@ class Epoch {
   }
 
   method newer-than(UInt:D \limit --> Bool) {
-    (DateTime.now - DateTime.new(Instant.from-posix: $!value)) < limit * DAY;
+    (DateTime.now - DateTime.new: Instant.from-posix: $!value) < limit * DAY;
   }
 }
 
@@ -44,7 +44,7 @@ class Aggregate {
   has UInt $.last-seen;
   has UInt $.boots;
 
-  method new (Str:D $name) { self.bless(:$name) }
+  method new (Str:D $name) { self.bless: :$name }
 
   method add-record(Str:D :$uptime, Str:D :$boot-time) {
       my $last-seen = $uptime + $boot-time;
@@ -74,36 +74,35 @@ class Aggregator {
   has Hash %!aggregates = { Host => {}, Kernel => {}, KernelName => {}, KernelMajor => {} }
   has Str $.stats-dir is required;
 
-  submethod new (Str:D $stats-dir) { self.bless(:$stats-dir) }
+  submethod new (Str:D $stats-dir) { self.bless: :$stats-dir }
 
   method aggregate () {
-    self!add-file($_) for dir($!stats-dir, test => { /.records$/ });
+    self!add-file: $_ for dir $!stats-dir, test => { /.records$/ };
     return %!aggregates;
   }
 
   method !add-file(IO::Path:D $file) {
     my $host = $file.IO.basename.split('.').first;
 
-    die "Record file for {$host} already processed - duplicate inputs?"
+    die "Record file for $host already processed - duplicate inputs?"
       if %!aggregates<Host>{$host}:exists;
-    %!aggregates<Host>{$host} = HostAggregate.new($host);
 
-    for $file.IO.lines -> $line { self!add-line(:$line, :$host) }
+    %!aggregates<Host>{$host} = HostAggregate.new: $host;
+    self!add-line: :line($_), :$host for $file.IO.lines;
   }
 
   method !add-line(Str:D :$line, Str:D :$host) {
-    my ($uptime, $boot-time, $os) = $line.trim.split(':');
+    my ($uptime, $boot-time, $os) = $line.trim.split: ':';
     my $uname = $os.split(' ').first;
     my $os-major = "$uname {$os.split(' ')[1].split('.').first}...";
 
-    %!aggregates<Kernel>{$os} //= Aggregate.new($os);
-    %!aggregates<KernelName>{$uname} //= Aggregate.new($uname);
-    %!aggregates<KernelMajor>{$os-major} //= Aggregate.new($os-major);
+    %!aggregates<Kernel>{$os} //= Aggregate.new: $os;
+    %!aggregates<KernelName>{$uname} //= Aggregate.new: $uname;
+    %!aggregates<KernelMajor>{$os-major} //= Aggregate.new: $os-major;
 
-    for %!aggregates<Host>{$host}, %!aggregates<Kernel>{$os},
-        %!aggregates<KernelName>{$uname}, %!aggregates<KernelMajor>{$os-major} {
-      .add-record(:$uptime, :$boot-time);
-    }
+    .add-record: :$uptime, :$boot-time
+      for %!aggregates<Host>{$host}, %!aggregates<Kernel>{$os},
+          %!aggregates<KernelName>{$uname}, %!aggregates<KernelMajor>{$os-major};
   }
 }
 
@@ -112,7 +111,7 @@ role OutputHelper {
   has UInt $.header-indent = 1;
 
   method output-header {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? '#' x $.header-indent ~ ' ' !! ''
+    ($.output-format ~~ any Markdown, Gemtext) ?? '#' x $.header-indent ~ ' ' !! ''
   }
 
   method output-trim(Str \str, UInt \line-limit --> Str) {
@@ -120,7 +119,7 @@ role OutputHelper {
       return join '', gather {
         my $chars = 0;
         for str.split(' ') -> \word {
-          if ($chars += (word.chars + 1)) > line-limit {
+          if ($chars += word.chars + 1) > line-limit {
             take "\n" ~ word;
             $chars = word.chars;
           } else {
@@ -133,7 +132,7 @@ role OutputHelper {
   }
 
   method output-block {
-    ($.output-format ~~ any (Markdown, Gemtext)) ?? "```\n" !! ''
+    ($.output-format ~~ any Markdown, Gemtext) ?? "```\n" !! ''
   }
 }
 
@@ -181,8 +180,8 @@ class Reporter does OutputHelper {
       my \value = self.human-str($.metric, what).Str;
 
       # Adjust size
-      %size{.key} = .value if %size{.key} < .value for
-        :count($count.Str.chars+1), :name(name.chars), :value(value.chars);
+      %size{.key} = .value if %size{.key} < .value
+        for :count($count.Str.chars+1), :name(name.chars), :value(value.chars);
 
       @table.push: "{$count+1}.", name, value;
       last if ++$count == $.limit;
@@ -268,8 +267,8 @@ multi MAIN('test') {
 
   for @cross-product -> ($category, $metric, $output-format) {
     my \reporter = $category ~~ Host
-      ?? HostReporter.new(:%aggregates, :$metric, :$limit, :$output-format)
-      !! Reporter.new(:%aggregates, :$category, :$metric, :$limit, :$output-format);
+      ?? HostReporter.new: :%aggregates, :$metric, :$limit, :$output-format
+      !! Reporter.new: :%aggregates, :$category, :$metric, :$limit, :$output-format;
       #my $fh = open "./fixtures/$category.$metric.$output-format.expected", :w;
       #$fh.print(reporter.report);
       #$fh.close;
