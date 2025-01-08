@@ -82,6 +82,7 @@ class Aggregator {
   }
 
   method !add-file(IO::Path:D $file) {
+    return if $file.s == 0;
     my $host = $file.IO.basename.split('.').first;
 
     die "Record file for $host already processed - duplicate inputs?"
