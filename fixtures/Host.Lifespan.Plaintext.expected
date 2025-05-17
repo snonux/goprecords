@@ -1,12 +1,11 @@
 Top 3 Lifespan's by Host
 
- Lifespan is the total uptime + the total downtime of
-a host.
+Lifespan is the total uptime + the total downtime of a host.
 
-+-----+----------------+----------------------------+
-| Pos |           Host |                   Lifespan |
-+-----+----------------+----------------------------+
-|  1. |       dionysus | 8 years, 6 months, 17 days |
-|  2. |         uranus | 7 years, 2 months, 16 days |
-|  3. |  alphacentauri | 6 years, 9 months, 13 days |
-+-----+----------------+----------------------------+
++-----+----------------+----------------------------+--------------------------+
+| Pos |           Host |                   Lifespan |              Last Kernel |
++-----+----------------+----------------------------+--------------------------+
+|  1. |       dionysus | 8 years, 6 months, 17 days | FreeBSD 13.0-RELEASE-p11 |
+|  2. |         uranus | 7 years, 2 months, 16 days |    Linux 5.16.14-arch1-1 |
+|  3. |  alphacentauri | 6 years, 9 months, 13 days |  FreeBSD 11.4-RELEASE-p7 |
++-----+----------------+----------------------------+--------------------------+

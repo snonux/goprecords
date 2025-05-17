@@ -3,11 +3,11 @@
 Uptime is the total uptime of a host over the entire lifespan.
 
 ```
-+-----+---------+-----------------------------+
-| Pos |    Host |                      Uptime |
-+-----+---------+-----------------------------+
-|  1. |  vulcan |   4 years, 4 months, 7 days |
-|  2. |  uranus | 3 years, 11 months, 21 days |
-|  3. |     sun |  3 years, 9 months, 26 days |
-+-----+---------+-----------------------------+
++-----+---------+-----------------------------+-----------------------------------+
+| Pos |    Host |                      Uptime |                       Last Kernel |
++-----+---------+-----------------------------+-----------------------------------+
+|  1. |  vulcan |   4 years, 4 months, 7 days | Linux 3.10.0-1160.81.1.el7.x86_64 |
+|  2. |  uranus | 3 years, 11 months, 21 days |             Linux 5.16.14-arch1-1 |
+|  3. |     sun |  3 years, 9 months, 26 days |          FreeBSD 10.3-RELEASE-p24 |
++-----+---------+-----------------------------+-----------------------------------+
 ```
