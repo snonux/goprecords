@@ -65,6 +65,9 @@ class Aggregate {
 }
 
 class HostAggregate is Aggregate {
+  has Str $.last-kernel;
+
+  method new (Str:D $name, Str:D $last-kernel) { self.bless: :$name, :$last-kernel }
   method lifespan returns UInt { $.last-seen - $.first-boot }
   method downtime returns UInt { self.lifespan - $.uptime }
   method meta-score returns UInt { UInt(self.downtime / 2000000) + callsame }
@@ -88,8 +91,12 @@ class Aggregator {
     die "Record file for $host already processed - duplicate inputs?"
       if %!aggregates<Host>{$host}:exists;
 
-    %!aggregates<Host>{$host} = HostAggregate.new: $host;
+    %!aggregates<Host>{$host} = HostAggregate.new: $host, self!last-kernel($file);
     self!add-line: :line($_), :$host for $file.IO.lines;
+  }
+
+  method !last-kernel(IO::Path:D $file) {
+    $file.lines.map({ [.split(':')] }).max({ $_[1] }).[2]
   }
 
   method !add-line(Str:D :$line, Str:D :$host) {
@@ -146,22 +153,40 @@ class Reporter does OutputHelper {
   method report returns Str {
     join '', gather {
       with self!table -> (@table, %size) {
-        my \format = '|' ~ join '|', " %{%size<count>}s ",
-                     " %{%size<name>}s ", " %{%size<value>}s ", "\n";
-        my \border = '+' ~ join '+',  '-' x (2+%size<count>),
-                     '-' x (2+%size<name>), '-' x (2+%size<value>), "\n";
-        take
-          "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}\n\n", 
-          self.output-trim(%DESCRIPTION{$.metric}, border.chars), "\n\n",
-          self.output-block, border,
-          sprintf(format, 'Pos', $.category, $.metric),
-          border;
+        my $format = '|' ~ join '|',
+                     " %{%size<count>}s "," %{%size<name>}s "," %{%size<value>}s ";
+        my $border = '+' ~ join '+',
+                     '-' x (2+%size<count>), '-' x (2+%size<name>), '-' x (2+%size<value>);
 
-        for @table -> \position, \name, \value {
-          take sprintf format, position, name, value;
+        # Works only for HostReporter reports
+        my \last-kernel-header = 'Last Kernel';
+        if %size<last-kernel> > 0 {
+          %size<last-kernel> = last-kernel-header.chars
+            if %size<last-kernel> < last-kernel-header.chars;
+          $format ~= "| %{%size<last-kernel>}s ";
+          $border ~= '+' ~ '-' x (2+%size<last-kernel>);
         }
 
-        take border, self.output-block;
+        $format ~= "|\n" and $border ~= "+\n";
+
+        take
+          "{self.output-header}Top {$.limit} {$.metric}'s by {$.category}\n\n", 
+          self.output-trim(%DESCRIPTION{$.metric}, $border.chars), "\n\n",
+          self.output-block, $border,
+          (%size<last-kernel> > 0
+            ?? sprintf($format, 'Pos', $.category, $.metric, last-kernel-header)
+            !! sprintf($format, 'Pos', $.category, $.metric)),
+          $border;
+
+        for @table -> \position, \name, \value, \last-kernel {
+          if last-kernel.chars > 0 {
+            take sprintf $format, position, name, value, last-kernel;
+          } else {
+            take sprintf $format, position, name, value;
+          }
+        }
+
+        take $border, self.output-block;
       }
     }
   }
@@ -173,18 +198,25 @@ class Reporter does OutputHelper {
     # Initial table size
     my %size =
       :count('Pos'.chars), :name($.category.chars),
-      :value($.metric.chars);
+      :value($.metric.chars), :last-kernel(0);
 
     for self.sort-by($.metric) -> Aggregate \what {
       my \active = what.is-active ?? '*' !! ' ';
       my \name = active ~ what.name;
       my \value = self.human-str($.metric, what).Str;
+      my $last-kernel = '';
+
+      if what ~~ HostAggregate {
+          my HostAggregate $ha = what;
+          $last-kernel = $ha.last-kernel;
+      }
 
       # Adjust size
       %size{.key} = .value if %size{.key} < .value
-        for :count($count.Str.chars+1), :name(name.chars), :value(value.chars);
+        for :count($count.Str.chars+1), :name(name.chars),
+            :value(value.chars), :last-kernel($last-kernel.chars);
 
-      @table.push: "{$count+1}.", name, value;
+      @table.push: "{$count+1}.", name, value, $last-kernel;
       last if ++$count == $.limit;
     }
 
