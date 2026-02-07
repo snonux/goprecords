@@ -18,6 +18,58 @@ our constant %DESCRIPTION = {
 our UInt constant DAY = 1 * 24 * 3600;
 our UInt constant MONTH = 30 * DAY;
 
+sub default-stats-order() {
+  (Category.^enum_value_list X Metric.^enum_value_list).map({ $_[0] => $_[1] }).List;
+}
+
+sub parse-stats-order(Str:D $stats-order --> List) {
+  my @entries = $stats-order.split(',').map(*.trim).grep(*.chars);
+  die "Invalid --stats-order: empty list."
+    if @entries.elems == 0;
+
+  my @order;
+  my %seen;
+  for @entries -> $entry {
+    my ($category-name, $metric-name) = $entry.split(':', 2);
+    die "Invalid --stats-order entry '$entry' (expected Category:Metric)."
+      if !$category-name.defined || !$metric-name.defined
+         || $category-name.chars == 0 || $metric-name.chars == 0;
+
+    my $category = ::("Category::$category-name");
+    die "Invalid --stats-order category '$category-name'."
+      unless $category.defined;
+    my $metric = ::("Metric::$metric-name");
+    die "Invalid --stats-order metric '$metric-name'."
+      unless $metric.defined;
+    die "Invalid --stats-order entry '$entry' (metric $metric-name not supported for category $category-name)."
+      if $category !~~ Host && $metric !~~ MetricSubset;
+
+    my $key = "{$category.Str}:{$metric.Str}";
+    next if %seen{$key}++;
+    @order.push: $category => $metric;
+  }
+
+  return @order;
+}
+
+sub stats-order(Str $stats-order? --> List) {
+  my @default-order = default-stats-order();
+  return @default-order unless $stats-order.defined;
+
+  my @order = parse-stats-order($stats-order);
+  my %seen;
+  for @order -> $pair {
+    %seen{"{$pair.key.Str}:{$pair.value.Str}"} = True;
+  }
+  for @default-order -> $pair {
+    my $key = "{$pair.key.Str}:{$pair.value.Str}";
+    next if %seen{$key}++;
+    @order.push: $pair;
+  }
+
+  return @order;
+}
+
 class Epoch {
   has UInt $.value is required;
 
@@ -265,13 +317,18 @@ multi MAIN(
   Str :$stats-dir is required,
   Bool :$all, #= Generate all possible stats but Kernel (too verbose)
   Bool :$include-kernel, #= Also include Kernel
+  Str :$stats-order, #= Comma-separated Category:Metric order for --all
   UInt :$limit = 20,
   OutputFormat :$output-format = Plaintext,
 ) {
   my $header-indent = 2;
   my %aggregates = Aggregator.new($stats-dir).aggregate;
 
-  for Category.^enum_value_list X Metric.^enum_value_list -> ($category, $metric) {
+  my @stats-order = stats-order($stats-order);
+
+  for @stats-order -> $entry {
+    my $category = $entry.key;
+    my $metric = $entry.value;
     next if !$include-kernel and $category ~~ Kernel;
     next if $category !~~ Host and $metric !~~ MetricSubset;
     if $category ~~ Host {
@@ -294,7 +351,7 @@ multi MAIN('test') {
     }
   }
 
-  plan @cross-product;
+  plan @cross-product + 1;
   my $limit = 3;
   my %aggregates = Aggregator.new('./fixtures').aggregate;
 
@@ -306,6 +363,20 @@ multi MAIN('test') {
       #$fh.print(reporter.report);
       #$fh.close;
     is reporter.report, "./fixtures/$category.$metric.$output-format.expected".IO.slurp;
+  }
+
+  subtest 'stats-order parsing' => {
+    plan 6;
+    my @order = parse-stats-order('Host:Uptime,Host:Boots');
+    is-deeply @order.map({ [.key, .value] }).Array, [[Host, Uptime], [Host, Boots]],
+      'parses order list';
+    my @merged = stats-order('Host:Uptime');
+    is-deeply [@merged[0].key, @merged[0].value], [Host, Uptime],
+      'custom order first entry';
+    dies-ok { parse-stats-order('Host') }, 'invalid format';
+    dies-ok { parse-stats-order('Bad:Uptime') }, 'invalid category';
+    dies-ok { parse-stats-order('Kernel:Downtime') }, 'invalid metric for category';
+    dies-ok { parse-stats-order('Host:Nope') }, 'invalid metric';
   }
 
   done-testing;

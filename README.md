@@ -28,6 +28,7 @@ The program can be invoked with various command-line options to customize the ge
 - `--output-format`: The output format for the report, one of `Plaintext`, `Markdown`, `Gemtext` (default: `Plaintext`)
 - `--all`: Generate all possible reports except `Kernel` (optional)
 - `--include-kernel`: Include the `Kernel` category when generating all reports (optional)
+- `--stats-order`: Comma-separated list of `Category:Metric` pairs to order sections for `--all` (optional). Unlisted sections are appended in the default order.
 
 ### Example Usage
 
@@ -36,6 +37,12 @@ The program can be invoked with various command-line options to customize the ge
 ```
 
 This command generates a Markdown-formatted report for the top 10 hosts with the highest uptime.
+
+```bash
+./guprecords.raku --stats-dir="./records" --all --stats-order="Host:Uptime,Host:Boots"
+```
+
+This command generates all reports, placing the `Host:Uptime` section first, followed by `Host:Boots`, and then the remaining sections in the default order.
 
 ## Classes
 
