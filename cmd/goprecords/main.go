@@ -1,0 +1,312 @@
+// Program goprecords generates uptime reports from uptimed record files or a SQLite database.
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+
+	"github.com/goprecords/internal/goprecords"
+	"github.com/goprecords/internal/version"
+)
+
+const defaultDB = "goprecords.db"
+
+func main() {
+	for _, arg := range os.Args[1:] {
+		if arg == "-version" || arg == "--version" {
+			fmt.Println(version.Version)
+			os.Exit(0)
+		}
+	}
+
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "import":
+			runImport(os.Args[2:])
+			return
+		case "query":
+			runQuery(os.Args[2:])
+			return
+		case "test":
+			runTests()
+			return
+		}
+	}
+
+	runReportFromFiles(os.Args[1:])
+}
+
+func runImport(args []string) {
+	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	statsDir := fs.String("stats-dir", "", "Directory containing .records files (required)")
+	dbPath := fs.String("db", defaultDB, "SQLite database path")
+	fs.Parse(args)
+
+	if *statsDir == "" {
+		fmt.Fprintln(os.Stderr, "import: missing required flag: -stats-dir")
+		fs.Usage()
+		os.Exit(1)
+	}
+	db, err := goprecords.OpenDB(*dbPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "open db:", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	if err := goprecords.CreateSchema(ctx, db); err != nil {
+		fmt.Fprintln(os.Stderr, "schema:", err)
+		os.Exit(1)
+	}
+	if err := goprecords.ImportFromDir(ctx, db, *statsDir); err != nil {
+		fmt.Fprintln(os.Stderr, "import:", err)
+		os.Exit(1)
+	}
+	fmt.Fprintf(os.Stderr, "imported %s into %s\n", *statsDir, *dbPath)
+}
+
+func runQuery(args []string) {
+	fs := flag.NewFlagSet("query", flag.ExitOnError)
+	dbPath := fs.String("db", defaultDB, "SQLite database path")
+	category := fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName")
+	metric := fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan")
+	limit := fs.Uint("limit", 20, "Limit output to num of entries")
+	outputFormat := fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext")
+	all := fs.Bool("all", false, "Generate all possible stats but Kernel")
+	includeKernel := fs.Bool("include-kernel", false, "Also include Kernel when using -all")
+	statsOrder := fs.String("stats-order", "", "Comma-separated Category:Metric order for -all")
+	fs.Parse(args)
+
+	db, err := goprecords.OpenDB(*dbPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "open db:", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	aggregates, err := goprecords.LoadAggregates(ctx, db)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "load:", err)
+		os.Exit(1)
+	}
+
+	cat, err := goprecords.ParseCategory(*category)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	met, err := goprecords.ParseMetric(*metric)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	outFmt, err := goprecords.ParseOutputFormat(*outputFormat)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if !*all {
+		if cat != goprecords.CategoryHost && (met == goprecords.MetricDowntime || met == goprecords.MetricLifespan) {
+			fmt.Fprintf(os.Stderr, "Category %s only supports: Boots, Uptime, Score\n", *category)
+			os.Exit(1)
+		}
+		if cat == goprecords.CategoryHost {
+			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, met, outFmt, 1).Report())
+		} else {
+			os.Stdout.WriteString(goprecords.NewReporter(aggregates, cat, *limit, met, outFmt, 1).Report())
+		}
+		return
+	}
+
+	order, err := goprecords.StatsOrderList(*statsOrder)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	headerIndent := uint(2)
+	for _, pair := range order {
+		c, m := pair.Category, pair.Metric
+		if !*includeKernel && c == goprecords.CategoryKernel {
+			continue
+		}
+		if c != goprecords.CategoryHost && (m == goprecords.MetricDowntime || m == goprecords.MetricLifespan) {
+			continue
+		}
+		if c == goprecords.CategoryHost {
+			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, m, outFmt, headerIndent).Report())
+		} else {
+			os.Stdout.WriteString(goprecords.NewReporter(aggregates, c, *limit, m, outFmt, headerIndent).Report())
+		}
+		os.Stdout.WriteString("\n")
+	}
+}
+
+func runReportFromFiles(args []string) {
+	fs := flag.NewFlagSet("goprecords", flag.ExitOnError)
+	statsDir := fs.String("stats-dir", "", "The uptimed raw record input dir (required)")
+	category := fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName")
+	metric := fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan")
+	limit := fs.Uint("limit", 20, "Limit output to num of entries")
+	outputFormat := fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext")
+	all := fs.Bool("all", false, "Generate all possible stats but Kernel")
+	includeKernel := fs.Bool("include-kernel", false, "Also include Kernel when using -all")
+	statsOrder := fs.String("stats-order", "", "Comma-separated Category:Metric order for -all")
+	fs.Parse(args)
+
+	if *statsDir == "" {
+		fmt.Fprintln(os.Stderr, "missing required flag: -stats-dir")
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	cat, err := goprecords.ParseCategory(*category)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	met, err := goprecords.ParseMetric(*metric)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	outFmt, err := goprecords.ParseOutputFormat(*outputFormat)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	aggr := goprecords.NewAggregator(*statsDir)
+	aggregates, err := aggr.Aggregate(ctx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if !*all {
+		if cat != goprecords.CategoryHost && (met == goprecords.MetricDowntime || met == goprecords.MetricLifespan) {
+			fmt.Fprintf(os.Stderr, "Category %s only supports: Boots, Uptime, Score\n", *category)
+			os.Exit(1)
+		}
+		if cat == goprecords.CategoryHost {
+			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, met, outFmt, 1).Report())
+		} else {
+			os.Stdout.WriteString(goprecords.NewReporter(aggregates, cat, *limit, met, outFmt, 1).Report())
+		}
+		return
+	}
+
+	order, err := goprecords.StatsOrderList(*statsOrder)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	headerIndent := uint(2)
+	for _, pair := range order {
+		c, m := pair.Category, pair.Metric
+		if !*includeKernel && c == goprecords.CategoryKernel {
+			continue
+		}
+		if c != goprecords.CategoryHost && (m == goprecords.MetricDowntime || m == goprecords.MetricLifespan) {
+			continue
+		}
+		if c == goprecords.CategoryHost {
+			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, m, outFmt, headerIndent).Report())
+		} else {
+			os.Stdout.WriteString(goprecords.NewReporter(aggregates, c, *limit, m, outFmt, headerIndent).Report())
+		}
+		os.Stdout.WriteString("\n")
+	}
+}
+
+func runTests() {
+	ctx := context.Background()
+	aggr := goprecords.NewAggregator("./fixtures")
+	aggregates, err := aggr.Aggregate(ctx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	limit := uint(3)
+	categories := []goprecords.Category{goprecords.CategoryHost, goprecords.CategoryKernel, goprecords.CategoryKernelMajor, goprecords.CategoryKernelName}
+	metrics := []goprecords.Metric{goprecords.MetricBoots, goprecords.MetricUptime, goprecords.MetricScore, goprecords.MetricDowntime, goprecords.MetricLifespan}
+	formats := []goprecords.OutputFormat{goprecords.FormatPlaintext, goprecords.FormatMarkdown, goprecords.FormatGemtext}
+	failed := 0
+	for _, cat := range categories {
+		for _, met := range metrics {
+			if cat != goprecords.CategoryHost && (met == goprecords.MetricDowntime || met == goprecords.MetricLifespan) {
+				continue
+			}
+			for _, outFmt := range formats {
+				var report string
+				if cat == goprecords.CategoryHost {
+					report = goprecords.NewHostReporter(aggregates, limit, met, outFmt, 1).Report()
+				} else {
+					report = goprecords.NewReporter(aggregates, cat, limit, met, outFmt, 1).Report()
+				}
+				expectedPath := fmt.Sprintf("./fixtures/%s.%s.%s.expected", cat, met, outFmt)
+				expected, err := os.ReadFile(expectedPath)
+				if err != nil {
+					fmt.Printf("FAIL: read %s: %v\n", expectedPath, err)
+					failed++
+					continue
+				}
+				if report != string(expected) {
+					fmt.Printf("FAIL: %s\n--- got:\n%s--- expected:\n%s\n", expectedPath, report, string(expected))
+					failed++
+				}
+			}
+		}
+	}
+	if _, err := goprecords.ParseStatsOrder("Host:Uptime,Host:Boots"); err != nil {
+		fmt.Printf("FAIL: parse Host:Uptime,Host:Boots: %v\n", err)
+		failed++
+	}
+	merged, _ := goprecords.StatsOrderList("Host:Uptime")
+	if len(merged) == 0 || merged[0].Category != goprecords.CategoryHost || merged[0].Metric != goprecords.MetricUptime {
+		fmt.Printf("FAIL: stats-order custom first entry\n")
+		failed++
+	}
+	for _, bad := range []string{"Host", "Bad:Uptime", "Kernel:Downtime", "Host:Nope"} {
+		if _, err := goprecords.ParseStatsOrder(bad); err == nil {
+			fmt.Printf("FAIL: parse %q should error\n", bad)
+			failed++
+		}
+	}
+	tmpDB := "./fixtures/test_import.db"
+	os.Remove(tmpDB)
+	db, err := goprecords.OpenDB(tmpDB)
+	if err != nil {
+		fmt.Printf("FAIL: open tmp db: %v\n", err)
+		failed++
+	} else {
+		goprecords.CreateSchema(ctx, db)
+		if err := goprecords.ImportFromDir(ctx, db, "./fixtures"); err != nil {
+			fmt.Printf("FAIL: import: %v\n", err)
+			failed++
+		} else {
+			aggFromDB, err := goprecords.LoadAggregates(ctx, db)
+			if err != nil {
+				fmt.Printf("FAIL: load: %v\n", err)
+				failed++
+			} else {
+				reportFromDB := goprecords.NewHostReporter(aggFromDB, limit, goprecords.MetricUptime, goprecords.FormatPlaintext, 1).Report()
+				reportFromMem := goprecords.NewHostReporter(aggregates, limit, goprecords.MetricUptime, goprecords.FormatPlaintext, 1).Report()
+				if reportFromDB != reportFromMem {
+					fmt.Printf("FAIL: import/query report differs from in-memory\n--- from DB:\n%s--- from memory:\n%s\n", reportFromDB, reportFromMem)
+					failed++
+				}
+			}
+		}
+		db.Close()
+		os.Remove(tmpDB)
+	}
+	if failed > 0 {
+		os.Exit(1)
+	}
+	fmt.Println("ok")
+}
