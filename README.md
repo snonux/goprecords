@@ -1,6 +1,6 @@
-# guprecords - Global uptime records
+# goprecords - Global uptime records
 
-`guprecords` is a Raku-based command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It allows you to create reports for different categories and metrics, and supports multiple output formats.
+`goprecords` is a Go command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It supports importing records into SQLite and querying for reports, or reporting directly from a stats directory. (A Raku implementation, `guprecords.raku`, is also available in this repo for reference.)
 
 ## Features
 
@@ -19,50 +19,51 @@ Whereas:
 
 ## Usage
 
-The program can be invoked with various command-line options to customize the generated reports. The following are the command-line options available:
+- **`-version`** — Print version and exit.
+- **`import`** — Import `.records` files into a SQLite database (repeatable: replaces existing data).
+  - `-stats-dir` (required): Directory containing `*.records` files.
+  - `-db`: Database path (default: `goprecords.db`).
+- **`query`** — Generate reports from an existing SQLite database.
+  - `-db`: Database path (default: `goprecords.db`).
+  - `-category`, `-metric`, `-limit`, `-output-format`, `-all`, `-include-kernel`, `-stats-order` (same as below).
+- **No subcommand** — Generate reports directly from a stats directory (no DB).
+  - `-stats-dir` (required): The uptimed raw record input dir.
+  - `-category`: One of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`).
+  - `-metric`: One of `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan` (default: `Uptime`).
+  - `-limit`: Max entries (default: 20).
+  - `-output-format`: `Plaintext`, `Markdown`, or `Gemtext` (default: `Plaintext`).
+  - `-all`: Generate all reports except `Kernel`.
+  - `-include-kernel`: Include `Kernel` when using `-all`.
+  - `-stats-order`: Comma-separated `Category:Metric` order for `-all`.
 
-- `--stats-dir`: The path to the directory containing the uptimed raw record input files (required)
-- `--category`: The category to generate the report for, one of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`)
-- `--metric`: The metric to use for the report, one of `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan` (default: `Uptime`)
-- `--limit`: Limit the output to the specified number of entries (default: 20)
-- `--output-format`: The output format for the report, one of `Plaintext`, `Markdown`, `Gemtext` (default: `Plaintext`)
-- `--all`: Generate all possible reports except `Kernel` (optional)
-- `--include-kernel`: Include the `Kernel` category when generating all reports (optional)
-- `--stats-order`: Comma-separated list of `Category:Metric` pairs to order sections for `--all` (optional). Unlisted sections are appended in the default order.
-
-### Example Usage
+### Example usage
 
 ```bash
-./guprecords.raku --stats-dir="./records" --category=Host --metric=Uptime --limit=10 --output-format=Markdown
+# Build (or use mage)
+go build -o goprecords ./cmd/goprecords
+
+# Import then query (repeatable)
+./goprecords import -stats-dir=~/git/uprecords/stats -db=goprecords.db
+./goprecords query -db=goprecords.db -category=Host -metric=Uptime -limit=10 -output-format=Markdown
+
+# Or report directly from files
+./goprecords -stats-dir=~/git/uprecords/stats -all -stats-order="Host:Uptime,Host:Boots"
 ```
-
-This command generates a Markdown-formatted report for the top 10 hosts with the highest uptime.
-
-```bash
-./guprecords.raku --stats-dir="./records" --all --stats-order="Host:Uptime,Host:Boots"
-```
-
-This command generates all reports, placing the `Host:Uptime` section first, followed by `Host:Boots`, and then the remaining sections in the default order.
-
-## Classes
-
-- `Epoch`: A class representing the epoch value.
-- `Aggregate`: A class representing the aggregate data for a specific category.
-- `HostAggregate`: A subclass of `Aggregate` for handling host-related data.
-- `Aggregator`: A class responsible for aggregating data from the record files.
-- `OutputHelper`: A role providing helper methods for report output formatting.
-- `Reporter`: A class generating reports based on specified category, metric, limit, and output format.
-- `HostReporter`: A subclass of `Reporter` for handling host-related data.
 
 ## Test
 
-The program includes test functionality. To run the tests, invoke the program with the `test` argument:
+Run the test subcommand (fixture comparison and import/query parity):
 
 ```bash
-./guprecords.raku test
+./goprecords test
 ```
 
-This will run the tests and report the results.
+Or run Go unit tests:
+
+```bash
+go test ./...
+# or: mage test
+```
 
 ## End-to-end usage
 
@@ -118,10 +119,17 @@ push: manual
 
 ### Generate global uptime stats
 
-Third, now you can finally run:
+Third, import and query (or report from files):
 
 ```
-raku guprecords.raku --stats=dir=$HOME/git/uprecords/stats --all
+./goprecords import -stats-dir=$HOME/git/uprecords/stats -db=goprecords.db
+./goprecords query -db=goprecords.db -all
+```
+
+Or without a database:
+
+```
+./goprecords -stats-dir=$HOME/git/uprecords/stats -all
 ```
 
 ... to generate something like the following:
