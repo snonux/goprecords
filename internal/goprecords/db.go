@@ -63,7 +63,15 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 	if err != nil {
 		return fmt.Errorf("read dir: %w", err)
 	}
-	insert, err := db.PrepareContext(ctx, "INSERT INTO record (host, uptime_sec, boot_time, os, os_kernel_name, os_kernel_major) VALUES (?, ?, ?, ?, ?, ?)")
+
+	// Use a transaction for better performance with multiple inserts
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	insert, err := tx.PrepareContext(ctx, "INSERT INTO record (host, uptime_sec, boot_time, os, os_kernel_name, os_kernel_major) VALUES (?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("prepare insert: %w", err)
 	}
@@ -123,6 +131,10 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 		if err := sc.Err(); err != nil {
 			return fmt.Errorf("scan %s: %w", path, err)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
 	}
 	return nil
 }
