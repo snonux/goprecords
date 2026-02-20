@@ -14,28 +14,26 @@ import (
 const defaultDB = "goprecords.db"
 
 func main() {
-	for _, arg := range os.Args[1:] {
-		if arg == "-version" || arg == "--version" {
-			fmt.Println(version.Version)
-			os.Exit(0)
-		}
+	if len(os.Args) > 1 && (os.Args[1] == "-version" || os.Args[1] == "--version") {
+		fmt.Println(version.Version)
+		return
 	}
 
-	if len(os.Args) >= 2 {
-		switch os.Args[1] {
-		case "import":
-			runImport(os.Args[2:])
-			return
-		case "query":
-			runQuery(os.Args[2:])
-			return
-		case "test":
-			runTests()
-			return
-		}
+	if len(os.Args) < 2 {
+		runReportFromFiles(nil)
+		return
 	}
 
-	runReportFromFiles(os.Args[1:])
+	switch os.Args[1] {
+	case "import":
+		runImport(os.Args[2:])
+	case "query":
+		runQuery(os.Args[2:])
+	case "test":
+		runTests()
+	default:
+		runReportFromFiles(os.Args[1:])
+	}
 }
 
 func runImport(args []string) {
@@ -146,6 +144,9 @@ func runQuery(args []string) {
 }
 
 func runReportFromFiles(args []string) {
+	if args == nil {
+		args = []string{}
+	}
 	fs := flag.NewFlagSet("goprecords", flag.ExitOnError)
 	statsDir := fs.String("stats-dir", "", "The uptimed raw record input dir (required)")
 	category := fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName")

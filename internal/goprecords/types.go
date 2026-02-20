@@ -24,6 +24,65 @@ const (
 	CategoryKernelName
 )
 
+// Metric is the value to rank by (Boots, Uptime, etc.).
+type Metric int
+
+const (
+	MetricBoots Metric = iota
+	MetricUptime
+	MetricScore
+	MetricDowntime
+	MetricLifespan
+)
+
+// OutputFormat is the report output format.
+type OutputFormat int
+
+const (
+	FormatPlaintext OutputFormat = iota
+	FormatMarkdown
+	FormatGemtext
+)
+
+// Epoch is a Unix timestamp for duration/date formatting.
+type Epoch uint64
+
+// Aggregate holds per-entity stats (Host, Kernel, etc.).
+type Aggregate struct {
+	Name      string
+	Uptime    uint64
+	FirstBoot uint64
+	LastSeen  uint64
+	Boots     uint64
+}
+
+// NewAggregate constructs an Aggregate with the given name.
+func NewAggregate(name string) *Aggregate {
+	return &Aggregate{Name: name}
+}
+
+// HostAggregate adds last-kernel and lifespan/downtime for host reports.
+type HostAggregate struct {
+	Aggregate
+	LastKernel string
+}
+
+// NewHostAggregate constructs a HostAggregate.
+func NewHostAggregate(name, lastKernel string) *HostAggregate {
+	return &HostAggregate{
+		Aggregate:  Aggregate{Name: name},
+		LastKernel: lastKernel,
+	}
+}
+
+// tableRow is one row in the report table.
+type tableRow struct {
+	Pos        string
+	Name       string
+	Value      string
+	LastKernel string
+}
+
 // String returns the category name.
 func (c Category) String() string {
 	switch c {
@@ -39,17 +98,6 @@ func (c Category) String() string {
 		return "?"
 	}
 }
-
-// Metric is the value to rank by (Boots, Uptime, etc.).
-type Metric int
-
-const (
-	MetricBoots Metric = iota
-	MetricUptime
-	MetricScore
-	MetricDowntime
-	MetricLifespan
-)
 
 // String returns the metric name.
 func (m Metric) String() string {
@@ -69,15 +117,6 @@ func (m Metric) String() string {
 	}
 }
 
-// OutputFormat is the report output format.
-type OutputFormat int
-
-const (
-	FormatPlaintext OutputFormat = iota
-	FormatMarkdown
-	FormatGemtext
-)
-
 // String returns the format name.
 func (f OutputFormat) String() string {
 	switch f {
@@ -92,9 +131,6 @@ func (f OutputFormat) String() string {
 	}
 }
 
-// Epoch is a Unix timestamp for duration/date formatting.
-type Epoch uint64
-
 // HumanDuration returns a human-readable duration from epoch (e.g. "1 years, 2 months, 3 days").
 func (e Epoch) HumanDuration() string {
 	t := time.Unix(int64(e), 0).UTC()
@@ -108,20 +144,6 @@ func (e Epoch) HumanDuration() string {
 func (e Epoch) NewerThan(limitDays uint) bool {
 	then := time.Unix(int64(e), 0)
 	return time.Since(then) < time.Duration(limitDays)*24*time.Hour
-}
-
-// Aggregate holds per-entity stats (Host, Kernel, etc.).
-type Aggregate struct {
-	Name      string
-	Uptime    uint64
-	FirstBoot uint64
-	LastSeen  uint64
-	Boots     uint64
-}
-
-// NewAggregate constructs an Aggregate with the given name.
-func NewAggregate(name string) *Aggregate {
-	return &Aggregate{Name: name}
 }
 
 // AddRecord adds one uptime record.
@@ -151,20 +173,6 @@ func (a *Aggregate) MetaScore() uint64 {
 	return ((a.Uptime*2 + a.Boots*uint64(Day) + activeBonus) / 1000000)
 }
 
-// HostAggregate adds last-kernel and lifespan/downtime for host reports.
-type HostAggregate struct {
-	Aggregate
-	LastKernel string
-}
-
-// NewHostAggregate constructs a HostAggregate.
-func NewHostAggregate(name, lastKernel string) *HostAggregate {
-	return &HostAggregate{
-		Aggregate:  Aggregate{Name: name},
-		LastKernel: lastKernel,
-	}
-}
-
 // Lifespan returns last-seen minus first-boot.
 func (h *HostAggregate) Lifespan() uint64 { return h.LastSeen - h.FirstBoot }
 
@@ -174,14 +182,6 @@ func (h *HostAggregate) Downtime() uint64 { return h.Lifespan() - h.Uptime }
 // MetaScore returns the host-specific score (includes downtime component).
 func (h *HostAggregate) MetaScore() uint64 {
 	return uint64(h.Downtime()/2000000) + h.Aggregate.MetaScore()
-}
-
-// tableRow is one row in the report table.
-type tableRow struct {
-	Pos        string
-	Name       string
-	Value      string
-	LastKernel string
 }
 
 // MetricDescription returns the description text for a metric.
@@ -257,22 +257,24 @@ func wordWrap(s string, lineLimit int) string {
 	var b strings.Builder
 	chars := 0
 	for _, word := range strings.Fields(s) {
-		wlen := len(word)
-		if chars > 0 {
-			wlen++
+		wordLen := len(word)
+		needsSpace := chars > 0
+		totalLen := wordLen
+		if needsSpace {
+			totalLen++
 		}
-		if chars+wlen > lineLimit {
+		if chars+totalLen > lineLimit {
 			if chars > 0 {
 				b.WriteByte('\n')
 			}
 			b.WriteString(word)
-			chars = len(word)
+			chars = wordLen
 		} else {
-			if chars > 0 {
+			if needsSpace {
 				b.WriteByte(' ')
 			}
 			b.WriteString(word)
-			chars += wlen
+			chars += totalLen
 		}
 	}
 	return b.String()

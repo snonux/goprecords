@@ -3,3 +3,6 @@
 
 # Built binary
 /goprecords
+
+# Temporary test database
+/fixtures/test_import.db

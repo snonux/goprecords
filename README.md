@@ -1,6 +1,6 @@
 # goprecords - Global uptime records
 
-`goprecords` is a Go command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It supports importing records into SQLite and querying for reports, or reporting directly from a stats directory. (A Raku implementation, `guprecords.raku`, is also available in this repo for reference.)
+`goprecords` is a Go command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It supports importing records into SQLite and querying for reports, or reporting directly from a stats directory.
 
 ## Features
 
