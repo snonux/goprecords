@@ -68,13 +68,7 @@ func runImport(args []string) {
 func runQuery(args []string) {
 	fs := flag.NewFlagSet("query", flag.ExitOnError)
 	dbPath := fs.String("db", defaultDB, "SQLite database path")
-	category := fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName")
-	metric := fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan")
-	limit := fs.Uint("limit", 20, "Limit output to num of entries")
-	outputFormat := fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext")
-	all := fs.Bool("all", false, "Generate all possible stats but Kernel")
-	includeKernel := fs.Bool("include-kernel", false, "Also include Kernel when using -all")
-	statsOrder := fs.String("stats-order", "", "Comma-separated Category:Metric order for -all")
+	rf := goprecords.RegisterReportFlags(fs)
 	fs.Parse(args)
 
 	db, err := goprecords.OpenDB(*dbPath)
@@ -91,55 +85,14 @@ func runQuery(args []string) {
 		os.Exit(1)
 	}
 
-	cat, err := goprecords.ParseCategory(*category)
+	cfg, err := rf.Parse()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	met, err := goprecords.ParseMetric(*metric)
-	if err != nil {
+	if err := goprecords.WriteReports(os.Stdout, aggregates, cfg); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	}
-	outFmt, err := goprecords.ParseOutputFormat(*outputFormat)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	if !*all {
-		if cat != goprecords.CategoryHost && (met == goprecords.MetricDowntime || met == goprecords.MetricLifespan) {
-			fmt.Fprintf(os.Stderr, "Category %s only supports: Boots, Uptime, Score\n", *category)
-			os.Exit(1)
-		}
-		if cat == goprecords.CategoryHost {
-			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, met, outFmt, 1).Report())
-		} else {
-			os.Stdout.WriteString(goprecords.NewReporter(aggregates, cat, *limit, met, outFmt, 1).Report())
-		}
-		return
-	}
-
-	order, err := goprecords.StatsOrderList(*statsOrder)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	headerIndent := uint(2)
-	for _, pair := range order {
-		c, m := pair.Category, pair.Metric
-		if !*includeKernel && c == goprecords.CategoryKernel {
-			continue
-		}
-		if c != goprecords.CategoryHost && (m == goprecords.MetricDowntime || m == goprecords.MetricLifespan) {
-			continue
-		}
-		if c == goprecords.CategoryHost {
-			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, m, outFmt, headerIndent).Report())
-		} else {
-			os.Stdout.WriteString(goprecords.NewReporter(aggregates, c, *limit, m, outFmt, headerIndent).Report())
-		}
-		os.Stdout.WriteString("\n")
 	}
 }
 
@@ -149,13 +102,7 @@ func runReportFromFiles(args []string) {
 	}
 	fs := flag.NewFlagSet("goprecords", flag.ExitOnError)
 	statsDir := fs.String("stats-dir", "", "The uptimed raw record input dir (required)")
-	category := fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName")
-	metric := fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan")
-	limit := fs.Uint("limit", 20, "Limit output to num of entries")
-	outputFormat := fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext")
-	all := fs.Bool("all", false, "Generate all possible stats but Kernel")
-	includeKernel := fs.Bool("include-kernel", false, "Also include Kernel when using -all")
-	statsOrder := fs.String("stats-order", "", "Comma-separated Category:Metric order for -all")
+	rf := goprecords.RegisterReportFlags(fs)
 	fs.Parse(args)
 
 	if *statsDir == "" {
@@ -164,17 +111,7 @@ func runReportFromFiles(args []string) {
 		os.Exit(1)
 	}
 
-	cat, err := goprecords.ParseCategory(*category)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	met, err := goprecords.ParseMetric(*metric)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	outFmt, err := goprecords.ParseOutputFormat(*outputFormat)
+	cfg, err := rf.Parse()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -188,39 +125,9 @@ func runReportFromFiles(args []string) {
 		os.Exit(1)
 	}
 
-	if !*all {
-		if cat != goprecords.CategoryHost && (met == goprecords.MetricDowntime || met == goprecords.MetricLifespan) {
-			fmt.Fprintf(os.Stderr, "Category %s only supports: Boots, Uptime, Score\n", *category)
-			os.Exit(1)
-		}
-		if cat == goprecords.CategoryHost {
-			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, met, outFmt, 1).Report())
-		} else {
-			os.Stdout.WriteString(goprecords.NewReporter(aggregates, cat, *limit, met, outFmt, 1).Report())
-		}
-		return
-	}
-
-	order, err := goprecords.StatsOrderList(*statsOrder)
-	if err != nil {
+	if err := goprecords.WriteReports(os.Stdout, aggregates, cfg); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	}
-	headerIndent := uint(2)
-	for _, pair := range order {
-		c, m := pair.Category, pair.Metric
-		if !*includeKernel && c == goprecords.CategoryKernel {
-			continue
-		}
-		if c != goprecords.CategoryHost && (m == goprecords.MetricDowntime || m == goprecords.MetricLifespan) {
-			continue
-		}
-		if c == goprecords.CategoryHost {
-			os.Stdout.WriteString(goprecords.NewHostReporter(aggregates, *limit, m, outFmt, headerIndent).Report())
-		} else {
-			os.Stdout.WriteString(goprecords.NewReporter(aggregates, c, *limit, m, outFmt, headerIndent).Report())
-		}
-		os.Stdout.WriteString("\n")
 	}
 }
 

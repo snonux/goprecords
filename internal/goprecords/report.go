@@ -1,10 +1,108 @@
 package goprecords
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 )
+
+// ReportConfig holds parsed report configuration.
+type ReportConfig struct {
+	Category      Category
+	Metric        Metric
+	Limit         uint
+	OutputFormat  OutputFormat
+	All           bool
+	IncludeKernel bool
+	StatsOrder    string
+}
+
+// ReportFlags holds flag pointers registered on a FlagSet.
+type ReportFlags struct {
+	category      *string
+	metric        *string
+	limit         *uint
+	outputFormat  *string
+	all           *bool
+	includeKernel *bool
+	statsOrder    *string
+}
+
+// RegisterReportFlags registers common report flags on the given FlagSet.
+func RegisterReportFlags(fs *flag.FlagSet) *ReportFlags {
+	return &ReportFlags{
+		category:      fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName"),
+		metric:        fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan"),
+		limit:         fs.Uint("limit", 20, "Limit output to num of entries"),
+		outputFormat:  fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext"),
+		all:           fs.Bool("all", false, "Generate all possible stats but Kernel"),
+		includeKernel: fs.Bool("include-kernel", false, "Also include Kernel when using -all"),
+		statsOrder:    fs.String("stats-order", "", "Comma-separated Category:Metric order for -all"),
+	}
+}
+
+// Parse converts flag values into a ReportConfig.
+func (rf *ReportFlags) Parse() (ReportConfig, error) {
+	cat, err := ParseCategory(*rf.category)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	met, err := ParseMetric(*rf.metric)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	outFmt, err := ParseOutputFormat(*rf.outputFormat)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	return ReportConfig{
+		Category:      cat,
+		Metric:        met,
+		Limit:         *rf.limit,
+		OutputFormat:  outFmt,
+		All:           *rf.all,
+		IncludeKernel: *rf.includeKernel,
+		StatsOrder:    *rf.statsOrder,
+	}, nil
+}
+
+// WriteReports renders reports to w based on the given config.
+func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
+	if !cfg.All {
+		if cfg.Category != CategoryHost && (cfg.Metric == MetricDowntime || cfg.Metric == MetricLifespan) {
+			return fmt.Errorf("Category %s only supports: Boots, Uptime, Score", cfg.Category)
+		}
+		if cfg.Category == CategoryHost {
+			io.WriteString(w, NewHostReporter(aggregates, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report())
+		} else {
+			io.WriteString(w, NewReporter(aggregates, cfg.Category, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report())
+		}
+		return nil
+	}
+	order, err := StatsOrderList(cfg.StatsOrder)
+	if err != nil {
+		return err
+	}
+	headerIndent := uint(2)
+	for _, pair := range order {
+		c, m := pair.Category, pair.Metric
+		if !cfg.IncludeKernel && c == CategoryKernel {
+			continue
+		}
+		if c != CategoryHost && (m == MetricDowntime || m == MetricLifespan) {
+			continue
+		}
+		if c == CategoryHost {
+			io.WriteString(w, NewHostReporter(aggregates, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report())
+		} else {
+			io.WriteString(w, NewReporter(aggregates, c, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report())
+		}
+		io.WriteString(w, "\n")
+	}
+	return nil
+}
 
 // Reporter builds a single report (category + metric + format).
 type Reporter struct {

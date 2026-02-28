@@ -1,6 +1,7 @@
 package goprecords
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -215,6 +216,84 @@ func TestReportLimit(t *testing.T) {
 	if entryCount > 5 {
 		t.Errorf("expected at most 5 entries, got %d", entryCount)
 	}
+}
+
+func TestWriteReportsSingle(t *testing.T) {
+	aggs := testAggregates()
+	var buf bytes.Buffer
+	cfg := ReportConfig{
+		Category:     CategoryHost,
+		Metric:       MetricUptime,
+		Limit:        20,
+		OutputFormat: FormatPlaintext,
+	}
+	if err := WriteReports(&buf, aggs, cfg); err != nil {
+		t.Fatalf("WriteReports: %v", err)
+	}
+	if !strings.Contains(buf.String(), "host1") {
+		t.Error("expected output to contain host1")
+	}
+}
+
+func TestWriteReportsAll(t *testing.T) {
+	aggs := testAggregates()
+	var buf bytes.Buffer
+	cfg := ReportConfig{
+		Category:      CategoryHost,
+		Metric:        MetricUptime,
+		Limit:         20,
+		OutputFormat:  FormatPlaintext,
+		All:           true,
+		IncludeKernel: true,
+	}
+	if err := WriteReports(&buf, aggs, cfg); err != nil {
+		t.Fatalf("WriteReports: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "Uptime") {
+		t.Error("expected output to contain Uptime report")
+	}
+	if !strings.Contains(out, "Boots") {
+		t.Error("expected output to contain Boots report")
+	}
+}
+
+func TestWriteReportsInvalidMetricForCategory(t *testing.T) {
+	aggs := testAggregates()
+	var buf bytes.Buffer
+	cfg := ReportConfig{
+		Category:     CategoryKernel,
+		Metric:       MetricDowntime,
+		Limit:        20,
+		OutputFormat: FormatPlaintext,
+	}
+	err := WriteReports(&buf, aggs, cfg)
+	if err == nil {
+		t.Fatal("expected error for Downtime on Kernel category")
+	}
+	if !strings.Contains(err.Error(), "only supports") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func testAggregates() *Aggregates {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+	hagg := NewHostAggregate("host1", "Linux 5.10")
+	hagg.Uptime = 86400000
+	hagg.Boots = 10
+	hagg.FirstBoot = 1000
+	hagg.LastSeen = 86401000
+	aggs.Host["host1"] = hagg
+	kernel := NewAggregate("Linux 5.10")
+	kernel.Uptime = 86400000
+	kernel.Boots = 10
+	aggs.Kernel["Linux 5.10"] = kernel
+	return aggs
 }
 
 func hostName(i int) string {
