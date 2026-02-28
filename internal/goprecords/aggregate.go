@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -82,35 +81,14 @@ func processRecordsFile(ctx context.Context, path, host string, out *Aggregates)
 			return ctx.Err()
 		default:
 		}
-		line := strings.TrimSpace(sc.Text())
-		if line == "" {
+		rec, ok := parseRecordLine(sc.Text())
+		if !ok {
 			continue
 		}
-		parts := strings.SplitN(line, ":", 3)
-		if len(parts) != 3 {
-			continue
-		}
-		uptime, _ := strconv.ParseUint(parts[0], 10, 64)
-		bootTime, _ := strconv.ParseUint(parts[1], 10, 64)
-		osStr := parts[2]
-		uname := osStr
-		if i := strings.Index(osStr, " "); i > 0 {
-			uname = osStr[:i]
-		}
-		osMajor := uname + " "
-		rest := osStr
-		if i := strings.Index(osStr, " "); i >= 0 {
-			rest = osStr[i+1:]
-		}
-		if j := strings.Index(rest, "."); j >= 0 {
-			osMajor += rest[:j] + "..."
-		} else {
-			osMajor += rest + "..."
-		}
-		out.Host[host].AddRecord(uptime, bootTime)
-		getOrNewAggregate(out.Kernel, osStr).AddRecord(uptime, bootTime)
-		getOrNewAggregate(out.KernelName, uname).AddRecord(uptime, bootTime)
-		getOrNewAggregate(out.KernelMajor, osMajor).AddRecord(uptime, bootTime)
+		out.Host[host].AddRecord(rec.Uptime, rec.BootTime)
+		getOrNewAggregate(out.Kernel, rec.OS).AddRecord(rec.Uptime, rec.BootTime)
+		getOrNewAggregate(out.KernelName, rec.KernelName).AddRecord(rec.Uptime, rec.BootTime)
+		getOrNewAggregate(out.KernelMajor, rec.KernelMajor).AddRecord(rec.Uptime, rec.BootTime)
 	}
 	if err := sc.Err(); err != nil {
 		return fmt.Errorf("scan %s: %w", path, err)
@@ -137,18 +115,13 @@ func lastKernelFromFile(path string) (string, error) {
 	var lastOS string
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if line == "" {
+		rec, ok := parseRecordLine(sc.Text())
+		if !ok {
 			continue
 		}
-		parts := strings.SplitN(line, ":", 3)
-		if len(parts) != 3 {
-			continue
-		}
-		bootTime, _ := strconv.ParseUint(parts[1], 10, 64)
-		if bootTime >= maxBoot {
-			maxBoot = bootTime
-			lastOS = parts[2]
+		if rec.BootTime >= maxBoot {
+			maxBoot = rec.BootTime
+			lastOS = rec.OS
 		}
 	}
 	return lastOS, sc.Err()

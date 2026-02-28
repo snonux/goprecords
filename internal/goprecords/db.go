@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	_ "modernc.org/sqlite"
@@ -96,32 +95,11 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 		}
 		sc := bufio.NewScanner(f)
 		for sc.Scan() {
-			line := strings.TrimSpace(sc.Text())
-			if line == "" {
+			rec, ok := parseRecordLine(sc.Text())
+			if !ok {
 				continue
 			}
-			parts := strings.SplitN(line, ":", 3)
-			if len(parts) != 3 {
-				continue
-			}
-			uptimeSec, _ := strconv.ParseInt(parts[0], 10, 64)
-			bootTime, _ := strconv.ParseInt(parts[1], 10, 64)
-			osStr := parts[2]
-			osKernelName := osStr
-			if i := strings.Index(osStr, " "); i > 0 {
-				osKernelName = osStr[:i]
-			}
-			osMajor := osKernelName + " "
-			rest := osStr
-			if i := strings.Index(osStr, " "); i >= 0 {
-				rest = osStr[i+1:]
-			}
-			if j := strings.Index(rest, "."); j >= 0 {
-				osMajor += rest[:j] + "..."
-			} else {
-				osMajor += rest + "..."
-			}
-			_, err := insert.ExecContext(ctx, host, uptimeSec, bootTime, osStr, osKernelName, osMajor)
+			_, err := insert.ExecContext(ctx, host, rec.Uptime, rec.BootTime, rec.OS, rec.KernelName, rec.KernelMajor)
 			if err != nil {
 				f.Close()
 				return fmt.Errorf("insert: %w", err)

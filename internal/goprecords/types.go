@@ -75,6 +75,15 @@ func NewHostAggregate(name, lastKernel string) *HostAggregate {
 	}
 }
 
+// recordLine holds the parsed fields from a single uptimed record line.
+type recordLine struct {
+	Uptime      uint64
+	BootTime    uint64
+	OS          string
+	KernelName  string
+	KernelMajor string
+}
+
 // tableRow is one row in the report table.
 type tableRow struct {
 	Pos        string
@@ -248,6 +257,41 @@ func ParseOutputFormat(s string) (OutputFormat, error) {
 	default:
 		return 0, fmt.Errorf("invalid output-format %q", s)
 	}
+}
+
+func parseRecordLine(line string) (recordLine, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return recordLine{}, false
+	}
+	parts := strings.SplitN(line, ":", 3)
+	if len(parts) != 3 {
+		return recordLine{}, false
+	}
+	uptime, _ := strconv.ParseUint(parts[0], 10, 64)
+	bootTime, _ := strconv.ParseUint(parts[1], 10, 64)
+	osStr := parts[2]
+	kernelName := osStr
+	if i := strings.Index(osStr, " "); i > 0 {
+		kernelName = osStr[:i]
+	}
+	kernelMajor := kernelName + " "
+	rest := osStr
+	if i := strings.Index(osStr, " "); i >= 0 {
+		rest = osStr[i+1:]
+	}
+	if j := strings.Index(rest, "."); j >= 0 {
+		kernelMajor += rest[:j] + "..."
+	} else {
+		kernelMajor += rest + "..."
+	}
+	return recordLine{
+		Uptime:      uptime,
+		BootTime:    bootTime,
+		OS:          osStr,
+		KernelName:  kernelName,
+		KernelMajor: kernelMajor,
+	}, true
 }
 
 func wordWrap(s string, lineLimit int) string {
