@@ -89,30 +89,35 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 		if idx := strings.Index(host, "."); idx > 0 {
 			host = host[:idx]
 		}
-		f, err := os.Open(path)
-		if err != nil {
-			return fmt.Errorf("open %s: %w", path, err)
-		}
-		sc := bufio.NewScanner(f)
-		for sc.Scan() {
-			rec, ok := parseRecordLine(sc.Text())
-			if !ok {
-				continue
-			}
-			_, err := insert.ExecContext(ctx, host, rec.Uptime, rec.BootTime, rec.OS, rec.KernelName, rec.KernelMajor)
-			if err != nil {
-				f.Close()
-				return fmt.Errorf("insert: %w", err)
-			}
-		}
-		f.Close()
-		if err := sc.Err(); err != nil {
-			return fmt.Errorf("scan %s: %w", path, err)
+		if err := importFile(ctx, insert, path, host); err != nil {
+			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
+	}
+	return nil
+}
+
+func importFile(ctx context.Context, insert *sql.Stmt, path, host string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", path, err)
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		rec, ok := parseRecordLine(sc.Text())
+		if !ok {
+			continue
+		}
+		if _, err := insert.ExecContext(ctx, host, rec.Uptime, rec.BootTime, rec.OS, rec.KernelName, rec.KernelMajor); err != nil {
+			return fmt.Errorf("insert: %w", err)
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return fmt.Errorf("scan %s: %w", path, err)
 	}
 	return nil
 }
