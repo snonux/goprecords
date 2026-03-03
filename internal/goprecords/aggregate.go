@@ -96,15 +96,6 @@ func processRecordsFile(ctx context.Context, path, host string, out *Aggregates)
 	return nil
 }
 
-func getOrNewAggregate(m map[string]*Aggregate, name string) *Aggregate {
-	if a, ok := m[name]; ok {
-		return a
-	}
-	a := NewAggregate(name)
-	m[name] = a
-	return a
-}
-
 func lastKernelFromFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
