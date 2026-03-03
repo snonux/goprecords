@@ -9,8 +9,8 @@ import (
 )
 
 // OpenDB opens the SQLite database at path, creating the file if needed.
-func OpenDB(path string) (*sql.DB, error) {
-	return storage.Open(path)
+func OpenDB(ctx context.Context, path string) (*sql.DB, error) {
+	return storage.Open(ctx, path)
 }
 
 // CreateSchema creates the record table and indexes (idempotent).

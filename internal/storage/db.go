@@ -37,12 +37,12 @@ type Record struct {
 	KernelMajor string
 }
 
-func Open(path string) (*sql.DB, error) {
+func Open(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := db.Exec("PRAGMA foreign_keys = OFF"); err != nil {
+	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -108,6 +108,11 @@ func LoadRecords(ctx context.Context, db *sql.DB) ([]Record, error) {
 	defer rows.Close()
 	var out []Record
 	for rows.Next() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		var rec Record
 		var uptimeSec, bootTime int64
 		if err := rows.Scan(&rec.Host, &uptimeSec, &bootTime, &rec.OS, &rec.KernelName, &rec.KernelMajor); err != nil {
@@ -139,6 +144,11 @@ func importFile(ctx context.Context, insert *sql.Stmt, path, host string) error 
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		rec, ok := parseRecordLine(sc.Text())
 		if !ok {
 			continue

@@ -55,7 +55,7 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 		if _, exists := out.Host[host]; exists {
 			return nil, fmt.Errorf("record file for %s already processed - duplicate inputs?", host)
 		}
-		lastKernel, err := lastKernelFromFile(path)
+		lastKernel, err := lastKernelFromFile(ctx, path)
 		if err != nil {
 			return nil, fmt.Errorf("last kernel %s: %w", path, err)
 		}
@@ -96,7 +96,7 @@ func processRecordsFile(ctx context.Context, path, host string, out *Aggregates)
 	return nil
 }
 
-func lastKernelFromFile(path string) (string, error) {
+func lastKernelFromFile(ctx context.Context, path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -106,6 +106,11 @@ func lastKernelFromFile(path string) (string, error) {
 	var lastOS string
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+		}
 		rec, ok := parseRecordLine(sc.Text())
 		if !ok {
 			continue

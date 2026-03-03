@@ -47,12 +47,12 @@ func runImport(args []string) error {
 		fs.Usage()
 		return fmt.Errorf("missing -stats-dir")
 	}
-	db, err := goprecords.OpenDB(*dbPath)
+	ctx := context.Background()
+	db, err := goprecords.OpenDB(ctx, *dbPath)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 	defer db.Close()
-	ctx := context.Background()
 	if err := goprecords.CreateSchema(ctx, db); err != nil {
 		return fmt.Errorf("schema: %w", err)
 	}
@@ -70,12 +70,12 @@ func runQuery(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	db, err := goprecords.OpenDB(*dbPath)
+	ctx := context.Background()
+	db, err := goprecords.OpenDB(ctx, *dbPath)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 	defer db.Close()
-	ctx := context.Background()
 	aggregates, err := goprecords.LoadAggregates(ctx, db)
 	if err != nil {
 		return fmt.Errorf("load: %w", err)

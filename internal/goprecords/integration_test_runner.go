@@ -85,7 +85,7 @@ func testImportExport(ctx context.Context, aggregates *Aggregates, fixturesDir s
 	tmpDB := fixturesDir + "/test_import.db"
 	os.Remove(tmpDB)
 	failed := 0
-	db, err := OpenDB(tmpDB)
+	db, err := OpenDB(ctx, tmpDB)
 	if err != nil {
 		fmt.Printf("FAIL: open tmp db: %v\n", err)
 		return 1
