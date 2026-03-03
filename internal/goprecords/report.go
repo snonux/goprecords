@@ -104,35 +104,65 @@ func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 	return nil
 }
 
-// Reporter builds a single report (category + metric + format).
-type Reporter struct {
+type Reporter interface {
+	Report() string
+}
+
+type reportBuilder struct {
 	aggregates   *Aggregates
 	limit        uint
 	category     Category
 	metric       Metric
-	outputFormat OutputFormat
 	headerIndent uint
 }
 
-// NewReporter returns a Reporter for the given category and metric.
-func NewReporter(aggregates *Aggregates, category Category, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) *Reporter {
-	return &Reporter{
+type PlaintextReporter struct {
+	builder reportBuilder
+}
+
+type MarkdownReporter struct {
+	builder reportBuilder
+}
+
+type GemtextReporter struct {
+	builder reportBuilder
+}
+
+func NewReporter(aggregates *Aggregates, category Category, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) Reporter {
+	builder := reportBuilder{
 		aggregates:   aggregates,
 		limit:        limit,
 		category:     category,
 		metric:       metric,
-		outputFormat: outputFormat,
 		headerIndent: headerIndent,
+	}
+	switch outputFormat {
+	case FormatMarkdown:
+		return &MarkdownReporter{builder: builder}
+	case FormatGemtext:
+		return &GemtextReporter{builder: builder}
+	default:
+		return &PlaintextReporter{builder: builder}
 	}
 }
 
-// NewHostReporter returns a Reporter for Host category.
-func NewHostReporter(aggregates *Aggregates, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) *Reporter {
+func NewHostReporter(aggregates *Aggregates, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) Reporter {
 	return NewReporter(aggregates, CategoryHost, limit, metric, outputFormat, headerIndent)
 }
 
-// Report returns the formatted report string.
-func (r Reporter) Report() string {
+func (r *PlaintextReporter) Report() string {
+	return r.builder.Report(FormatPlaintext)
+}
+
+func (r *MarkdownReporter) Report() string {
+	return r.builder.Report(FormatMarkdown)
+}
+
+func (r *GemtextReporter) Report() string {
+	return r.builder.Report(FormatGemtext)
+}
+
+func (r reportBuilder) Report(outputFormat OutputFormat) string {
 	var rows []tableRow
 	var hasLastKernel bool
 	if r.category == CategoryHost {
@@ -143,10 +173,10 @@ func (r Reporter) Report() string {
 	if len(rows) == 0 {
 		return ""
 	}
-	return r.formatReport(rows, hasLastKernel)
+	return r.formatReport(rows, hasLastKernel, outputFormat)
 }
 
-func (r Reporter) buildHostTable() ([]tableRow, bool) {
+func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
 	type keyVal struct {
 		agg *HostAggregate
 		key uint64
@@ -191,7 +221,7 @@ func (r Reporter) buildHostTable() ([]tableRow, bool) {
 	return rows, true
 }
 
-func (r Reporter) buildCategoryTable() ([]tableRow, bool) {
+func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
 	m := r.aggregates.Kernel
 	switch r.category {
 	case CategoryKernelMajor:
@@ -238,7 +268,7 @@ func (r Reporter) buildCategoryTable() ([]tableRow, bool) {
 	return rows, false
 }
 
-func (r Reporter) humanStrHost(h *HostAggregate) string {
+func (r reportBuilder) humanStrHost(h *HostAggregate) string {
 	switch r.metric {
 	case MetricUptime:
 		return formatDuration(h.Uptime)
@@ -255,7 +285,7 @@ func (r Reporter) humanStrHost(h *HostAggregate) string {
 	}
 }
 
-func (r Reporter) humanStrAgg(a *Aggregate) string {
+func (r reportBuilder) humanStrAgg(a *Aggregate) string {
 	switch r.metric {
 	case MetricUptime:
 		return formatDuration(a.Uptime)
@@ -268,20 +298,20 @@ func (r Reporter) humanStrAgg(a *Aggregate) string {
 	}
 }
 
-func (r Reporter) formatReport(rows []tableRow, hasLastKernel bool) string {
+func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel bool, outputFormat OutputFormat) string {
 	cW, nW, vW, lkW := r.reportWidths(rows, hasLastKernel)
 	border := r.buildBorder(cW, nW, vW, lkW, hasLastKernel)
-	header := r.buildReportHeader(cW, nW, vW, lkW, hasLastKernel, border)
+	header := r.buildReportHeader(cW, nW, vW, lkW, hasLastKernel, border, outputFormat)
 	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, hasLastKernel)
 	body := r.buildReportBody(rows, fmtStr, hasLastKernel)
 	out := header + body + border
-	if r.outputFormat == FormatMarkdown || r.outputFormat == FormatGemtext {
+	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
 		out += "```\n"
 	}
 	return out
 }
 
-func (r Reporter) reportWidths(rows []tableRow, hasLastKernel bool) (countW, nameW, valueW, lastKernelW int) {
+func (r reportBuilder) reportWidths(rows []tableRow, hasLastKernel bool) (countW, nameW, valueW, lastKernelW int) {
 	countW = 3
 	nameW = len(r.category.String())
 	valueW = len(r.metric.String())
@@ -305,7 +335,7 @@ func (r Reporter) reportWidths(rows []tableRow, hasLastKernel bool) (countW, nam
 	return countW, nameW, valueW, lastKernelW
 }
 
-func (r Reporter) buildBorder(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
+func (r reportBuilder) buildBorder(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
 	parts := []string{
 		"+" + strings.Repeat("-", 2+countW),
 		"+" + strings.Repeat("-", 2+nameW),
@@ -317,19 +347,19 @@ func (r Reporter) buildBorder(countW, nameW, valueW, lastKernelW int, hasLastKer
 	return strings.Join(parts, "") + "+\n"
 }
 
-func (r Reporter) buildReportHeader(countW, nameW, valueW, lastKernelW int, hasLastKernel bool, border string) string {
+func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW int, hasLastKernel bool, border string, outputFormat OutputFormat) string {
 	var h string
-	if r.outputFormat == FormatMarkdown || r.outputFormat == FormatGemtext {
+	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
 		h = strings.Repeat("#", int(r.headerIndent)) + " "
 	}
 	h += fmt.Sprintf("Top %d %s's by %s\n\n", r.limit, r.metric, r.category)
 	desc := MetricDescription(r.metric)
 	lineLimit := len(border)
-	if r.outputFormat == FormatPlaintext && lineLimit > 0 && len(desc) > lineLimit-1 {
+	if outputFormat == FormatPlaintext && lineLimit > 0 && len(desc) > lineLimit-1 {
 		desc = " " + wordWrap(desc, lineLimit-1)
 	}
 	h += desc + "\n\n"
-	if r.outputFormat == FormatMarkdown || r.outputFormat == FormatGemtext {
+	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
 		h += "```\n"
 	}
 	h += border
@@ -343,14 +373,14 @@ func (r Reporter) buildReportHeader(countW, nameW, valueW, lastKernelW int, hasL
 	return h
 }
 
-func (r Reporter) buildFormatStr(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
+func (r reportBuilder) buildFormatStr(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
 	if hasLastKernel {
 		return fmt.Sprintf("| %%%ds | %%%ds | %%%ds | %%%ds |", countW, nameW, valueW, lastKernelW)
 	}
 	return fmt.Sprintf("| %%%ds | %%%ds | %%%ds |", countW, nameW, valueW)
 }
 
-func (r Reporter) buildReportBody(rows []tableRow, fmtStr string, hasLastKernel bool) string {
+func (r reportBuilder) buildReportBody(rows []tableRow, fmtStr string, hasLastKernel bool) string {
 	var b strings.Builder
 	for _, row := range rows {
 		if hasLastKernel {
