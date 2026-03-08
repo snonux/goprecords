@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/goprecords/internal/goprecords"
-	"github.com/goprecords/internal/version"
+	"codeberg.org/snonux/goprecords/internal/goprecords"
+	"codeberg.org/snonux/goprecords/internal/version"
 )
 
 // Execute parses command‑line arguments and runs the appropriate sub‑command.

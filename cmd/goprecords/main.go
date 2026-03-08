@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/goprecords/internal/cli"
+	"codeberg.org/snonux/goprecords/internal/cli"
 )
 
 func main() {

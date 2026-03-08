@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/goprecords/internal/storage"
+	"codeberg.org/snonux/goprecords/internal/storage"
 	_ "modernc.org/sqlite"
 )
 

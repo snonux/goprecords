@@ -1,4 +1,4 @@
-module github.com/goprecords
+module codeberg.org/snonux/goprecords
 
 go 1.21
 
