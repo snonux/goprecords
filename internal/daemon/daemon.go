@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,6 +14,13 @@ import (
 
 	"codeberg.org/snonux/goprecords/internal/authkeys"
 	"codeberg.org/snonux/goprecords/internal/goprecords"
+)
+
+const (
+	defaultReadHeaderTimeout = 10 * time.Second
+	defaultReadTimeout       = 2 * time.Minute
+	defaultWriteTimeout      = 2 * time.Minute
+	defaultIdleTimeout       = 2 * time.Minute
 )
 
 type Config struct {
@@ -84,6 +92,18 @@ func withAccessLog(log *slog.Logger, next http.Handler) http.Handler {
 	})
 }
 
+func newDaemonHTTPServer(addr string, handler http.Handler, errLog *log.Logger) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ErrorLog:          errLog,
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
+		ReadTimeout:       defaultReadTimeout,
+		WriteTimeout:      defaultWriteTimeout,
+		IdleTimeout:       defaultIdleTimeout,
+	}
+}
+
 func Run(ctx context.Context, cfg Config) error {
 	if cfg.StatsDir == "" {
 		return fmt.Errorf("stats directory is required")
@@ -98,11 +118,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("auth db: %w", err)
 	}
 	defer store.Close()
-	srv := &http.Server{
-		Addr:     cfg.Addr,
-		Handler:  withAccessLog(log, routes(cfg.StatsDir, cfg.AuthDB, store)),
-		ErrorLog: slog.NewLogLogger(textHandler, slog.LevelError),
-	}
+	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(log, routes(cfg.StatsDir, cfg.AuthDB, store)),
+		slog.NewLogLogger(textHandler, slog.LevelError))
 	log.Info("daemon_listen", "addr", cfg.Addr)
 	errCh := make(chan error, 1)
 	go func() { errCh <- srv.ListenAndServe() }()

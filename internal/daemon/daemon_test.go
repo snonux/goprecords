@@ -316,6 +316,22 @@ func TestRunEmptyAddr(t *testing.T) {
 	}
 }
 
+func TestNewDaemonHTTPServerTimeouts(t *testing.T) {
+	s := newDaemonHTTPServer("127.0.0.1:0", http.NotFoundHandler(), nil)
+	if g, w := s.ReadHeaderTimeout, 10*time.Second; g != w {
+		t.Fatalf("ReadHeaderTimeout %v want %v", g, w)
+	}
+	if g, w := s.ReadTimeout, 2*time.Minute; g != w {
+		t.Fatalf("ReadTimeout %v want %v", g, w)
+	}
+	if g, w := s.WriteTimeout, 2*time.Minute; g != w {
+		t.Fatalf("WriteTimeout %v want %v", g, w)
+	}
+	if g, w := s.IdleTimeout, 2*time.Minute; g != w {
+		t.Fatalf("IdleTimeout %v want %v", g, w)
+	}
+}
+
 func TestRunWritesDaemonListenToLogOutput(t *testing.T) {
 	var buf syncBuffer
 	ctx, cancel := context.WithCancel(context.Background())
