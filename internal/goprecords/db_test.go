@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -234,5 +235,30 @@ func TestLoadAggregatesEmptyDB(t *testing.T) {
 
 	if len(aggs.Host) != 0 {
 		t.Errorf("expected 0 hosts, got %d", len(aggs.Host))
+	}
+}
+
+func TestLoadAggregatesWrapsLoadRecordsError(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.db")
+
+	db, err := OpenDB(context.Background(), dbPath)
+	if err != nil {
+		t.Fatalf("failed to open DB: %v", err)
+	}
+
+	ctx := context.Background()
+	if err := CreateSchema(ctx, db); err != nil {
+		db.Close()
+		t.Fatalf("failed to create schema: %v", err)
+	}
+	db.Close()
+
+	_, err = LoadAggregates(ctx, db)
+	if err == nil {
+		t.Fatal("expected error after db closed")
+	}
+	if !strings.Contains(err.Error(), "load records:") {
+		t.Fatalf("expected load records context in error, got %v", err)
 	}
 }

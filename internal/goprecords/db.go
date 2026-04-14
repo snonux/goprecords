@@ -3,6 +3,7 @@ package goprecords
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"codeberg.org/snonux/goprecords/internal/storage"
 	_ "modernc.org/sqlite"
@@ -33,7 +34,7 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 	records, err := storage.LoadRecords(ctx, db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load records: %w", err)
 	}
 	out := &Aggregates{
 		Host:        make(map[string]*HostAggregate),
