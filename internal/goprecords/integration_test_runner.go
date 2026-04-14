@@ -2,6 +2,7 @@ package goprecords
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 )
@@ -93,18 +94,25 @@ func testImportExport(ctx context.Context, aggregates *Aggregates, fixturesDir s
 		_ = os.Remove(tmpDB)
 		return 1
 	}
-	failed := 0
 	db, err := OpenDB(ctx, tmpDB)
 	if err != nil {
 		_ = os.Remove(tmpDB)
 		fmt.Printf("FAIL: open tmp db: %v\n", err)
 		return 1
 	}
+	return testImportExportOnDB(ctx, db, tmpDB, aggregates, fixturesDir)
+}
+
+func testImportExportOnDB(ctx context.Context, db *sql.DB, tmpDB string, aggregates *Aggregates, fixturesDir string) int {
 	defer func() {
 		db.Close()
 		_ = os.Remove(tmpDB)
 	}()
-	CreateSchema(ctx, db)
+	if err := CreateSchema(ctx, db); err != nil {
+		fmt.Printf("FAIL: create schema: %v\n", err)
+		return 1
+	}
+	failed := 0
 	if err := ImportFromDir(ctx, db, fixturesDir); err != nil {
 		fmt.Printf("FAIL: import: %v\n", err)
 		return 1
