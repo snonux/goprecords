@@ -14,17 +14,17 @@ type metricExtractor struct {
 }
 
 var uptimeMetricExtractor = metricExtractor{
-	hostSortKey: func(h *HostAggregate) uint64 { return h.Uptime },
+	hostSortKey: func(h *HostAggregate) uint64 { return h.Stats.Uptime },
 	aggSortKey:  func(a *Aggregate) uint64 { return a.Uptime },
-	hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Uptime) },
+	hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Stats.Uptime) },
 	aggHuman:    func(a *Aggregate) string { return formatDuration(a.Uptime) },
 }
 
 var metricExtractors = map[Metric]metricExtractor{
 	MetricBoots: {
-		hostSortKey: func(h *HostAggregate) uint64 { return h.Boots },
+		hostSortKey: func(h *HostAggregate) uint64 { return h.Stats.Boots },
 		aggSortKey:  func(a *Aggregate) uint64 { return a.Boots },
-		hostHuman:   func(h *HostAggregate) string { return formatInt(h.Boots) },
+		hostHuman:   func(h *HostAggregate) string { return formatInt(h.Stats.Boots) },
 		aggHuman:    func(a *Aggregate) string { return formatInt(a.Boots) },
 	},
 	MetricUptime: uptimeMetricExtractor,
@@ -215,7 +215,7 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
 		}
 		rows = append(rows, tableRow{
 			Pos:        fmt.Sprintf("%d.", i+1),
-			Name:       active + h.Name,
+			Name:       active + h.Stats.Name,
 			Value:      r.humanStrHost(h),
 			LastKernel: h.LastKernel,
 		})

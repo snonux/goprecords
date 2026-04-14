@@ -72,10 +72,10 @@ func TestReportWithData(t *testing.T) {
 
 	// Add a host
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 
 	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatPlaintext, 1)
@@ -101,10 +101,10 @@ func TestReportHTML(t *testing.T) {
 	}
 
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 
 	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatHTML, 2)
@@ -130,10 +130,10 @@ func TestReportMarkdown(t *testing.T) {
 	}
 
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 
 	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatMarkdown, 2)
@@ -156,10 +156,10 @@ func TestReportGemtext(t *testing.T) {
 	}
 
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 
 	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatGemtext, 2)
@@ -175,21 +175,21 @@ func TestReportGemtext(t *testing.T) {
 
 func TestExtractorForUnknownMetricFallsBackToUptime(t *testing.T) {
 	h := NewHostAggregate("h", "k")
-	h.Uptime = 999
-	h.Boots = 1
+	h.Stats.Uptime = 999
+	h.Stats.Boots = 1
 	a := NewAggregate("k")
 	a.Uptime = 888
 	a.Boots = 2
 	unknown := Metric(255)
 	ex := extractorFor(unknown)
-	if got := ex.hostSortKey(h); got != h.Uptime {
-		t.Errorf("host sort key: got %d want %d", got, h.Uptime)
+	if got := ex.hostSortKey(h); got != h.Stats.Uptime {
+		t.Errorf("host sort key: got %d want %d", got, h.Stats.Uptime)
 	}
 	if got := ex.aggSortKey(a); got != a.Uptime {
 		t.Errorf("agg sort key: got %d want %d", got, a.Uptime)
 	}
-	if got := ex.hostHuman(h); got != formatDuration(h.Uptime) {
-		t.Errorf("host human: got %q want %q", got, formatDuration(h.Uptime))
+	if got := ex.hostHuman(h); got != formatDuration(h.Stats.Uptime) {
+		t.Errorf("host human: got %q want %q", got, formatDuration(h.Stats.Uptime))
 	}
 	if got := ex.aggHuman(a); got != formatDuration(a.Uptime) {
 		t.Errorf("agg human: got %q want %q", got, formatDuration(a.Uptime))
@@ -220,10 +220,10 @@ func TestReportMetrics(t *testing.T) {
 	}
 
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 
 	metrics := []Metric{MetricBoots, MetricUptime, MetricScore, MetricDowntime, MetricLifespan}
@@ -274,7 +274,7 @@ func TestReportLimit(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		host := hostName(i)
 		hagg := NewHostAggregate(host, "Linux")
-		hagg.Uptime = uint64(86400000 * (10 - i))
+		hagg.Stats.Uptime = uint64(86400000 * (10 - i))
 		aggs.Host[host] = hagg
 	}
 
@@ -361,10 +361,10 @@ func testAggregates() *Aggregates {
 		KernelName:  make(map[string]*Aggregate),
 	}
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.Uptime = 86400000
-	hagg.Boots = 10
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 86401000
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
 	aggs.Host["host1"] = hagg
 	kernel := NewAggregate("Linux 5.10")
 	kernel.Uptime = 86400000

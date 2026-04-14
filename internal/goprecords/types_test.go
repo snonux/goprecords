@@ -17,8 +17,8 @@ func TestNewAggregate(t *testing.T) {
 
 func TestNewHostAggregate(t *testing.T) {
 	hagg := NewHostAggregate("testhost", "Linux 5.10.0")
-	if hagg.Name != "testhost" {
-		t.Errorf("got %q, want %q", hagg.Name, "testhost")
+	if hagg.Stats.Name != "testhost" {
+		t.Errorf("got %q, want %q", hagg.Stats.Name, "testhost")
 	}
 	if hagg.LastKernel != "Linux 5.10.0" {
 		t.Errorf("got %q, want %q", hagg.LastKernel, "Linux 5.10.0")
@@ -92,8 +92,8 @@ func TestMetaScore(t *testing.T) {
 
 func TestHostAggregateLifespan(t *testing.T) {
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 5000
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 5000
 
 	lifespan := hagg.Lifespan()
 	if lifespan != 4000 {
@@ -103,9 +103,9 @@ func TestHostAggregateLifespan(t *testing.T) {
 
 func TestHostAggregateDowntime(t *testing.T) {
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.FirstBoot = 1000
-	hagg.LastSeen = 5000
-	hagg.Uptime = 3000
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 5000
+	hagg.Stats.Uptime = 3000
 
 	downtime := hagg.Downtime()
 	if downtime != 1000 {
@@ -115,8 +115,8 @@ func TestHostAggregateDowntime(t *testing.T) {
 
 func TestHostAggregateLifespanUnderflow(t *testing.T) {
 	hagg := NewHostAggregate("host1", "Linux 5.10")
-	hagg.FirstBoot = 5000
-	hagg.LastSeen = 1000
+	hagg.Stats.FirstBoot = 5000
+	hagg.Stats.LastSeen = 1000
 
 	if got := hagg.Lifespan(); got != 0 {
 		t.Errorf("Lifespan() = %d, want 0 when LastSeen < FirstBoot", got)
@@ -137,9 +137,9 @@ func TestHostAggregateDowntimeUnderflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hagg := NewHostAggregate("host1", "Linux 5.10")
-			hagg.FirstBoot = tt.firstBoot
-			hagg.LastSeen = tt.lastSeen
-			hagg.Uptime = tt.uptime
+			hagg.Stats.FirstBoot = tt.firstBoot
+			hagg.Stats.LastSeen = tt.lastSeen
+			hagg.Stats.Uptime = tt.uptime
 			if got := hagg.Downtime(); got != 0 {
 				t.Errorf("Downtime() = %d, want 0", got)
 			}

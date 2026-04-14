@@ -26,7 +26,7 @@ func TestNewAggregatorMatchesDirFS(t *testing.T) {
 	if len(a.Host) != 1 || len(b.Host) != 1 {
 		t.Fatalf("hosts: a=%d b=%d", len(a.Host), len(b.Host))
 	}
-	if a.Host["h1"].Boots != b.Host["h1"].Boots || a.Host["h1"].Uptime != b.Host["h1"].Uptime {
+	if a.Host["h1"].Stats.Boots != b.Host["h1"].Stats.Boots || a.Host["h1"].Stats.Uptime != b.Host["h1"].Stats.Uptime {
 		t.Fatalf("mismatch: %#v vs %#v", a.Host["h1"], b.Host["h1"])
 	}
 }
@@ -53,7 +53,7 @@ func TestAggregateMapFS(t *testing.T) {
 		t.Fatalf("Aggregate: %v", err)
 	}
 	h := aggs.Host["box"]
-	if h == nil || h.Boots != 2 || h.LastKernel != "Linux 5.11.0-test" {
+	if h == nil || h.Stats.Boots != 2 || h.LastKernel != "Linux 5.11.0-test" {
 		t.Fatalf("host box: %#v", h)
 	}
 }
@@ -109,10 +109,10 @@ func TestAggregateFixturesContent(t *testing.T) {
 
 	// Check a specific host
 	if host, ok := aggregates.Host["earth"]; ok {
-		if host.Boots == 0 {
+		if host.Stats.Boots == 0 {
 			t.Error("expected non-zero boots for earth")
 		}
-		if host.Uptime == 0 {
+		if host.Stats.Uptime == 0 {
 			t.Error("expected non-zero uptime for earth")
 		}
 		if host.LastKernel == "" {
@@ -200,8 +200,8 @@ func TestProcessRecordsFile(t *testing.T) {
 		t.Fatalf("failed to process records: %v", err)
 	}
 
-	if aggs.Host["test"].Boots != 2 {
-		t.Errorf("expected 2 boots, got %d", aggs.Host["test"].Boots)
+	if aggs.Host["test"].Stats.Boots != 2 {
+		t.Errorf("expected 2 boots, got %d", aggs.Host["test"].Stats.Boots)
 	}
 }
 

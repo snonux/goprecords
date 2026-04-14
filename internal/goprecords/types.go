@@ -64,16 +64,24 @@ func NewAggregate(name string) *Aggregate {
 
 // HostAggregate adds last-kernel and lifespan/downtime for host reports.
 type HostAggregate struct {
-	Aggregate
+	Stats      Aggregate
 	LastKernel string
 }
 
 // NewHostAggregate constructs a HostAggregate.
 func NewHostAggregate(name, lastKernel string) *HostAggregate {
 	return &HostAggregate{
-		Aggregate:  Aggregate{Name: name},
+		Stats:      Aggregate{Name: name},
 		LastKernel: lastKernel,
 	}
+}
+
+func (h *HostAggregate) AddRecord(uptimeSec, bootTime uint64) {
+	h.Stats.AddRecord(uptimeSec, bootTime)
+}
+
+func (h *HostAggregate) IsActive(limitDays uint) bool {
+	return h.Stats.IsActive(limitDays)
 }
 
 // tableRow is one row in the report table.
@@ -178,24 +186,24 @@ func (a *Aggregate) MetaScore() uint64 {
 
 // Lifespan returns last-seen minus first-boot.
 func (h *HostAggregate) Lifespan() uint64 {
-	if h.LastSeen < h.FirstBoot {
+	if h.Stats.LastSeen < h.Stats.FirstBoot {
 		return 0
 	}
-	return h.LastSeen - h.FirstBoot
+	return h.Stats.LastSeen - h.Stats.FirstBoot
 }
 
 // Downtime returns lifespan minus uptime.
 func (h *HostAggregate) Downtime() uint64 {
 	life := h.Lifespan()
-	if h.Uptime > life {
+	if h.Stats.Uptime > life {
 		return 0
 	}
-	return life - h.Uptime
+	return life - h.Stats.Uptime
 }
 
 // MetaScore returns the host-specific score (includes downtime component).
 func (h *HostAggregate) MetaScore() uint64 {
-	return uint64(h.Downtime()/2000000) + h.Aggregate.MetaScore()
+	return uint64(h.Downtime()/2000000) + h.Stats.MetaScore()
 }
 
 // MetricDescription returns the description text for a metric.

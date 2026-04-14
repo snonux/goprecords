@@ -53,11 +53,11 @@ func TestLoadAggregates(t *testing.T) {
 	}
 
 	if host, ok := aggs.Host["host1"]; ok {
-		if host.Boots != 2 {
-			t.Errorf("expected 2 boots, got %d", host.Boots)
+		if host.Stats.Boots != 2 {
+			t.Errorf("expected 2 boots, got %d", host.Stats.Boots)
 		}
-		if host.Uptime != 3000 {
-			t.Errorf("expected uptime 3000, got %d", host.Uptime)
+		if host.Stats.Uptime != 3000 {
+			t.Errorf("expected uptime 3000, got %d", host.Stats.Uptime)
 		}
 		if host.LastKernel != "Linux 5.11" {
 			t.Errorf("LastKernel = %q, want %q (latest boot_time row)", host.LastKernel, "Linux 5.11")

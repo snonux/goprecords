@@ -14,12 +14,21 @@ import (
 
 const maxUploadBytes = 8 << 20
 
-var uploadKinds = map[string]string{
-	"txt":         ".txt",
-	"cur.txt":     ".cur.txt",
-	"records":     ".records",
-	"os.txt":      ".os.txt",
-	"cpuinfo.txt": ".cpuinfo.txt",
+func uploadKindExtension(kind string) (ext string, ok bool) {
+	switch kind {
+	case "txt":
+		return ".txt", true
+	case "cur.txt":
+		return ".cur.txt", true
+	case "records":
+		return ".records", true
+	case "os.txt":
+		return ".os.txt", true
+	case "cpuinfo.txt":
+		return ".cpuinfo.txt", true
+	default:
+		return "", false
+	}
 }
 
 func uploadHandler(statsDir string, store *authkeys.Store) http.Handler {
@@ -38,7 +47,7 @@ func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, sto
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
-	ext, ok := uploadKinds[kind]
+	ext, ok := uploadKindExtension(kind)
 	if !ok {
 		http.Error(w, "unknown file kind", http.StatusBadRequest)
 		return
