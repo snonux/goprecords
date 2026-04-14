@@ -22,8 +22,14 @@ func Parse(line string) (Fields, bool) {
 	if len(parts) != 3 {
 		return Fields{}, false
 	}
-	uptime, _ := strconv.ParseUint(parts[0], 10, 64)
-	bootTime, _ := strconv.ParseUint(parts[1], 10, 64)
+	uptime, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return Fields{}, false
+	}
+	bootTime, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
+		return Fields{}, false
+	}
 	osStr := parts[2]
 	kernelName := osStr
 	if i := strings.Index(osStr, " "); i > 0 {
