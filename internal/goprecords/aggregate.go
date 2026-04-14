@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"codeberg.org/snonux/goprecords/internal/recordline"
 )
 
 // Aggregates holds all category maps. Host uses HostAggregate; others use Aggregate.
@@ -81,7 +83,7 @@ func processRecordsFile(ctx context.Context, path, host string, out *Aggregates)
 			return ctx.Err()
 		default:
 		}
-		rec, ok := parseRecordLine(sc.Text())
+		rec, ok := recordline.Parse(sc.Text())
 		if !ok {
 			continue
 		}
@@ -111,7 +113,7 @@ func lastKernelFromFile(ctx context.Context, path string) (string, error) {
 			return "", ctx.Err()
 		default:
 		}
-		rec, ok := parseRecordLine(sc.Text())
+		rec, ok := recordline.Parse(sc.Text())
 		if !ok {
 			continue
 		}

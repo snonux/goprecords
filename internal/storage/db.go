@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	"codeberg.org/snonux/goprecords/internal/recordline"
 	_ "modernc.org/sqlite"
 )
 
@@ -128,14 +128,6 @@ func LoadRecords(ctx context.Context, db *sql.DB) ([]Record, error) {
 	return out, nil
 }
 
-type recordLine struct {
-	Uptime      uint64
-	BootTime    uint64
-	OS          string
-	KernelName  string
-	KernelMajor string
-}
-
 func importFile(ctx context.Context, insert *sql.Stmt, path, host string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -149,7 +141,7 @@ func importFile(ctx context.Context, insert *sql.Stmt, path, host string) error 
 			return ctx.Err()
 		default:
 		}
-		rec, ok := parseRecordLine(sc.Text())
+		rec, ok := recordline.Parse(sc.Text())
 		if !ok {
 			continue
 		}
@@ -161,39 +153,4 @@ func importFile(ctx context.Context, insert *sql.Stmt, path, host string) error 
 		return fmt.Errorf("scan %s: %w", path, err)
 	}
 	return nil
-}
-
-func parseRecordLine(line string) (recordLine, bool) {
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return recordLine{}, false
-	}
-	parts := strings.SplitN(line, ":", 3)
-	if len(parts) != 3 {
-		return recordLine{}, false
-	}
-	uptime, _ := strconv.ParseUint(parts[0], 10, 64)
-	bootTime, _ := strconv.ParseUint(parts[1], 10, 64)
-	osStr := parts[2]
-	kernelName := osStr
-	if i := strings.Index(osStr, " "); i > 0 {
-		kernelName = osStr[:i]
-	}
-	kernelMajor := kernelName + " "
-	rest := osStr
-	if i := strings.Index(osStr, " "); i >= 0 {
-		rest = osStr[i+1:]
-	}
-	if j := strings.Index(rest, "."); j >= 0 {
-		kernelMajor += rest[:j] + "..."
-	} else {
-		kernelMajor += rest + "..."
-	}
-	return recordLine{
-		Uptime:      uptime,
-		BootTime:    bootTime,
-		OS:          osStr,
-		KernelName:  kernelName,
-		KernelMajor: kernelMajor,
-	}, true
 }
