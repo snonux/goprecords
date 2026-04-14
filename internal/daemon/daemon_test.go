@@ -317,3 +317,41 @@ func TestUploadBadKind(t *testing.T) {
 		t.Fatalf("status %d", res.StatusCode)
 	}
 }
+
+func TestUploadAllKindsWriteExpectedFiles(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(Handler(statsDir))
+	defer srv.Close()
+	cases := []struct {
+		kind     string
+		wantName string
+		body     string
+	}{
+		{"txt", "myhost.txt", "a"},
+		{"cur.txt", "myhost.cur.txt", "b"},
+		{"records", "myhost.records", "c"},
+		{"os.txt", "myhost.os.txt", "d"},
+		{"cpuinfo.txt", "myhost.cpuinfo.txt", "e"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.kind, func(t *testing.T) {
+			url := srv.URL + "/upload/myhost/" + tc.kind
+			req, _ := http.NewRequest(http.MethodPut, url, strings.NewReader(tc.body))
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			res.Body.Close()
+			if res.StatusCode != http.StatusNoContent {
+				t.Fatalf("status %d", res.StatusCode)
+			}
+			b, err := os.ReadFile(filepath.Join(statsDir, tc.wantName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(b) != tc.body {
+				t.Fatalf("file %s: got %q want %q", tc.wantName, b, tc.body)
+			}
+		})
+	}
+}

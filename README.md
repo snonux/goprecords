@@ -50,6 +50,62 @@ go build -o goprecords ./cmd/goprecords
 ./goprecords -stats-dir=~/git/uprecords/stats -all -stats-order="Host:Uptime,Host:Boots"
 ```
 
+### Daemon mode (plain HTTP)
+
+Run an in-process HTTP server (no TLS here; terminate TLS in a reverse proxy or load balancer if clients need HTTPS):
+
+```bash
+goprecords --daemon -stats-dir="$HOME/git/uprecords/stats" -listen=":8080"
+```
+
+- **`-stats-dir`** (required, or set **`GOPRECORDS_STATS_DIR`**): uptimed stats directory (same layout as the CLI: per-host files like `HOST.txt`, `HOST.records`, …).
+- **`-listen`** (default `:8080`, or **`GOPRECORDS_LISTEN`**): TCP address for the server.
+- **`-auth-db`**: SQLite file for upload API keys (default: `<stats-dir>/goprecords-auth.db`).
+
+Endpoints include **`GET /health`**, **`GET /report?...`** (same query parameters as **`query`**), and uploads under **`PUT /upload/{HOSTNAME}/{kind}`**. The path segment **`kind`** selects which file is written in the stats directory:
+
+| `kind` in URL   | File created        |
+|-----------------|---------------------|
+| `txt`           | `HOSTNAME.txt`      |
+| `cur.txt`       | `HOSTNAME.cur.txt`  |
+| `records`       | `HOSTNAME.records`  |
+| `os.txt`        | `HOSTNAME.os.txt`   |
+| `cpuinfo.txt`   | `HOSTNAME.cpuinfo.txt` |
+
+When the auth database contains at least one client key, each upload must include a Bearer token that matches the hostname. Create a key (prints the secret once):
+
+```bash
+goprecords --create-client-key myhost -stats-dir="$HOME/git/uprecords/stats"
+```
+
+Example **`curl`** uploads with the token in the **`Authorization`** header:
+
+```bash
+TOKEN="…"   # output of --create-client-key
+
+curl -fsS -X PUT --data-binary @./myhost.records \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/records"
+
+curl -fsS -X PUT --data-binary @./myhost.txt \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/txt"
+
+curl -fsS -X PUT --data-binary @./myhost.cur.txt \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/cur.txt"
+
+curl -fsS -X PUT --data-binary @./myhost.os.txt \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/os.txt"
+
+curl -fsS -X PUT --data-binary @./myhost.cpuinfo.txt \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/cpuinfo.txt"
+```
+
+If there are **no** keys in the auth database, uploads are accepted without **`Authorization`** (useful for local testing only).
+
 ## Test
 
 Run the test subcommand (fixture comparison and import/query parity):
