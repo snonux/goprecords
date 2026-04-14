@@ -24,55 +24,64 @@ var uploadKinds = map[string]string{
 
 func uploadHandler(statsDir string, store *authkeys.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		host, kind, ok := parseUploadPath(r.URL.Path)
-		if !ok {
-			http.Error(w, "bad path", http.StatusBadRequest)
-			return
-		}
-		ext, ok := uploadKinds[kind]
-		if !ok {
-			http.Error(w, "unknown file kind", http.StatusBadRequest)
-			return
-		}
-		ctx := r.Context()
-		nKeys, err := store.KeyCount(ctx)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if nKeys > 0 {
-			tok, ok := parseBearer(r.Header.Get("Authorization"))
-			if !ok || tok == "" {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="upload"`)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
-			}
-			valid, err := store.Verify(ctx, host, tok)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if !valid {
-				http.Error(w, "forbidden", http.StatusForbidden)
-				return
-			}
-		}
-		rel := host + ext
-		target := filepath.Join(statsDir, rel)
-		if !fileUnderDir(statsDir, target) {
-			http.Error(w, "bad path", http.StatusBadRequest)
-			return
-		}
-		if err := writeUploadBody(target, r.Body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
+		serveUploadPut(w, r, statsDir, store)
 	})
+}
+
+func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, store *authkeys.Store) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	host, kind, ok := parseUploadPath(r.URL.Path)
+	if !ok {
+		http.Error(w, "bad path", http.StatusBadRequest)
+		return
+	}
+	ext, ok := uploadKinds[kind]
+	if !ok {
+		http.Error(w, "unknown file kind", http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	nKeys, err := store.KeyCount(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if nKeys > 0 && !uploadAuthorized(ctx, w, store, host, r.Header.Get("Authorization")) {
+		return
+	}
+	rel := host + ext
+	target := filepath.Join(statsDir, rel)
+	if !fileUnderDir(statsDir, target) {
+		http.Error(w, "bad path", http.StatusBadRequest)
+		return
+	}
+	if err := writeUploadBody(target, r.Body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func uploadAuthorized(ctx context.Context, w http.ResponseWriter, store *authkeys.Store, host, authz string) bool {
+	tok, ok := parseBearer(authz)
+	if !ok || tok == "" {
+		w.Header().Set("WWW-Authenticate", `Bearer realm="upload"`)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return false
+	}
+	valid, err := store.Verify(ctx, host, tok)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+	if !valid {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return false
+	}
+	return true
 }
 
 func parseUploadPath(path string) (host, kind string, ok bool) {

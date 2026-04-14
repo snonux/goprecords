@@ -101,29 +101,31 @@ func (r reportBuilder) buildBorder(countW, nameW, valueW, lastKernelW int, hasLa
 }
 
 func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW int, hasLastKernel bool, border string, outputFormat OutputFormat) string {
-	var h string
+	var b strings.Builder
 	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
-		h = strings.Repeat("#", int(r.headerIndent)) + " "
+		b.WriteString(strings.Repeat("#", int(r.headerIndent)))
+		b.WriteString(" ")
 	}
-	h += fmt.Sprintf("Top %d %s's by %s\n\n", r.limit, r.metric, r.category)
+	b.WriteString(fmt.Sprintf("Top %d %s's by %s\n\n", r.limit, r.metric, r.category))
 	desc := MetricDescription(r.metric)
 	lineLimit := len(border)
 	if outputFormat == FormatPlaintext && lineLimit > 0 && len(desc) > lineLimit-1 {
 		desc = " " + wordWrap(desc, lineLimit-1)
 	}
-	h += desc + "\n\n"
+	b.WriteString(desc)
+	b.WriteString("\n\n")
 	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
-		h += "```\n"
+		b.WriteString("```\n")
 	}
-	h += border
+	b.WriteString(border)
 	fmtStr := r.buildFormatStr(countW, nameW, valueW, lastKernelW, hasLastKernel)
 	if hasLastKernel {
-		h += fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel")
+		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel"))
 	} else {
-		h += fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String())
+		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String()))
 	}
-	h += border
-	return h
+	b.WriteString(border)
+	return b.String()
 }
 
 func (r reportBuilder) buildFormatStr(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {

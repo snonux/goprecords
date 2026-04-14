@@ -73,51 +73,29 @@ func (rf *ReportFlags) Parse() (ReportConfig, error) {
 // output-format, all, include-kernel, stats-order). It also accepts Category,
 // Metric, and OutputFormat as alternate keys (same values as the CLI).
 func ParseReportQuery(q url.Values) (ReportConfig, error) {
-	catStr := firstQuery(q, "category", "Category")
-	if catStr == "" {
-		catStr = "Host"
-	}
-	cat, err := ParseCategory(catStr)
+	cat, err := parseReportQueryCategory(q)
 	if err != nil {
 		return ReportConfig{}, err
 	}
-	metStr := firstQuery(q, "metric", "Metric")
-	if metStr == "" {
-		metStr = "Uptime"
-	}
-	met, err := ParseMetric(metStr)
+	met, err := parseReportQueryMetric(q)
 	if err != nil {
 		return ReportConfig{}, err
 	}
-	limit := uint(20)
-	if ls := q.Get("limit"); ls != "" {
-		v, err := strconv.ParseUint(ls, 10, 32)
-		if err != nil {
-			return ReportConfig{}, fmt.Errorf("invalid limit %q", ls)
-		}
-		limit = uint(v)
-	}
-	outStr := firstQuery(q, "output-format", "OutputFormat")
-	if outStr == "" {
-		outStr = "Plaintext"
-	}
-	outFmt, err := ParseOutputFormat(outStr)
+	limit, err := parseReportQueryLimit(q)
 	if err != nil {
 		return ReportConfig{}, err
 	}
-	all := false
-	if v := q.Get("all"); v != "" {
-		all, err = parseQueryBool(v)
-		if err != nil {
-			return ReportConfig{}, err
-		}
+	outFmt, err := parseReportQueryOutputFormat(q)
+	if err != nil {
+		return ReportConfig{}, err
 	}
-	includeKernel := false
-	if v := q.Get("include-kernel"); v != "" {
-		includeKernel, err = parseQueryBool(v)
-		if err != nil {
-			return ReportConfig{}, err
-		}
+	all, err := parseReportQueryOptionalBool(q, "all")
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	includeKernel, err := parseReportQueryOptionalBool(q, "include-kernel")
+	if err != nil {
+		return ReportConfig{}, err
 	}
 	return ReportConfig{
 		Category:      cat,
@@ -128,6 +106,49 @@ func ParseReportQuery(q url.Values) (ReportConfig, error) {
 		IncludeKernel: includeKernel,
 		StatsOrder:    q.Get("stats-order"),
 	}, nil
+}
+
+func parseReportQueryCategory(q url.Values) (Category, error) {
+	s := firstQuery(q, "category", "Category")
+	if s == "" {
+		s = "Host"
+	}
+	return ParseCategory(s)
+}
+
+func parseReportQueryMetric(q url.Values) (Metric, error) {
+	s := firstQuery(q, "metric", "Metric")
+	if s == "" {
+		s = "Uptime"
+	}
+	return ParseMetric(s)
+}
+
+func parseReportQueryLimit(q url.Values) (uint, error) {
+	if ls := q.Get("limit"); ls != "" {
+		v, err := strconv.ParseUint(ls, 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("invalid limit %q", ls)
+		}
+		return uint(v), nil
+	}
+	return 20, nil
+}
+
+func parseReportQueryOutputFormat(q url.Values) (OutputFormat, error) {
+	s := firstQuery(q, "output-format", "OutputFormat")
+	if s == "" {
+		s = "Plaintext"
+	}
+	return ParseOutputFormat(s)
+}
+
+func parseReportQueryOptionalBool(q url.Values, key string) (bool, error) {
+	v := q.Get(key)
+	if v == "" {
+		return false, nil
+	}
+	return parseQueryBool(v)
 }
 
 func firstQuery(q url.Values, keys ...string) string {

@@ -62,9 +62,13 @@ func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 			return fmt.Errorf("Category %s only supports: Boots, Uptime, Score", cfg.Category)
 		}
 		if cfg.Category == CategoryHost {
-			io.WriteString(w, NewHostReporter(aggregates, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report())
+			if err := writeReportString(w, NewHostReporter(aggregates, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report()); err != nil {
+				return err
+			}
 		} else {
-			io.WriteString(w, NewReporter(aggregates, cfg.Category, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report())
+			if err := writeReportString(w, NewReporter(aggregates, cfg.Category, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report()); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -82,13 +86,24 @@ func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 			continue
 		}
 		if c == CategoryHost {
-			io.WriteString(w, NewHostReporter(aggregates, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report())
+			if err := writeReportString(w, NewHostReporter(aggregates, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report()); err != nil {
+				return err
+			}
 		} else {
-			io.WriteString(w, NewReporter(aggregates, c, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report())
+			if err := writeReportString(w, NewReporter(aggregates, c, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report()); err != nil {
+				return err
+			}
 		}
-		io.WriteString(w, "\n")
+		if err := writeReportString(w, "\n"); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func writeReportString(w io.Writer, s string) error {
+	_, err := io.WriteString(w, s)
+	return err
 }
 
 type Reporter interface {
