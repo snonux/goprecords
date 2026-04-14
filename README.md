@@ -1,12 +1,12 @@
 # goprecords - Global uptime records
 
-`goprecords` is a Go command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It supports importing records into SQLite and querying for reports, or reporting directly from a stats directory.
+`goprecords` is a Go command-line program that generates uptime reports for hosts based on the input record files from `uptimed`. It supports importing records into SQLite and querying for reports, reporting directly from a stats directory, or (optionally) running as an HTTP server that exposes the same reports and authenticated uploads.
 
 ## Features
 
 - Supports multiple categories: `Host`, `Kernel`, `KernelMajor`, and `KernelName`
 - Supports multiple metrics: `Boots`, `Uptime`, `Score`, `Downtime`, and `Lifespan`
-- Output formats available: `Plaintext`, `Markdown`, and `Gemtext`
+- Output formats available: `Plaintext`, `Markdown`, `Gemtext`, and `HTML`
 - Provides top entries based on the specified limit
 
 Whereas:
@@ -31,7 +31,7 @@ Whereas:
   - `-category`: One of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`).
   - `-metric`: One of `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan` (default: `Uptime`).
   - `-limit`: Max entries (default: 20).
-  - `-output-format`: `Plaintext`, `Markdown`, or `Gemtext` (default: `Plaintext`).
+  - `-output-format`: `Plaintext`, `Markdown`, `Gemtext`, or `HTML` (default: `Plaintext`).
   - `-all`: Generate all reports except `Kernel`.
   - `-include-kernel`: Include `Kernel` when using `-all`.
   - `-stats-order`: Comma-separated `Category:Metric` order for `-all`.
@@ -50,19 +50,43 @@ go build -o goprecords ./cmd/goprecords
 ./goprecords -stats-dir=~/git/uprecords/stats -all -stats-order="Host:Uptime,Host:Boots"
 ```
 
-### Daemon mode (plain HTTP)
+### Daemon mode (HTTP API, plain HTTP)
 
-Run an in-process HTTP server (no TLS here; terminate TLS in a reverse proxy or load balancer if clients need HTTPS):
+**Backward compatibility:** `import`, `query`, and no-subcommand reporting from `-stats-dir` behave as before. The HTTP server is **additional**; CLI-only workflows are still supported with **no intentional behavior removal**.
+
+`goprecords` serves **plain HTTP only** (Go `net/http` without TLS). Terminate TLS externally—Kubernetes Ingress, a reverse proxy (nginx, Caddy, …), or a load balancer—when clients require HTTPS.
 
 ```bash
 goprecords --daemon -stats-dir="$HOME/git/uprecords/stats" -listen=":8080"
 ```
 
-- **`-stats-dir`** (required, or set **`GOPRECORDS_STATS_DIR`**): uptimed stats directory (same layout as the CLI: per-host files like `HOST.txt`, `HOST.records`, …).
-- **`-listen`** (default `:8080`, or **`GOPRECORDS_LISTEN`**): TCP address for the server.
-- **`-auth-db`**: SQLite file for upload API keys (default: `<stats-dir>/goprecords-auth.db`).
+(`-daemon` and `--daemon` are equivalent.)
 
-Endpoints include **`GET /health`**, **`GET /report?...`** (same query parameters as **`query`**), and uploads under **`PUT /upload/{HOSTNAME}/{kind}`**. The path segment **`kind`** selects which file is written in the stats directory:
+**Stats directory vs databases**
+
+- **Stats tree** — **`-stats-dir`** (required) or **`GOPRECORDS_STATS_DIR`**: uptimed files (`HOST.txt`, `HOST.records`, …). The daemon builds **`GET /report`** responses from this directory only; it does **not** read the **`import` / `query`** SQLite file (**`-db`**, default `goprecords.db`).
+- **Listen address** — **`-listen`** or **`GOPRECORDS_LISTEN`** (default `:8080`).
+- **Upload auth database** — **`-auth-db`**: SQLite file holding **per-client** API key hashes (default `<stats-dir>/goprecords-auth.db`). This is separate from the aggregates DB used by **`import`** / **`query`**.
+
+**Endpoints**
+
+- **`GET /health`** and **`GET /livez`** — Liveness (`200`, body `ok`).
+- **`GET /readyz`** — Readiness: checks the stats directory is readable/writable (and the auth DB parent directory when **`auth-db`** is outside the stats tree). Returns **`503`** if not ready.
+- **`GET /report`** — Same report options as **`query`** and no-subcommand mode (aggregated from the stats directory). **Only `GET`** is supported (other methods → **`405`**). Query parameters use the same names and defaults as the CLI flags; you can also use the aliases **`Category`**, **`Metric`**, and **`OutputFormat`**:
+  - **`category`**, **`metric`**, **`limit`** (default `20`)
+  - **`output-format`** / **`OutputFormat`**: **`Plaintext`**, **`Markdown`**, **`Gemtext`**, or **`HTML`** (default `Plaintext`); the response **`Content-Type`** matches (e.g. `text/html` for HTML)
+  - **`all`**, **`include-kernel`**: booleans (`true` / `false`, `1` / `0`, `yes` / `no`)
+  - **`stats-order`**: comma-separated **`Category:Metric`** list when **`all`** is true
+- **`PUT /upload/{HOSTNAME}/{kind}`** — Writes one file under the stats directory; **`204`** on success. The **`HOSTNAME`** path segment must match the hostname the client key was issued for when auth is enforced.
+
+**`GET /report` examples**
+
+```bash
+curl -fsS "http://127.0.0.1:8080/report?category=Host&metric=Uptime&limit=10&output-format=Markdown"
+curl -fsS "http://127.0.0.1:8080/report?OutputFormat=HTML&limit=5"
+```
+
+For **`kind`** in the upload URL, the server creates or overwrites this file in the stats directory:
 
 | `kind` in URL   | File created        |
 |-----------------|---------------------|
@@ -72,13 +96,16 @@ Endpoints include **`GET /health`**, **`GET /report?...`** (same query parameter
 | `os.txt`        | `HOSTNAME.os.txt`   |
 | `cpuinfo.txt`   | `HOSTNAME.cpuinfo.txt` |
 
-When the auth database contains at least one client key, each upload must include a Bearer token that matches the hostname. Create a key (prints the secret once):
+**Per-client keys** — When the auth database has **at least one** key, each upload must send **`Authorization: Bearer <token>`** where **`<token>`** is the secret printed once by **`goprecords --create-client-key HOSTNAME`** (or **`-create-client-key`**). The token is validated for that **`HOSTNAME`** only (same string as in the upload path). You need **`-stats-dir`** (to derive the default auth DB path) or **`-auth-db`**:
 
 ```bash
 goprecords --create-client-key myhost -stats-dir="$HOME/git/uprecords/stats"
+goprecords --create-client-key otherbox -auth-db=/var/lib/goprecords/goprecords-auth.db
 ```
 
-Example **`curl`** uploads with the token in the **`Authorization`** header:
+Creating a key for a hostname that already has one **replaces** the previous secret.
+
+Example **`curl`** uploads with the **`Authorization`** header:
 
 ```bash
 TOKEN="…"   # output of --create-client-key
