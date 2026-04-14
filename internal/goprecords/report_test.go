@@ -173,6 +173,44 @@ func TestReportGemtext(t *testing.T) {
 	}
 }
 
+func TestExtractorForUnknownMetricFallsBackToUptime(t *testing.T) {
+	h := NewHostAggregate("h", "k")
+	h.Uptime = 999
+	h.Boots = 1
+	a := NewAggregate("k")
+	a.Uptime = 888
+	a.Boots = 2
+	unknown := Metric(255)
+	ex := extractorFor(unknown)
+	if got := ex.hostSortKey(h); got != h.Uptime {
+		t.Errorf("host sort key: got %d want %d", got, h.Uptime)
+	}
+	if got := ex.aggSortKey(a); got != a.Uptime {
+		t.Errorf("agg sort key: got %d want %d", got, a.Uptime)
+	}
+	if got := ex.hostHuman(h); got != formatDuration(h.Uptime) {
+		t.Errorf("host human: got %q want %q", got, formatDuration(h.Uptime))
+	}
+	if got := ex.aggHuman(a); got != formatDuration(a.Uptime) {
+		t.Errorf("agg human: got %q want %q", got, formatDuration(a.Uptime))
+	}
+}
+
+func TestExtractorForAggDowntimeLifespanUsesUptime(t *testing.T) {
+	a := NewAggregate("k")
+	a.Uptime = 42
+	a.Boots = 7
+	for _, m := range []Metric{MetricDowntime, MetricLifespan} {
+		ex := extractorFor(m)
+		if got := ex.aggSortKey(a); got != a.Uptime {
+			t.Errorf("%v agg sort key: got %d want %d", m, got, a.Uptime)
+		}
+		if got := ex.aggHuman(a); got != formatDuration(a.Uptime) {
+			t.Errorf("%v agg human: got %q want %q", m, got, formatDuration(a.Uptime))
+		}
+	}
+}
+
 func TestReportMetrics(t *testing.T) {
 	aggs := &Aggregates{
 		Host:        make(map[string]*HostAggregate),

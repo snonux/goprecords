@@ -6,6 +6,55 @@ import (
 	"sort"
 )
 
+type metricExtractor struct {
+	hostSortKey func(*HostAggregate) uint64
+	aggSortKey  func(*Aggregate) uint64
+	hostHuman   func(*HostAggregate) string
+	aggHuman    func(*Aggregate) string
+}
+
+var uptimeMetricExtractor = metricExtractor{
+	hostSortKey: func(h *HostAggregate) uint64 { return h.Uptime },
+	aggSortKey:  func(a *Aggregate) uint64 { return a.Uptime },
+	hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Uptime) },
+	aggHuman:    func(a *Aggregate) string { return formatDuration(a.Uptime) },
+}
+
+var metricExtractors = map[Metric]metricExtractor{
+	MetricBoots: {
+		hostSortKey: func(h *HostAggregate) uint64 { return h.Boots },
+		aggSortKey:  func(a *Aggregate) uint64 { return a.Boots },
+		hostHuman:   func(h *HostAggregate) string { return formatInt(h.Boots) },
+		aggHuman:    func(a *Aggregate) string { return formatInt(a.Boots) },
+	},
+	MetricUptime: uptimeMetricExtractor,
+	MetricScore: {
+		hostSortKey: func(h *HostAggregate) uint64 { return h.MetaScore() },
+		aggSortKey:  func(a *Aggregate) uint64 { return a.MetaScore() },
+		hostHuman:   func(h *HostAggregate) string { return formatInt(h.MetaScore()) },
+		aggHuman:    func(a *Aggregate) string { return formatInt(a.MetaScore()) },
+	},
+	MetricDowntime: {
+		hostSortKey: func(h *HostAggregate) uint64 { return h.Downtime() },
+		aggSortKey:  func(a *Aggregate) uint64 { return a.Uptime },
+		hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Downtime()) },
+		aggHuman:    func(a *Aggregate) string { return formatDuration(a.Uptime) },
+	},
+	MetricLifespan: {
+		hostSortKey: func(h *HostAggregate) uint64 { return h.Lifespan() },
+		aggSortKey:  func(a *Aggregate) uint64 { return a.Uptime },
+		hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Lifespan()) },
+		aggHuman:    func(a *Aggregate) string { return formatDuration(a.Uptime) },
+	},
+}
+
+func extractorFor(m Metric) metricExtractor {
+	if e, ok := metricExtractors[m]; ok {
+		return e
+	}
+	return uptimeMetricExtractor
+}
+
 // WriteReports renders reports to w based on the given config.
 func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 	if !cfg.All {
@@ -133,22 +182,9 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
 		key uint64
 	}
 	var list []keyVal
+	ex := extractorFor(r.metric)
 	for _, h := range r.aggregates.Host {
-		var k uint64
-		switch r.metric {
-		case MetricUptime:
-			k = h.Uptime
-		case MetricBoots:
-			k = h.Boots
-		case MetricScore:
-			k = h.MetaScore()
-		case MetricDowntime:
-			k = h.Downtime()
-		case MetricLifespan:
-			k = h.Lifespan()
-		default:
-			k = h.Uptime
-		}
+		k := ex.hostSortKey(h)
 		list = append(list, keyVal{h, k})
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].key > list[j].key })
@@ -185,18 +221,9 @@ func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
 		key uint64
 	}
 	var list []keyVal
+	ex := extractorFor(r.metric)
 	for _, a := range m {
-		var k uint64
-		switch r.metric {
-		case MetricUptime:
-			k = a.Uptime
-		case MetricBoots:
-			k = a.Boots
-		case MetricScore:
-			k = a.MetaScore()
-		default:
-			k = a.Uptime
-		}
+		k := ex.aggSortKey(a)
 		list = append(list, keyVal{agg: a, key: k})
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].key > list[j].key })
@@ -220,31 +247,9 @@ func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
 }
 
 func (r reportBuilder) humanStrHost(h *HostAggregate) string {
-	switch r.metric {
-	case MetricUptime:
-		return formatDuration(h.Uptime)
-	case MetricBoots:
-		return formatInt(h.Boots)
-	case MetricScore:
-		return formatInt(h.MetaScore())
-	case MetricDowntime:
-		return formatDuration(h.Downtime())
-	case MetricLifespan:
-		return formatDuration(h.Lifespan())
-	default:
-		return formatDuration(h.Uptime)
-	}
+	return extractorFor(r.metric).hostHuman(h)
 }
 
 func (r reportBuilder) humanStrAgg(a *Aggregate) string {
-	switch r.metric {
-	case MetricUptime:
-		return formatDuration(a.Uptime)
-	case MetricBoots:
-		return formatInt(a.Boots)
-	case MetricScore:
-		return formatInt(a.MetaScore())
-	default:
-		return formatDuration(a.Uptime)
-	}
+	return extractorFor(r.metric).aggHuman(a)
 }
