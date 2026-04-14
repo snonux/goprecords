@@ -242,7 +242,7 @@ Re-running **`--create-client-key`** for the same hostname **replaces** the prev
 
 **2. On the client**, keep the token in a root-owned or user-private file (for example mode **`600`**) and use **`curl`** with **`Authorization: Bearer`** as in the examples above. Set the base URL to your daemon (plain HTTP behind the pod or **`https://`** behind ingress).
 
-**3. Source files** — Typical uptimed locations: **`/var/spool/uptimed/records`** (many Linux distributions), **`/usr/local/var/uptimed/records`** (macOS/Homebrew), **`/var/db/uptimed/records`** (some BSDs). Use **`uprecords`** from the **`uptimed`** package to regenerate **`txt`** and **`cur.txt`**-equivalent content when you upload those kinds. **`os.txt`** and **`cpuinfo.txt`** are often **`/etc/os-release`** and **`/proc/cpuinfo`** on Linux.
+**3. Source files** — Typical uptimed locations: **`/var/spool/uptimed/records`** (many Linux distributions and **FreeBSD** **`pkg`** installs), **`/usr/local/var/uptimed/records`** (macOS/Homebrew), **`/var/db/uptimed/records`** (some other BSD layouts). The upload client checks those paths in that order. Use **`uprecords`** from the **`uptimed`** package to regenerate **`txt`** and **`cur.txt`**-equivalent content when you upload those kinds. **`os.txt`** and **`cpuinfo.txt`** are often **`/etc/os-release`** and **`/proc/cpuinfo`** on Linux.
 
 **4. Automate (optional)** — A **`oneshot`** systemd service can call a small script that **`PUT`**s each present file; a **`systemd.timer`** (for example **`OnCalendar=hourly`**) triggers it. For a **user** timer, enable lingering if uploads should run while no graphical session is active:
 
@@ -256,13 +256,25 @@ If there are **no** keys in the auth database, uploads are accepted without **`A
 
 Use this when the machine is **not** deployed from a Rex/Ansible repo. The reference script is **`contrib/goprecords-upload-client.sh`** (POSIX **`sh`**: Linux, FreeBSD, OpenBSD).
 
+**SSH vs upload name:** **`GOPRECORDS_HOST`** must stay the **short** stats name (**`f0`**, **`pi2`**). For **SSH**, use a real host — e.g. **`ssh -p 22 paul@f0.lan.buetow.org`** or **`paul@192.168.1.130`**, not **`f0.lan`** (incomplete / invalid). OpenBSD frontends may use **port 2** in Rex; **f0–f3** and **Pis** use **port 22**.
+
+**Privilege on FreeBSD:** many hosts (e.g. **f0–f3**) ship **`doas`** and no **`sudo`**. Use **`doas`** for install, writing the token, and one-off test runs below; on Linux (Pis) use **`sudo`**.
+
 **On each host**
 
 1. Install **`curl`** and **`uptimed`**, and ensure **`uptimed`** is running.
 2. Install the script (path is up to you; **`755`**, owned by **`root`**):
 
+   **Linux**
+
    ```bash
    sudo install -m 755 contrib/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
+   ```
+
+   **FreeBSD**
+
+   ```bash
+   doas install -m 755 contrib/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
    ```
 
 3. Create a token on the goprecords server (hostname must match **`GOPRECORDS_HOST`** exactly, e.g. **`f0`**, **`pi2`**):
@@ -274,10 +286,20 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
 
 4. Save the printed secret once as **`root`**, mode **`600`**:
 
+   **Linux**
+
    ```bash
    umask 077
    sudo sh -c 'cat > /etc/goprecords-upload.token'
    sudo chmod 600 /etc/goprecords-upload.token
+   ```
+
+   **FreeBSD**
+
+   ```bash
+   umask 077
+   doas sh -c 'cat > /etc/goprecords-upload.token'
+   doas chmod 600 /etc/goprecords-upload.token
    ```
 
 5. **FreeBSD — hourly cron** (example for **`f0`**; use **`/etc/crontab`** or **`root`**’s crontab). **`curl`** must be on **`PATH`** for cron (often **`/usr/local/bin`**):
@@ -286,7 +308,7 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
    0 * * * * root /usr/bin/env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
    ```
 
-   Repeat for **`f1`**, **`f2`**, **`f4`**, … with the matching **`GOPRECORDS_HOST`**.
+   Repeat for **`f1`**, **`f2`**, **`f3`**, … with the matching **`GOPRECORDS_HOST`**.
 
 6. **Linux (systemd) — hourly timer** (example for **`pi0`**). **`/etc/goprecords-upload.env`** (mode **`644`**, root):
 
@@ -309,12 +331,15 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
 
    **`/etc/systemd/system/goprecords-upload.timer`**:
 
+   **`OnActiveSec`** runs once soon after **`enable --now`**, so the first upload is not delayed until the next full hour (otherwise run **`systemctl start goprecords-upload.service`** manually once).
+
    ```ini
    [Unit]
    Description=Hourly uptimed upload to goprecords
 
    [Timer]
    OnCalendar=hourly
+   OnActiveSec=90s
    RandomizedDelaySec=300
    Persistent=true
 
@@ -341,8 +366,16 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
 
 **Test one run**
 
+**Linux**
+
 ```bash
-sudo GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+sudo env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+```
+
+**FreeBSD**
+
+```bash
+doas env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
 ```
 
 ## Test

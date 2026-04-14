@@ -24,10 +24,10 @@ upload() {
 }
 
 records_path=
-if test -f /var/db/uptimed/records; then
-	records_path=/var/db/uptimed/records
-elif test -f /var/spool/uptimed/records; then
+if test -f /var/spool/uptimed/records; then
 	records_path=/var/spool/uptimed/records
+elif test -f /var/db/uptimed/records; then
+	records_path=/var/db/uptimed/records
 elif test -f /usr/local/var/uptimed/records; then
 	records_path=/usr/local/var/uptimed/records
 else
