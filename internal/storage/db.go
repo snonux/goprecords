@@ -98,12 +98,16 @@ func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 }
 
 func LoadRecords(ctx context.Context, db *sql.DB) ([]Record, error) {
+	var n int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM record").Scan(&n); err != nil {
+		return nil, fmt.Errorf("count records: %w", err)
+	}
 	rows, err := db.QueryContext(ctx, "SELECT host, uptime_sec, boot_time, os, os_kernel_name, os_kernel_major FROM record ORDER BY host, boot_time")
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}
 	defer rows.Close()
-	var out []Record
+	out := make([]Record, 0, n)
 	for rows.Next() {
 		select {
 		case <-ctx.Done():

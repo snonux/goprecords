@@ -115,15 +115,15 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("listen address is required")
 	}
 	w := logWriter(cfg)
-	log, textHandler := newDaemonLogger(w)
+	slogLog, textHandler := newDaemonLogger(w)
 	store, err := openAuthStore(ctx, cfg.StatsDir, cfg.AuthDB)
 	if err != nil {
 		return fmt.Errorf("auth db: %w", err)
 	}
 	defer store.Close()
-	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(log, routes(cfg.StatsDir, cfg.AuthDB, store)),
+	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(slogLog, routes(cfg.StatsDir, cfg.AuthDB, store)),
 		slog.NewLogLogger(textHandler, slog.LevelError))
-	log.Info("daemon_listen", "addr", cfg.Addr)
+	slogLog.Info("daemon_listen", "addr", cfg.Addr)
 	errCh := make(chan error, 1)
 	go func() { errCh <- srv.ListenAndServe() }()
 	select {

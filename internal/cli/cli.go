@@ -20,7 +20,7 @@ import (
 func Execute(args []string) error {
 	// Handle version flag early.
 	if len(args) > 0 && (args[0] == "-version" || args[0] == "--version") {
-		fmt.Println(version.Version)
+		fmt.Println(version.Tag)
 		return nil
 	}
 	if len(args) >= 1 && (args[0] == "--create-client-key" || args[0] == "-create-client-key") {

@@ -83,8 +83,8 @@ func (s *Store) CreateKey(ctx context.Context, hostname string) (token string, e
 		return "", fmt.Errorf("empty hostname")
 	}
 	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", fmt.Errorf("random token: %w", err)
+	if _, readErr := rand.Read(raw); readErr != nil {
+		return "", fmt.Errorf("random token: %w", readErr)
 	}
 	tok := base64.RawURLEncoding.EncodeToString(raw)
 	sum := sha256.Sum256([]byte(tok))

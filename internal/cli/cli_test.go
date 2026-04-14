@@ -62,8 +62,8 @@ func TestStableVersionFlags(t *testing.T) {
 					t.Fatalf("Execute: %v", err)
 				}
 			})
-			if !strings.Contains(out, version.Version) {
-				t.Fatalf("stdout %q should contain version %q", out, version.Version)
+			if !strings.Contains(out, version.Tag) {
+				t.Fatalf("stdout %q should contain version %q", out, version.Tag)
 			}
 		})
 	}

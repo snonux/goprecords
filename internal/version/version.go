@@ -1,4 +1,4 @@
 package version
 
-// Version is the application version.
-const Version = "0.2.4"
+// Tag is the application release version.
+const Tag = "0.2.4"
