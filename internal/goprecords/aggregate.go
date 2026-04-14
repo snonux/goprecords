@@ -5,10 +5,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"codeberg.org/snonux/goprecords/internal/recordline"
+	"codeberg.org/snonux/goprecords/internal/recordsdir"
 )
 
 // Aggregates holds all category maps. Host uses HostAggregate; others use Aggregate.
@@ -37,23 +36,13 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 		KernelMajor: make(map[string]*Aggregate),
 		KernelName:  make(map[string]*Aggregate),
 	}
-	entries, err := os.ReadDir(ag.statsDir)
+	files, err := recordsdir.ListNonEmptyFiles(ag.statsDir)
 	if err != nil {
 		return nil, fmt.Errorf("read stats dir: %w", err)
 	}
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".records") {
-			continue
-		}
-		path := filepath.Join(ag.statsDir, e.Name())
-		info, err := os.Stat(path)
-		if err != nil || info.Size() == 0 {
-			continue
-		}
-		host := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
-		if idx := strings.Index(host, "."); idx > 0 {
-			host = host[:idx]
-		}
+	for _, f := range files {
+		host := f.Host
+		path := f.Path
 		if _, exists := out.Host[host]; exists {
 			return nil, fmt.Errorf("record file for %s already processed - duplicate inputs?", host)
 		}

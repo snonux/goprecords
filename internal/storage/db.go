@@ -6,10 +6,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"codeberg.org/snonux/goprecords/internal/recordline"
+	"codeberg.org/snonux/goprecords/internal/recordsdir"
 	_ "modernc.org/sqlite"
 )
 
@@ -67,7 +66,7 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 	if err := ResetRecords(ctx, db); err != nil {
 		return fmt.Errorf("reset records: %w", err)
 	}
-	entries, err := os.ReadDir(statsDir)
+	files, err := recordsdir.ListNonEmptyFiles(statsDir)
 	if err != nil {
 		return fmt.Errorf("read dir: %w", err)
 	}
@@ -81,20 +80,8 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 		return fmt.Errorf("prepare insert: %w", err)
 	}
 	defer insert.Close()
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".records") {
-			continue
-		}
-		path := filepath.Join(statsDir, e.Name())
-		info, err := os.Stat(path)
-		if err != nil || info.Size() == 0 {
-			continue
-		}
-		host := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
-		if idx := strings.Index(host, "."); idx > 0 {
-			host = host[:idx]
-		}
-		if err := importFile(ctx, insert, path, host); err != nil {
+	for _, f := range files {
+		if err := importFile(ctx, insert, f.Path, f.Host); err != nil {
 			return err
 		}
 	}
