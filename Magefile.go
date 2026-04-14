@@ -23,9 +23,23 @@ func Build() error {
 	return sh.RunV("go", "build", "-o", binaryName, "./cmd/goprecords")
 }
 
-// Test runs all tests.
+// Test runs all tests with the default race-free pass and again with the race detector.
 func Test() error {
+	mg.Deps(testUnit, testRace)
+	return nil
+}
+
+func testUnit() error {
 	return sh.RunV("go", "test", "./...")
+}
+
+// TestRace runs tests with the race detector (-race).
+func TestRace() error {
+	return testRace()
+}
+
+func testRace() error {
+	return sh.RunV("go", "test", "-race", "./...")
 }
 
 // CoverMicroservice runs tests with coverage for daemon, authkeys, and cli, then prints per-function coverage (go tool cover -func).

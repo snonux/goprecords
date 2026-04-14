@@ -13,7 +13,8 @@ go build -o goprecords ./cmd/goprecords
 
 # Run tests
 go test ./...
-# or: mage test
+# Full check (unit + race): mage test
+# Race only: mage testRace
 
 # Run integration tests
 ./goprecords test
