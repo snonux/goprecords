@@ -218,14 +218,14 @@ func MetricDescription(m Metric) string {
 
 // ParseCategory parses a category string.
 func ParseCategory(s string) (Category, error) {
-	switch s {
-	case "Host":
+	switch strings.ToLower(s) {
+	case "host":
 		return CategoryHost, nil
-	case "Kernel":
+	case "kernel":
 		return CategoryKernel, nil
-	case "KernelMajor":
+	case "kernelmajor":
 		return CategoryKernelMajor, nil
-	case "KernelName":
+	case "kernelname":
 		return CategoryKernelName, nil
 	default:
 		return 0, fmt.Errorf("invalid category %q", s)
@@ -234,16 +234,16 @@ func ParseCategory(s string) (Category, error) {
 
 // ParseMetric parses a metric string.
 func ParseMetric(s string) (Metric, error) {
-	switch s {
-	case "Boots":
+	switch strings.ToLower(s) {
+	case "boots":
 		return MetricBoots, nil
-	case "Uptime":
+	case "uptime":
 		return MetricUptime, nil
-	case "Score":
+	case "score":
 		return MetricScore, nil
-	case "Downtime":
+	case "downtime":
 		return MetricDowntime, nil
-	case "Lifespan":
+	case "lifespan":
 		return MetricLifespan, nil
 	default:
 		return 0, fmt.Errorf("invalid metric %q", s)
@@ -252,14 +252,14 @@ func ParseMetric(s string) (Metric, error) {
 
 // ParseOutputFormat parses an output format string.
 func ParseOutputFormat(s string) (OutputFormat, error) {
-	switch s {
-	case "Plaintext":
+	switch strings.ToLower(s) {
+	case "plaintext":
 		return FormatPlaintext, nil
-	case "Markdown":
+	case "markdown":
 		return FormatMarkdown, nil
-	case "Gemtext":
+	case "gemtext":
 		return FormatGemtext, nil
-	case "HTML":
+	case "html":
 		return FormatHTML, nil
 	default:
 		return 0, fmt.Errorf("invalid output-format %q", s)

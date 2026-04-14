@@ -14,8 +14,10 @@ func TestParseCategory(t *testing.T) {
 		{"Kernel", CategoryKernel, true},
 		{"KernelMajor", CategoryKernelMajor, true},
 		{"KernelName", CategoryKernelName, true},
+		{"host", CategoryHost, true},
+		{"HoSt", CategoryHost, true},
+		{"kernelMAJOR", CategoryKernelMajor, true},
 		{"", 0, false},
-		{"host", 0, false},
 		{"Bad", 0, false},
 	}
 	for _, tt := range tests {
@@ -38,8 +40,9 @@ func TestParseMetric(t *testing.T) {
 		{"Score", MetricScore, true},
 		{"Downtime", MetricDowntime, true},
 		{"Lifespan", MetricLifespan, true},
+		{"uptime", MetricUptime, true},
+		{"sCoRe", MetricScore, true},
 		{"", 0, false},
-		{"uptime", 0, false},
 		{"Nope", 0, false},
 	}
 	for _, tt := range tests {
@@ -61,8 +64,10 @@ func TestParseOutputFormat(t *testing.T) {
 		{"Markdown", FormatMarkdown, true},
 		{"Gemtext", FormatGemtext, true},
 		{"HTML", FormatHTML, true},
+		{"html", FormatHTML, true},
+		{"GemTEXT", FormatGemtext, true},
+		{"PlainText", FormatPlaintext, true},
 		{"", 0, false},
-		{"html", 0, false},
 	}
 	for _, tt := range tests {
 		got, err := ParseOutputFormat(tt.in)
