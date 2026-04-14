@@ -23,6 +23,21 @@ go test ./...
 mage install
 ```
 
+## Docker image & f3s deploy
+
+Image build and registry push live in the **`conf`** repo (`f3s/goprecords`), not in this tree. The Justfile there builds from **`docker-image/Justfile`**, which sets **`SRC`** to this **`goprecords`** checkout (default `/home/paul/git/goprecords`).
+
+**Release checklist**
+
+1. Bump **`internal/version/version.go`** (`Tag`, semver).
+2. In **`conf`**: set **`docker-image/Justfile`** `TAG` to the same version; set **`helm-chart/templates/deployment.yaml`** `image:` to `registry.lan.buetow.org:30001/goprecords:<Tag>`; update **`f3s/goprecords/README.md`** example tags if present.
+3. From **`conf/f3s/goprecords`**: run **`just build-push`** (tags and pushes **`r0.lan.buetow.org:30001/goprecords:<Tag>`**; the cluster pulls via **`registry.lan.buetow.org:30001`**).
+4. Commit and tag **`goprecords`**; push branch and tag to Codeberg.
+5. Commit **`conf`**; push **`master`** to Codeberg **and** to **`r0`** (`git push r0 master`) so the in-cluster git server Argo uses is updated.
+6. Sync the app: from **`conf/f3s/goprecords`**, **`just sync`** (or wait for Argo automated sync). Confirm with **`kubectl rollout status deployment/goprecords -n services`** and the deployment image tag.
+
+Utility targets in **`conf/f3s/goprecords/Justfile`**: **`status`**, **`logs`**, **`restart`**.
+
 ## Project Structure
 
 ```
@@ -31,6 +46,7 @@ goprecords/
 ├── internal/
 │   ├── goprecords/           # Core logic (db, aggregate, report, parse, order, types)
 │   └── version/version.go    # Version constant
+├── Dockerfile                # Multi-stage image (daemon binary)
 ├── Magefile.go               # Build automation
 ├── fixtures/                 # Test fixtures and expected outputs
 └── go.mod                    # Go 1.21, modernc.org/sqlite
@@ -48,7 +64,7 @@ goprecords/
 
 - Categories: `Host`, `Kernel`, `KernelMajor`, `KernelName`
 - Metrics: `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan`
-- Output formats: `Plaintext`, `Markdown`, `Gemtext`
+- Output formats: `Plaintext`, `Markdown`, `Gemtext`, `HTML`
 - `Downtime` and `Lifespan` metrics only apply to `Host` category
 
 ## Key Types
