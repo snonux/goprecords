@@ -113,6 +113,40 @@ func TestHostAggregateDowntime(t *testing.T) {
 	}
 }
 
+func TestHostAggregateLifespanUnderflow(t *testing.T) {
+	hagg := NewHostAggregate("host1", "Linux 5.10")
+	hagg.FirstBoot = 5000
+	hagg.LastSeen = 1000
+
+	if got := hagg.Lifespan(); got != 0 {
+		t.Errorf("Lifespan() = %d, want 0 when LastSeen < FirstBoot", got)
+	}
+}
+
+func TestHostAggregateDowntimeUnderflow(t *testing.T) {
+	tests := []struct {
+		name      string
+		firstBoot uint64
+		lastSeen  uint64
+		uptime    uint64
+	}{
+		{"uptime equals lifespan", 1000, 5000, 4000},
+		{"uptime exceeds lifespan", 1000, 5000, 5000},
+		{"uptime exceeds short span", 0, 100, 200},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hagg := NewHostAggregate("host1", "Linux 5.10")
+			hagg.FirstBoot = tt.firstBoot
+			hagg.LastSeen = tt.lastSeen
+			hagg.Uptime = tt.uptime
+			if got := hagg.Downtime(); got != 0 {
+				t.Errorf("Downtime() = %d, want 0", got)
+			}
+		})
+	}
+}
+
 func TestEpochHumanDuration(t *testing.T) {
 	// Unix epoch + 1 year + 2 months + 3 days
 	epoch := Epoch(31536000 + (60 * 24 * 3600) + (3 * 24 * 3600))

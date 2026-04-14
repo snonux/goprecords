@@ -2,6 +2,7 @@ package goprecords
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -205,6 +206,55 @@ func TestLoadAggregates(t *testing.T) {
 		if host.Uptime != 3000 {
 			t.Errorf("expected uptime 3000, got %d", host.Uptime)
 		}
+		if host.LastKernel != "Linux 5.11" {
+			t.Errorf("LastKernel = %q, want %q (latest boot_time row)", host.LastKernel, "Linux 5.11")
+		}
+	}
+}
+
+func TestLoadAggregatesLastKernelMaxBootNearInt64(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.db")
+
+	db, err := OpenDB(context.Background(), dbPath)
+	if err != nil {
+		t.Fatalf("failed to open DB: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := CreateSchema(ctx, db); err != nil {
+		t.Fatalf("failed to create schema: %v", err)
+	}
+
+	early := math.MaxInt64 - 1
+	late := math.MaxInt64
+
+	_, err = db.ExecContext(ctx,
+		"INSERT INTO record (host, uptime_sec, boot_time, os, os_kernel_name, os_kernel_major) VALUES (?, ?, ?, ?, ?, ?)",
+		"host1", 100, early, "Linux early", "Linux", "Linux 5...")
+	if err != nil {
+		t.Fatalf("failed to insert: %v", err)
+	}
+
+	_, err = db.ExecContext(ctx,
+		"INSERT INTO record (host, uptime_sec, boot_time, os, os_kernel_name, os_kernel_major) VALUES (?, ?, ?, ?, ?, ?)",
+		"host1", 100, late, "Linux late", "Linux", "Linux 5...")
+	if err != nil {
+		t.Fatalf("failed to insert: %v", err)
+	}
+
+	aggs, err := LoadAggregates(ctx, db)
+	if err != nil {
+		t.Fatalf("failed to load aggregates: %v", err)
+	}
+
+	host := aggs.Host["host1"]
+	if host == nil {
+		t.Fatal("expected host1 aggregate")
+	}
+	if host.LastKernel != "Linux late" {
+		t.Errorf("LastKernel = %q, want %q", host.LastKernel, "Linux late")
 	}
 }
 

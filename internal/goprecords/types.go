@@ -177,10 +177,21 @@ func (a *Aggregate) MetaScore() uint64 {
 }
 
 // Lifespan returns last-seen minus first-boot.
-func (h *HostAggregate) Lifespan() uint64 { return h.LastSeen - h.FirstBoot }
+func (h *HostAggregate) Lifespan() uint64 {
+	if h.LastSeen < h.FirstBoot {
+		return 0
+	}
+	return h.LastSeen - h.FirstBoot
+}
 
 // Downtime returns lifespan minus uptime.
-func (h *HostAggregate) Downtime() uint64 { return h.Lifespan() - h.Uptime }
+func (h *HostAggregate) Downtime() uint64 {
+	life := h.Lifespan()
+	if h.Uptime > life {
+		return 0
+	}
+	return life - h.Uptime
+}
 
 // MetaScore returns the host-specific score (includes downtime component).
 func (h *HostAggregate) MetaScore() uint64 {

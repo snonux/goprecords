@@ -42,12 +42,12 @@ func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 		KernelMajor: make(map[string]*Aggregate),
 		KernelName:  make(map[string]*Aggregate),
 	}
-	hostMaxBoot := make(map[string]int64)
+	hostMaxBoot := make(map[string]uint64)
 	hostLastKernel := make(map[string]string)
 
 	for _, rec := range records {
-		if rec.BootTime >= uint64(hostMaxBoot[rec.Host]) {
-			hostMaxBoot[rec.Host] = int64(rec.BootTime)
+		if rec.BootTime >= hostMaxBoot[rec.Host] {
+			hostMaxBoot[rec.Host] = rec.BootTime
 			hostLastKernel[rec.Host] = rec.OS
 		}
 		if _, ok := out.Host[rec.Host]; !ok {
