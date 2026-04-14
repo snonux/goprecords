@@ -106,6 +106,7 @@ func writeReportString(w io.Writer, s string) error {
 	return err
 }
 
+// Reporter renders aggregate uptime statistics as a string for one category and metric.
 type Reporter interface {
 	Report() string
 }
@@ -118,22 +119,29 @@ type reportBuilder struct {
 	headerIndent uint
 }
 
+// PlaintextReporter formats a report as plain text.
 type PlaintextReporter struct {
 	builder reportBuilder
 }
 
+// MarkdownReporter formats a report as Markdown.
 type MarkdownReporter struct {
 	builder reportBuilder
 }
 
+// GemtextReporter formats a report as Gemtext.
 type GemtextReporter struct {
 	builder reportBuilder
 }
 
+// HTMLReporter formats a report as HTML.
 type HTMLReporter struct {
 	builder reportBuilder
 }
 
+// NewReporter returns a Reporter for category and metric, using outputFormat and
+// limiting to the top limit entities. headerIndent controls heading depth for
+// Markdown, Gemtext, and HTML.
 func NewReporter(aggregates *Aggregates, category Category, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) Reporter {
 	builder := reportBuilder{
 		aggregates:   aggregates,
@@ -154,6 +162,8 @@ func NewReporter(aggregates *Aggregates, category Category, limit uint, metric M
 	}
 }
 
+// NewHostReporter returns a Reporter for the Host category with the given metric
+// and output settings. It is equivalent to NewReporter with CategoryHost.
 func NewHostReporter(aggregates *Aggregates, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) Reporter {
 	return NewReporter(aggregates, CategoryHost, limit, metric, outputFormat, headerIndent)
 }

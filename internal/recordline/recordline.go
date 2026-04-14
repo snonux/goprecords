@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Fields holds the values parsed from a single uptimed record line.
 type Fields struct {
 	Uptime      uint64
 	BootTime    uint64
@@ -13,6 +14,8 @@ type Fields struct {
 	KernelMajor string
 }
 
+// Parse parses one non-empty line of the form "uptime:boottime:os..." from an
+// uptimed .records file. It returns false if the line is empty or malformed.
 func Parse(line string) (Fields, bool) {
 	line = strings.TrimSpace(line)
 	if line == "" {

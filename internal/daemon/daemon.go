@@ -24,6 +24,7 @@ const (
 	defaultIdleTimeout       = 2 * time.Minute
 )
 
+// Config holds settings for the HTTP report/upload daemon.
 type Config struct {
 	StatsDir  string
 	Addr      string
@@ -107,6 +108,7 @@ func newDaemonHTTPServer(addr string, handler http.Handler, errLog *log.Logger) 
 	}
 }
 
+// Run starts the HTTP server for cfg until ctx is canceled, then shuts down gracefully.
 func Run(ctx context.Context, cfg Config) error {
 	if cfg.StatsDir == "" {
 		return fmt.Errorf("stats directory is required")

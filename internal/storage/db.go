@@ -28,6 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_record_os_kernel_name ON record(os_kernel_name);
 CREATE INDEX IF NOT EXISTS idx_record_os_kernel_major ON record(os_kernel_major);
 `
 
+// Record is one uptimed boot row stored in the record table.
 type Record struct {
 	Host        string
 	Uptime      uint64
@@ -37,6 +38,7 @@ type Record struct {
 	KernelMajor string
 }
 
+// Open opens a SQLite database at path and verifies connectivity.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -53,16 +55,20 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	return db, nil
 }
 
+// CreateSchema creates the record table and indexes if they do not exist.
 func CreateSchema(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, schemaSQL)
 	return err
 }
 
+// ResetRecords deletes all rows from the record table.
 func ResetRecords(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, "DELETE FROM record")
 	return err
 }
 
+// ImportFromDir imports non-empty .records files from statsDir into the database,
+// replacing existing rows. It is equivalent to ImportFromFS with os.DirFS(statsDir).
 func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 	return ImportFromFS(ctx, db, os.DirFS(statsDir))
 }
@@ -97,6 +103,7 @@ func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	return nil
 }
 
+// LoadRecords returns all rows from the record table ordered by host and boot time.
 func LoadRecords(ctx context.Context, db *sql.DB) ([]Record, error) {
 	var n int
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM record").Scan(&n); err != nil {
