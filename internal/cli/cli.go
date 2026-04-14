@@ -2,10 +2,14 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
+	"codeberg.org/snonux/goprecords/internal/daemon"
 	"codeberg.org/snonux/goprecords/internal/goprecords"
 	"codeberg.org/snonux/goprecords/internal/version"
 )
@@ -16,6 +20,9 @@ func Execute(args []string) error {
 	if len(args) > 0 && (args[0] == "-version" || args[0] == "--version") {
 		fmt.Println(version.Version)
 		return nil
+	}
+	if len(args) > 0 && (args[0] == "-daemon" || args[0] == "--daemon") {
+		return runDaemon(args[1:])
 	}
 
 	// No subcommand – treat args as flags for a direct report from files.
@@ -117,4 +124,32 @@ func runReportFromFiles(args []string) error {
 
 func runTests() error {
 	return goprecords.RunIntegrationTests("./fixtures")
+}
+
+func defaultListenFromEnv() string {
+	if s := os.Getenv("GOPRECORDS_LISTEN"); s != "" {
+		return s
+	}
+	return ":8080"
+}
+
+func runDaemon(args []string) error {
+	fs := flag.NewFlagSet("daemon", flag.ExitOnError)
+	statsDir := fs.String("stats-dir", os.Getenv("GOPRECORDS_STATS_DIR"), "Uptimed stats directory (required; env GOPRECORDS_STATS_DIR)")
+	listen := fs.String("listen", defaultListenFromEnv(), "TCP listen address (env GOPRECORDS_LISTEN, default :8080)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *statsDir == "" {
+		fmt.Fprintln(os.Stderr, "daemon: missing required flag: -stats-dir (or GOPRECORDS_STATS_DIR)")
+		fs.Usage()
+		return fmt.Errorf("missing -stats-dir")
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	err := daemon.Run(ctx, daemon.Config{StatsDir: *statsDir, Addr: *listen})
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return err
+	}
+	return nil
 }

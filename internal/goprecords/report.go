@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -66,6 +68,78 @@ func (rf *ReportFlags) Parse() (ReportConfig, error) {
 		IncludeKernel: *rf.includeKernel,
 		StatsOrder:    *rf.statsOrder,
 	}, nil
+}
+
+// ParseReportQuery builds a ReportConfig from URL query parameters using the
+// same names and defaults as RegisterReportFlags (category, metric, limit,
+// output-format, all, include-kernel, stats-order).
+func ParseReportQuery(q url.Values) (ReportConfig, error) {
+	catStr := q.Get("category")
+	if catStr == "" {
+		catStr = "Host"
+	}
+	cat, err := ParseCategory(catStr)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	metStr := q.Get("metric")
+	if metStr == "" {
+		metStr = "Uptime"
+	}
+	met, err := ParseMetric(metStr)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	limit := uint(20)
+	if ls := q.Get("limit"); ls != "" {
+		v, err := strconv.ParseUint(ls, 10, 32)
+		if err != nil {
+			return ReportConfig{}, fmt.Errorf("invalid limit %q", ls)
+		}
+		limit = uint(v)
+	}
+	outStr := q.Get("output-format")
+	if outStr == "" {
+		outStr = "Plaintext"
+	}
+	outFmt, err := ParseOutputFormat(outStr)
+	if err != nil {
+		return ReportConfig{}, err
+	}
+	all := false
+	if v := q.Get("all"); v != "" {
+		all, err = parseQueryBool(v)
+		if err != nil {
+			return ReportConfig{}, err
+		}
+	}
+	includeKernel := false
+	if v := q.Get("include-kernel"); v != "" {
+		includeKernel, err = parseQueryBool(v)
+		if err != nil {
+			return ReportConfig{}, err
+		}
+	}
+	return ReportConfig{
+		Category:      cat,
+		Metric:        met,
+		Limit:         limit,
+		OutputFormat:  outFmt,
+		All:           all,
+		IncludeKernel: includeKernel,
+		StatsOrder:    q.Get("stats-order"),
+	}, nil
+}
+
+func parseQueryBool(s string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "true", "1", "yes":
+		return true, nil
+	case "false", "0", "no", "":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid boolean %q", s)
+	}
 }
 
 // WriteReports renders reports to w based on the given config.

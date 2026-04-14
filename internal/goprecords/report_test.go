@@ -2,6 +2,7 @@ package goprecords
 
 import (
 	"bytes"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -302,6 +303,49 @@ func testAggregates() *Aggregates {
 	kernel.Boots = 10
 	aggs.Kernel["Linux 5.10"] = kernel
 	return aggs
+}
+
+func TestParseReportQuery(t *testing.T) {
+	q := url.Values{}
+	cfg, err := ParseReportQuery(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 20 {
+		t.Fatalf("defaults: %+v", cfg)
+	}
+	if cfg.OutputFormat != FormatPlaintext || cfg.All || cfg.IncludeKernel || cfg.StatsOrder != "" {
+		t.Fatalf("defaults: %+v", cfg)
+	}
+	q.Set("category", "Kernel")
+	q.Set("metric", "Boots")
+	q.Set("limit", "5")
+	q.Set("output-format", "Markdown")
+	q.Set("all", "true")
+	q.Set("include-kernel", "1")
+	q.Set("stats-order", "Host:Uptime")
+	cfg, err = ParseReportQuery(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Category != CategoryKernel || cfg.Metric != MetricBoots || cfg.Limit != 5 {
+		t.Fatalf("got %+v", cfg)
+	}
+	if cfg.OutputFormat != FormatMarkdown || !cfg.All || !cfg.IncludeKernel || cfg.StatsOrder != "Host:Uptime" {
+		t.Fatalf("got %+v", cfg)
+	}
+	_, err = ParseReportQuery(url.Values{"category": []string{"nope"}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	_, err = ParseReportQuery(url.Values{"limit": []string{"x"}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	_, err = ParseReportQuery(url.Values{"all": []string{"maybe"}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
 }
 
 func hostName(i int) string {
