@@ -83,11 +83,20 @@ func StatsOrderList(statsOrder string) ([]CategoryMetric, error) {
 }
 
 func defaultStatsOrder() []CategoryMetric {
-	var out []CategoryMetric
-	for _, c := range []Category{CategoryHost, CategoryKernel, CategoryKernelMajor, CategoryKernelName} {
-		for _, m := range []Metric{MetricBoots, MetricUptime, MetricScore, MetricDowntime, MetricLifespan} {
-			out = append(out, CategoryMetric{c, m})
-		}
+	return []CategoryMetric{
+		{CategoryHost, MetricUptime},
+		{CategoryHost, MetricLifespan},
+		{CategoryHost, MetricDowntime},
+		{CategoryHost, MetricBoots},
+		{CategoryHost, MetricScore},
+		{CategoryKernelMajor, MetricBoots},
+		{CategoryKernelMajor, MetricUptime},
+		{CategoryKernelMajor, MetricScore},
+		{CategoryKernelName, MetricBoots},
+		{CategoryKernelName, MetricUptime},
+		{CategoryKernelName, MetricScore},
+		{CategoryKernel, MetricBoots},
+		{CategoryKernel, MetricUptime},
+		{CategoryKernel, MetricScore},
 	}
-	return out
 }

@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
+<link rel="stylesheet" href="https://foo.zone/style.css" />
 <title>Top 3 Boots&#39;s by KernelName</title>
 </head>
 <body>
-<h1>Top 3 Boots&#39;s by KernelName</h1>
-<p>Boots is the total number of host boots over the entire lifespan.</p>
+<p class="header">
+<a href="/">Dashboard</a> | <a href="https://foo.zone">foo.zone</a> | <a class="textlink" href="/report?OutputFormat=HTML&amp;limit=3">Report API</a>
+</p>
+<h1 style="display: inline">Top 3 Boots&#39;s by KernelName</h1><br />
+<br />
+<span class="quote">Boots is the total number of host boots over the entire lifespan.</span><br />
+<br />
 <pre>+-----+------------+-------+
 | Pos | KernelName | Boots |
 +-----+------------+-------+

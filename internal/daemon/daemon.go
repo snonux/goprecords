@@ -201,7 +201,7 @@ func root(statsDir string) http.HandlerFunc {
 			Limit:         20,
 			OutputFormat:  goprecords.FormatHTML,
 			All:           true,
-			IncludeKernel: true,
+			IncludeKernel: false,
 		}
 		var buf bytes.Buffer
 		if err := goprecords.WriteReports(&buf, aggregates, cfg); err != nil {

@@ -50,15 +50,34 @@ func TestParseStatsOrder(t *testing.T) {
 }
 
 func TestStatsOrderList(t *testing.T) {
-	// Empty string returns default order (all category×metric pairs).
+	wantDefaultPrefix := []CategoryMetric{
+		{CategoryHost, MetricUptime},
+		{CategoryHost, MetricLifespan},
+		{CategoryHost, MetricDowntime},
+		{CategoryHost, MetricBoots},
+		{CategoryHost, MetricScore},
+		{CategoryKernelMajor, MetricBoots},
+		{CategoryKernelMajor, MetricUptime},
+		{CategoryKernelMajor, MetricScore},
+		{CategoryKernelName, MetricBoots},
+		{CategoryKernelName, MetricUptime},
+		{CategoryKernelName, MetricScore},
+		{CategoryKernel, MetricBoots},
+		{CategoryKernel, MetricUptime},
+		{CategoryKernel, MetricScore},
+	}
 	got, err := StatsOrderList("")
 	if err != nil {
 		t.Fatalf("StatsOrderList(\"\"): %v", err)
 	}
-	if len(got) == 0 {
-		t.Error("StatsOrderList(\"\"): got empty order")
+	if len(got) != len(wantDefaultPrefix) {
+		t.Fatalf("StatsOrderList(\"\"): len=%d want %d", len(got), len(wantDefaultPrefix))
 	}
-	// Custom order: Host:Uptime first, then rest of default.
+	for i := range wantDefaultPrefix {
+		if got[i] != wantDefaultPrefix[i] {
+			t.Errorf("StatsOrderList(\"\")[%d] = %v; want %v", i, got[i], wantDefaultPrefix[i])
+		}
+	}
 	got, err = StatsOrderList("Host:Uptime")
 	if err != nil {
 		t.Fatalf("StatsOrderList(\"Host:Uptime\"): %v", err)
@@ -68,5 +87,8 @@ func TestStatsOrderList(t *testing.T) {
 	}
 	if got[0].Category != CategoryHost || got[0].Metric != MetricUptime {
 		t.Errorf("StatsOrderList(\"Host:Uptime\")[0] = %v; want Host:Uptime", got[0])
+	}
+	if got[1] != (CategoryMetric{CategoryHost, MetricLifespan}) {
+		t.Errorf("StatsOrderList(\"Host:Uptime\")[1] = %v; want Host:Lifespan", got[1])
 	}
 }
