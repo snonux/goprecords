@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+
+	"codeberg.org/snonux/goprecords/internal/storage"
 )
 
 // RunIntegrationTests runs integration tests against fixture data.
@@ -94,7 +96,7 @@ func testImportExport(ctx context.Context, aggregates *Aggregates, fixturesDir s
 		_ = os.Remove(tmpDB)
 		return 1
 	}
-	db, err := OpenDB(ctx, tmpDB)
+	db, err := storage.Open(ctx, tmpDB)
 	if err != nil {
 		_ = os.Remove(tmpDB)
 		fmt.Printf("FAIL: open tmp db: %v\n", err)
@@ -108,12 +110,12 @@ func testImportExportOnDB(ctx context.Context, db *sql.DB, tmpDB string, aggrega
 		db.Close()
 		_ = os.Remove(tmpDB)
 	}()
-	if err := CreateSchema(ctx, db); err != nil {
+	if err := storage.CreateSchema(ctx, db); err != nil {
 		fmt.Printf("FAIL: create schema: %v\n", err)
 		return 1
 	}
 	failed := 0
-	if err := ImportFromDir(ctx, db, fixturesDir); err != nil {
+	if err := storage.ImportFromDir(ctx, db, fixturesDir); err != nil {
 		fmt.Printf("FAIL: import: %v\n", err)
 		return 1
 	}

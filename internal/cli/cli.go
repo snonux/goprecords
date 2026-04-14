@@ -12,6 +12,7 @@ import (
 	"codeberg.org/snonux/goprecords/internal/authkeys"
 	"codeberg.org/snonux/goprecords/internal/daemon"
 	"codeberg.org/snonux/goprecords/internal/goprecords"
+	"codeberg.org/snonux/goprecords/internal/storage"
 	"codeberg.org/snonux/goprecords/internal/version"
 )
 
@@ -62,15 +63,15 @@ func runImport(args []string) error {
 		return fmt.Errorf("missing -stats-dir")
 	}
 	ctx := context.Background()
-	db, err := goprecords.OpenDB(ctx, *dbPath)
+	db, err := storage.Open(ctx, *dbPath)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 	defer db.Close()
-	if err := goprecords.CreateSchema(ctx, db); err != nil {
+	if err := storage.CreateSchema(ctx, db); err != nil {
 		return fmt.Errorf("schema: %w", err)
 	}
-	if err := goprecords.ImportFromDir(ctx, db, *statsDir); err != nil {
+	if err := storage.ImportFromDir(ctx, db, *statsDir); err != nil {
 		return fmt.Errorf("import: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "imported %s into %s\n", *statsDir, *dbPath)
@@ -85,7 +86,7 @@ func runQuery(args []string) error {
 		return err
 	}
 	ctx := context.Background()
-	db, err := goprecords.OpenDB(ctx, *dbPath)
+	db, err := storage.Open(ctx, *dbPath)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}

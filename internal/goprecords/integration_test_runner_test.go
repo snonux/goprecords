@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+
+	"codeberg.org/snonux/goprecords/internal/storage"
 )
 
 func TestTestImportExportOnDB_createSchemaError(t *testing.T) {
@@ -16,7 +18,7 @@ func TestTestImportExportOnDB_createSchemaError(t *testing.T) {
 	}
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "import.db")
-	db, err := OpenDB(ctx, dbPath)
+	db, err := storage.Open(ctx, dbPath)
 	if err != nil {
 		t.Fatal(err)
 	}

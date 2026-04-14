@@ -4,38 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/fs"
 
 	"codeberg.org/snonux/goprecords/internal/storage"
-	_ "modernc.org/sqlite"
 )
-
-// OpenDB opens the SQLite database at path, creating the file if needed.
-func OpenDB(ctx context.Context, path string) (*sql.DB, error) {
-	return storage.Open(ctx, path)
-}
-
-// CreateSchema creates the record table and indexes (idempotent).
-func CreateSchema(ctx context.Context, db *sql.DB) error {
-	return storage.CreateSchema(ctx, db)
-}
-
-// ResetRecords removes all rows so import is repeatable.
-func ResetRecords(ctx context.Context, db *sql.DB) error {
-	return storage.ResetRecords(ctx, db)
-}
-
-// ImportFromDir reads all .records files from statsDir and inserts into the DB.
-// Resets the record table first so the run is repeatable.
-func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
-	return storage.ImportFromDir(ctx, db, statsDir)
-}
-
-// ImportFromFS reads all non-empty .records files from the root of fsys and inserts into the DB.
-// Resets the record table first so the run is repeatable.
-func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
-	return storage.ImportFromFS(ctx, db, fsys)
-}
 
 // LoadAggregates reads all rows from the DB and builds Aggregates (same shape as file-based aggregation).
 func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
