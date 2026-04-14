@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -182,7 +183,13 @@ func TestAccessLogLineToWriter(t *testing.T) {
 	var buf bytes.Buffer
 	h := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo})
 	log := slog.New(h)
-	srv := httptest.NewServer(withAccessLog(log, routes(t.TempDir())))
+	statsDir := t.TempDir()
+	store, err := openAuthStore(context.Background(), statsDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	srv := httptest.NewServer(withAccessLog(log, routes(statsDir, store)))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/health")
 	if err != nil {
@@ -195,5 +202,118 @@ func TestAccessLogLineToWriter(t *testing.T) {
 	}
 	if !strings.Contains(body, "path=/health") || !strings.Contains(body, "status=200") {
 		t.Fatalf("expected path and status in log, got %q", body)
+	}
+}
+
+func TestUploadOpenWhenNoKeys(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(Handler(statsDir))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("hello"))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	b, err := os.ReadFile(filepath.Join(statsDir, "myhost.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != "hello" {
+		t.Fatalf("file %q", b)
+	}
+}
+
+func TestUploadRequiresBearerWhenKeysExist(t *testing.T) {
+	statsDir := t.TempDir()
+	ctx := context.Background()
+	store, err := openAuthStore(ctx, statsDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.CreateKey(ctx, "myhost"); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(routes(statsDir, store))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("x"))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status %d want 401", res.StatusCode)
+	}
+}
+
+func TestUploadWithValidBearer(t *testing.T) {
+	statsDir := t.TempDir()
+	ctx := context.Background()
+	store, err := openAuthStore(ctx, statsDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	tok, err := store.CreateKey(ctx, "myhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(routes(statsDir, store))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/os.txt", strings.NewReader("os"))
+	req.Header.Set("Authorization", "Bearer "+tok)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+}
+
+func TestUploadWrongHostForbidden(t *testing.T) {
+	statsDir := t.TempDir()
+	ctx := context.Background()
+	store, err := openAuthStore(ctx, statsDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	tok, err := store.CreateKey(ctx, "myhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(routes(statsDir, store))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/other/txt", strings.NewReader("x"))
+	req.Header.Set("Authorization", "Bearer "+tok)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("status %d want 403", res.StatusCode)
+	}
+}
+
+func TestUploadBadKind(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(Handler(statsDir))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/nope", strings.NewReader("x"))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d", res.StatusCode)
 	}
 }

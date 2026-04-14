@@ -147,3 +147,30 @@ func TestStableSubcommandsStillRecognized(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateClientKeyRequiresHostname(t *testing.T) {
+	err := Execute([]string{"--create-client-key"})
+	if err == nil || !strings.Contains(err.Error(), "hostname") {
+		t.Fatalf("expected hostname error, got %v", err)
+	}
+}
+
+func TestCreateClientKeyRequiresStatsOrAuthDB(t *testing.T) {
+	err := Execute([]string{"--create-client-key", "h1"})
+	if err == nil || !strings.Contains(err.Error(), "stats-dir") {
+		t.Fatalf("expected stats-dir/auth-db error, got %v", err)
+	}
+}
+
+func TestCreateClientKeyWritesToken(t *testing.T) {
+	dir := t.TempDir()
+	out := captureStdout(t, func() {
+		if err := Execute([]string{"--create-client-key", "mybox", "-stats-dir", dir}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	tok := strings.TrimSpace(out)
+	if len(tok) < 20 {
+		t.Fatalf("token too short %q", tok)
+	}
+}

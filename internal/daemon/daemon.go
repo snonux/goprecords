@@ -10,24 +10,31 @@ import (
 	"os"
 	"time"
 
+	"codeberg.org/snonux/goprecords/internal/authkeys"
 	"codeberg.org/snonux/goprecords/internal/goprecords"
 )
 
 type Config struct {
 	StatsDir  string
 	Addr      string
+	AuthDB    string
 	LogOutput io.Writer
 }
 
-func routes(statsDir string) http.Handler {
+func routes(statsDir string, store *authkeys.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/report", report(statsDir))
+	mux.Handle("/upload/", uploadHandler(statsDir, store))
 	return mux
 }
 
 func Handler(statsDir string) http.Handler {
-	return routes(statsDir)
+	store, err := openAuthStore(context.Background(), statsDir, "")
+	if err != nil {
+		panic(err)
+	}
+	return routes(statsDir, store)
 }
 
 func logWriter(cfg Config) io.Writer {
@@ -83,9 +90,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	w := logWriter(cfg)
 	log, textHandler := newDaemonLogger(w)
+	store, err := openAuthStore(ctx, cfg.StatsDir, cfg.AuthDB)
+	if err != nil {
+		return fmt.Errorf("auth db: %w", err)
+	}
+	defer store.Close()
 	srv := &http.Server{
 		Addr:     cfg.Addr,
-		Handler:  withAccessLog(log, routes(cfg.StatsDir)),
+		Handler:  withAccessLog(log, routes(cfg.StatsDir, store)),
 		ErrorLog: slog.NewLogLogger(textHandler, slog.LevelError),
 	}
 	log.Info("daemon_listen", "addr", cfg.Addr)

@@ -1,0 +1,190 @@
+package daemon
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"codeberg.org/snonux/goprecords/internal/authkeys"
+)
+
+const maxUploadBytes = 8 << 20
+
+var uploadKinds = map[string]string{
+	"txt":         ".txt",
+	"cur.txt":     ".cur.txt",
+	"records":     ".records",
+	"os.txt":      ".os.txt",
+	"cpuinfo.txt": ".cpuinfo.txt",
+}
+
+func uploadHandler(statsDir string, store *authkeys.Store) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		host, kind, ok := parseUploadPath(r.URL.Path)
+		if !ok {
+			http.Error(w, "bad path", http.StatusBadRequest)
+			return
+		}
+		ext, ok := uploadKinds[kind]
+		if !ok {
+			http.Error(w, "unknown file kind", http.StatusBadRequest)
+			return
+		}
+		ctx := r.Context()
+		nKeys, err := store.KeyCount(ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if nKeys > 0 {
+			tok, ok := parseBearer(r.Header.Get("Authorization"))
+			if !ok || tok == "" {
+				w.Header().Set("WWW-Authenticate", `Bearer realm="upload"`)
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			valid, err := store.Verify(ctx, host, tok)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if !valid {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+		}
+		rel := host + ext
+		target := filepath.Join(statsDir, rel)
+		if !fileUnderDir(statsDir, target) {
+			http.Error(w, "bad path", http.StatusBadRequest)
+			return
+		}
+		if err := writeUploadBody(target, r.Body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+func parseUploadPath(path string) (host, kind string, ok bool) {
+	const prefix = "/upload/"
+	if !strings.HasPrefix(path, prefix) {
+		return "", "", false
+	}
+	rest := strings.TrimPrefix(path, prefix)
+	if rest == "" || strings.Contains(rest, "..") {
+		return "", "", false
+	}
+	i := strings.IndexByte(rest, '/')
+	if i <= 0 || i >= len(rest)-1 {
+		return "", "", false
+	}
+	host = rest[:i]
+	kind = rest[i+1:]
+	if !safeHostSegment(host) || strings.Contains(kind, "/") {
+		return "", "", false
+	}
+	return host, kind, true
+}
+
+func safeHostSegment(s string) bool {
+	if s == "" || len(s) > 253 {
+		return false
+	}
+	for _, c := range s {
+		switch {
+		case c >= 'a' && c <= 'z':
+		case c >= 'A' && c <= 'Z':
+		case c >= '0' && c <= '9':
+		case c == '.' || c == '-' || c == '_':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func parseBearer(h string) (token string, ok bool) {
+	h = strings.TrimSpace(h)
+	const prefix = "Bearer "
+	if len(h) < len(prefix) {
+		return "", false
+	}
+	if !strings.EqualFold(h[:len(prefix)], prefix) {
+		return "", false
+	}
+	t := strings.TrimSpace(h[len(prefix):])
+	return t, t != ""
+}
+
+func fileUnderDir(dir, file string) bool {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return false
+	}
+	absFile, err := filepath.Abs(file)
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(absDir, absFile)
+	if err != nil {
+		return false
+	}
+	if rel == "." {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
+}
+
+func writeUploadBody(path string, body io.Reader) error {
+	tmp := path + ".tmp"
+	f, err := os.Create(tmp)
+	if err != nil {
+		return fmt.Errorf("create temp: %w", err)
+	}
+	lr := &io.LimitedReader{R: body, N: maxUploadBytes + 1}
+	n, err := io.Copy(f, lr)
+	if err != nil {
+		f.Close()
+		os.Remove(tmp)
+		return fmt.Errorf("write: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(tmp)
+		return fmt.Errorf("close temp: %w", err)
+	}
+	if n > maxUploadBytes {
+		os.Remove(tmp)
+		return fmt.Errorf("body too large")
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return fmt.Errorf("rename: %w", err)
+	}
+	return nil
+}
+
+func openAuthStore(ctx context.Context, statsDir, authDB string) (*authkeys.Store, error) {
+	path := authDB
+	if path == "" {
+		path = authkeys.DefaultPath(statsDir)
+	}
+	s, err := authkeys.OpenStore(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.EnsureSchema(ctx); err != nil {
+		s.Close()
+		return nil, err
+	}
+	return s, nil
+}
