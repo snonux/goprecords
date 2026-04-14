@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 func TestOpenDB(t *testing.T) {
@@ -130,6 +131,38 @@ func TestImportFromDir(t *testing.T) {
 
 	if count != 3 {
 		t.Errorf("expected 3 records after import, got %d", count)
+	}
+}
+
+func TestImportFromFS_MapFS(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.db")
+	db, err := OpenDB(context.Background(), dbPath)
+	if err != nil {
+		t.Fatalf("open DB: %v", err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	if err := CreateSchema(ctx, db); err != nil {
+		t.Fatalf("schema: %v", err)
+	}
+	m := fstest.MapFS{
+		"testhost.records": &fstest.MapFile{
+			Data: []byte("86400:1000000:Linux 5.10.0-test\n" +
+				"86400:1000001:Linux 5.10.0-test\n" +
+				"86400:1000002:Linux 5.10.0-test\n"),
+			Mode: 0o644,
+		},
+	}
+	if err := ImportFromFS(ctx, db, m); err != nil {
+		t.Fatalf("ImportFromFS: %v", err)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM record").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 3 {
+		t.Errorf("count = %d, want 3", count)
 	}
 }
 

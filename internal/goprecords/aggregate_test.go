@@ -5,12 +5,29 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 )
 
-func TestNewAggregator(t *testing.T) {
-	agg := NewAggregator("./test")
-	if agg.statsDir != "./test" {
-		t.Errorf("expected statsDir ./test, got %q", agg.statsDir)
+func TestNewAggregatorMatchesDirFS(t *testing.T) {
+	tmpDir := t.TempDir()
+	content := []byte("86400:1000000:Linux 5.10.0-test\n")
+	if err := os.WriteFile(filepath.Join(tmpDir, "h1.records"), content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	a, err := NewAggregator(tmpDir).Aggregate(ctx)
+	if err != nil {
+		t.Fatalf("NewAggregator: %v", err)
+	}
+	b, err := NewAggregatorFS(os.DirFS(tmpDir)).Aggregate(ctx)
+	if err != nil {
+		t.Fatalf("NewAggregatorFS: %v", err)
+	}
+	if len(a.Host) != 1 || len(b.Host) != 1 {
+		t.Fatalf("hosts: a=%d b=%d", len(a.Host), len(b.Host))
+	}
+	if a.Host["h1"].Boots != b.Host["h1"].Boots || a.Host["h1"].Uptime != b.Host["h1"].Uptime {
+		t.Fatalf("mismatch: %#v vs %#v", a.Host["h1"], b.Host["h1"])
 	}
 }
 
@@ -21,6 +38,23 @@ func TestAggregateInvalidDir(t *testing.T) {
 	_, err := agg.Aggregate(ctx)
 	if err == nil {
 		t.Error("expected error for non-existent directory")
+	}
+}
+
+func TestAggregateMapFS(t *testing.T) {
+	m := fstest.MapFS{
+		"box.records": &fstest.MapFile{
+			Data: []byte("86400:1000000:Linux 5.10.0-test\n86400:1000001:Linux 5.11.0-test\n"),
+			Mode: 0o644,
+		},
+	}
+	aggs, err := NewAggregatorFS(m).Aggregate(context.Background())
+	if err != nil {
+		t.Fatalf("Aggregate: %v", err)
+	}
+	h := aggs.Host["box"]
+	if h == nil || h.Boots != 2 || h.LastKernel != "Linux 5.11.0-test" {
+		t.Fatalf("host box: %#v", h)
 	}
 }
 
@@ -118,7 +152,9 @@ func TestLastKernelFromFile(t *testing.T) {
 		t.Skipf("skipping test, fixture file not found")
 	}
 
-	kernel, err := lastKernelFromFile(context.Background(), testFile)
+	fixturesDir := filepath.Dir(testFile)
+	base := filepath.Base(testFile)
+	kernel, err := lastKernelFromFile(context.Background(), os.DirFS(fixturesDir), base)
 	if err != nil {
 		t.Fatalf("failed to get last kernel: %v", err)
 	}
@@ -129,7 +165,7 @@ func TestLastKernelFromFile(t *testing.T) {
 }
 
 func TestLastKernelFromFileNonExistent(t *testing.T) {
-	_, err := lastKernelFromFile(context.Background(), "/nonexistent/file.records")
+	_, err := lastKernelFromFile(context.Background(), os.DirFS(t.TempDir()), "missing.records")
 	if err == nil {
 		t.Error("expected error for non-existent file")
 	}
@@ -158,7 +194,7 @@ func TestProcessRecordsFile(t *testing.T) {
 	aggs.Host["test"] = NewHostAggregate("test", "")
 
 	ctx := context.Background()
-	err := processRecordsFile(ctx, testFile, "test", aggs)
+	err := processRecordsFile(ctx, os.DirFS(tmpDir), "test.records", "test", aggs)
 
 	if err != nil {
 		t.Fatalf("failed to process records: %v", err)

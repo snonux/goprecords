@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"codeberg.org/snonux/goprecords/internal/recordline"
@@ -20,12 +21,18 @@ type Aggregates struct {
 
 // Aggregator reads .records files from a directory and builds Aggregates.
 type Aggregator struct {
-	statsDir string
+	fsys fs.FS
+	root string
 }
 
 // NewAggregator returns an Aggregator for the given stats directory.
 func NewAggregator(statsDir string) *Aggregator {
-	return &Aggregator{statsDir: statsDir}
+	return NewAggregatorFS(os.DirFS(statsDir))
+}
+
+// NewAggregatorFS returns an Aggregator that reads non-empty .records files from the root of fsys.
+func NewAggregatorFS(fsys fs.FS) *Aggregator {
+	return &Aggregator{fsys: fsys, root: "."}
 }
 
 // Aggregate reads all .records files and returns aggregated data.
@@ -36,32 +43,32 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 		KernelMajor: make(map[string]*Aggregate),
 		KernelName:  make(map[string]*Aggregate),
 	}
-	files, err := recordsdir.ListNonEmptyFiles(ag.statsDir)
+	files, err := recordsdir.ListNonEmptyFilesFS(ag.fsys, ag.root)
 	if err != nil {
 		return nil, fmt.Errorf("read stats dir: %w", err)
 	}
 	for _, f := range files {
 		host := f.Host
-		path := f.Path
+		relPath := f.Path
 		if _, exists := out.Host[host]; exists {
 			return nil, fmt.Errorf("record file for %s already processed - duplicate inputs?", host)
 		}
-		lastKernel, err := lastKernelFromFile(ctx, path)
+		lastKernel, err := lastKernelFromFile(ctx, ag.fsys, relPath)
 		if err != nil {
-			return nil, fmt.Errorf("last kernel %s: %w", path, err)
+			return nil, fmt.Errorf("last kernel %s: %w", relPath, err)
 		}
 		out.Host[host] = NewHostAggregate(host, lastKernel)
-		if err := processRecordsFile(ctx, path, host, out); err != nil {
+		if err := processRecordsFile(ctx, ag.fsys, relPath, host, out); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
 }
 
-func processRecordsFile(ctx context.Context, path, host string, out *Aggregates) error {
-	f, err := os.Open(path)
+func processRecordsFile(ctx context.Context, fsys fs.FS, relPath, host string, out *Aggregates) error {
+	f, err := fsys.Open(relPath)
 	if err != nil {
-		return fmt.Errorf("open %s: %w", path, err)
+		return fmt.Errorf("open %s: %w", relPath, err)
 	}
 	defer f.Close()
 
@@ -82,13 +89,13 @@ func processRecordsFile(ctx context.Context, path, host string, out *Aggregates)
 		getOrNewAggregate(out.KernelMajor, rec.KernelMajor).AddRecord(rec.Uptime, rec.BootTime)
 	}
 	if err := sc.Err(); err != nil {
-		return fmt.Errorf("scan %s: %w", path, err)
+		return fmt.Errorf("scan %s: %w", relPath, err)
 	}
 	return nil
 }
 
-func lastKernelFromFile(ctx context.Context, path string) (string, error) {
-	f, err := os.Open(path)
+func lastKernelFromFile(ctx context.Context, fsys fs.FS, relPath string) (string, error) {
+	f, err := fsys.Open(relPath)
 	if err != nil {
 		return "", err
 	}

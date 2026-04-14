@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 
 	"codeberg.org/snonux/goprecords/internal/storage"
 	_ "modernc.org/sqlite"
@@ -28,6 +29,12 @@ func ResetRecords(ctx context.Context, db *sql.DB) error {
 // Resets the record table first so the run is repeatable.
 func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 	return storage.ImportFromDir(ctx, db, statsDir)
+}
+
+// ImportFromFS reads all non-empty .records files from the root of fsys and inserts into the DB.
+// Resets the record table first so the run is repeatable.
+func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
+	return storage.ImportFromFS(ctx, db, fsys)
 }
 
 // LoadAggregates reads all rows from the DB and builds Aggregates (same shape as file-based aggregation).

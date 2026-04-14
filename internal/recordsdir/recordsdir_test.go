@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 )
 
 func TestHostFromFileName(t *testing.T) {
@@ -54,5 +55,20 @@ func TestListNonEmptyFiles_ReadError(t *testing.T) {
 	_, err := ListNonEmptyFiles(filepath.Join(t.TempDir(), "nonexistent-subdir-nope"))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestListNonEmptyFilesFS_MapFS(t *testing.T) {
+	m := fstest.MapFS{
+		"skip.txt":      &fstest.MapFile{Data: []byte("x"), Mode: 0o644},
+		"empty.records": &fstest.MapFile{Data: nil, Mode: 0o644},
+		"h1.records":    &fstest.MapFile{Data: []byte("line\n"), Mode: 0o644},
+	}
+	entries, err := ListNonEmptyFilesFS(m, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Host != "h1" || entries[0].Path != "h1.records" {
+		t.Fatalf("got %#v", entries)
 	}
 }
