@@ -72,9 +72,10 @@ func (rf *ReportFlags) Parse() (ReportConfig, error) {
 
 // ParseReportQuery builds a ReportConfig from URL query parameters using the
 // same names and defaults as RegisterReportFlags (category, metric, limit,
-// output-format, all, include-kernel, stats-order).
+// output-format, all, include-kernel, stats-order). It also accepts Category,
+// Metric, and OutputFormat as alternate keys (same values as the CLI).
 func ParseReportQuery(q url.Values) (ReportConfig, error) {
-	catStr := q.Get("category")
+	catStr := firstQuery(q, "category", "Category")
 	if catStr == "" {
 		catStr = "Host"
 	}
@@ -82,7 +83,7 @@ func ParseReportQuery(q url.Values) (ReportConfig, error) {
 	if err != nil {
 		return ReportConfig{}, err
 	}
-	metStr := q.Get("metric")
+	metStr := firstQuery(q, "metric", "Metric")
 	if metStr == "" {
 		metStr = "Uptime"
 	}
@@ -98,7 +99,7 @@ func ParseReportQuery(q url.Values) (ReportConfig, error) {
 		}
 		limit = uint(v)
 	}
-	outStr := q.Get("output-format")
+	outStr := firstQuery(q, "output-format", "OutputFormat")
 	if outStr == "" {
 		outStr = "Plaintext"
 	}
@@ -129,6 +130,15 @@ func ParseReportQuery(q url.Values) (ReportConfig, error) {
 		IncludeKernel: includeKernel,
 		StatsOrder:    q.Get("stats-order"),
 	}, nil
+}
+
+func firstQuery(q url.Values, keys ...string) string {
+	for _, k := range keys {
+		if v := q.Get(k); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func parseQueryBool(s string) (bool, error) {

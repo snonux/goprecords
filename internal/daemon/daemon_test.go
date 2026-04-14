@@ -54,12 +54,54 @@ func TestReport(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("status %d", res.StatusCode)
 	}
+	if ct := res.Header.Get("Content-Type"); ct != "text/plain; charset=utf-8" {
+		t.Fatalf("Content-Type %q", ct)
+	}
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(b), "Host") {
 		t.Fatalf("expected report body, got %q", b)
+	}
+}
+
+func TestReportQueryAliases(t *testing.T) {
+	fixtures := filepath.Join("..", "..", "fixtures")
+	srv := httptest.NewServer(Handler(fixtures))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/report?Category=Host&Metric=Uptime&limit=2&OutputFormat=Markdown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "text/markdown; charset=utf-8" {
+		t.Fatalf("Content-Type %q", ct)
+	}
+	b, _ := io.ReadAll(res.Body)
+	body := string(b)
+	if !strings.Contains(body, "# Top") || !strings.Contains(body, "```") {
+		t.Fatalf("expected markdown heading and fence, got %q", b)
+	}
+}
+
+func TestReportGemtextContentType(t *testing.T) {
+	fixtures := filepath.Join("..", "..", "fixtures")
+	srv := httptest.NewServer(Handler(fixtures))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/report?output-format=Gemtext&limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "text/gemini; charset=utf-8" {
+		t.Fatalf("Content-Type %q", ct)
 	}
 }
 

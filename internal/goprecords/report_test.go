@@ -346,6 +346,19 @@ func TestParseReportQuery(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
+
+	q = url.Values{
+		"Category":     []string{"KernelName"},
+		"Metric":       []string{"Score"},
+		"OutputFormat": []string{"Gemtext"},
+	}
+	cfg, err = ParseReportQuery(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Category != CategoryKernelName || cfg.Metric != MetricScore || cfg.OutputFormat != FormatGemtext {
+		t.Fatalf("PascalCase keys: %+v", cfg)
+	}
 }
 
 func hostName(i int) string {

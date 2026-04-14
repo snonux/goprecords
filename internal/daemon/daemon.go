@@ -101,6 +101,8 @@ func reportContentType(f goprecords.OutputFormat) string {
 	switch f {
 	case goprecords.FormatMarkdown:
 		return "text/markdown; charset=utf-8"
+	case goprecords.FormatGemtext:
+		return "text/gemini; charset=utf-8"
 	default:
 		return "text/plain; charset=utf-8"
 	}
