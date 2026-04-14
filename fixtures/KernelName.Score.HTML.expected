@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Score&#39;s by KernelName</title>
+</head>
+<body>
+<h1>Top 3 Score&#39;s by KernelName</h1>
+<p>Score is calculated by combining all other metrics.</p>
+<pre>+-----+------------+-------+
+| Pos | KernelName | Score |
++-----+------------+-------+
+|  1. |      Linux |  1292 |
+|  2. |    FreeBSD |   700 |
+|  3. |    OpenBSD |   196 |
++-----+------------+-------+
+</pre>
+</body>
+</html>

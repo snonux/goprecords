@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Boots&#39;s by Kernel</title>
+</head>
+<body>
+<h1>Top 3 Boots&#39;s by Kernel</h1>
+<p>Boots is the total number of host boots over the entire lifespan.</p>
+<pre>+-----+------------------------------+-------+
+| Pos |                       Kernel | Boots |
++-----+------------------------------+-------+
+|  1. |          Linux 3.2.0-4-amd64 |   321 |
+|  2. |  Linux 4.0.4-303.fc22.x86_64 |   103 |
+|  3. |         FreeBSD 10.1-RELEASE |    76 |
++-----+------------------------------+-------+
+</pre>
+</body>
+</html>

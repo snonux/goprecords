@@ -138,6 +138,7 @@ func TestParseOutputFormat(t *testing.T) {
 		{"Plaintext", FormatPlaintext, true},
 		{"Markdown", FormatMarkdown, true},
 		{"Gemtext", FormatGemtext, true},
+		{"HTML", FormatHTML, true},
 		{"", 0, false},
 		{"html", 0, false},
 	}

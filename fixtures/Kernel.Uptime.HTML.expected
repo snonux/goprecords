@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Uptime&#39;s by Kernel</title>
+</head>
+<body>
+<h1>Top 3 Uptime&#39;s by Kernel</h1>
+<p>Uptime is the total uptime of a host over the entire lifespan.</p>
+<pre>+-----+------------------------------------+-----------------------------+
+| Pos |                             Kernel |                      Uptime |
++-----+------------------------------------+-----------------------------+
+|  1. |                Linux 3.2.0-4-amd64 |  3 years, 5 months, 23 days |
+|  2. |  Linux 3.10.0-1160.15.2.el7.x86_64 | 1 years, 12 months, 15 days |
+|  3. |   Linux 3.10.0-957.21.3.el7.x86_64 |  1 years, 7 months, 13 days |
++-----+------------------------------------+-----------------------------+
+</pre>
+</body>
+</html>

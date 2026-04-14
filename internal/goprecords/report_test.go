@@ -92,6 +92,35 @@ func TestReportWithData(t *testing.T) {
 	}
 }
 
+func TestReportHTML(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+
+	hagg := NewHostAggregate("host1", "Linux 5.10")
+	hagg.Uptime = 86400000
+	hagg.Boots = 10
+	hagg.FirstBoot = 1000
+	hagg.LastSeen = 86401000
+	aggs.Host["host1"] = hagg
+
+	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatHTML, 2)
+	_, ok := reporter.(*HTMLReporter)
+	if !ok {
+		t.Fatalf("expected HTMLReporter, got %T", reporter)
+	}
+	report := reporter.Report()
+	if !strings.Contains(report, "<!DOCTYPE html>") || !strings.Contains(report, "<pre>") {
+		t.Fatalf("expected HTML document with pre, got %q", report)
+	}
+	if !strings.Contains(report, "host1") {
+		t.Error("expected report to contain host1")
+	}
+}
+
 func TestReportMarkdown(t *testing.T) {
 	aggs := &Aggregates{
 		Host:        make(map[string]*HostAggregate),

@@ -3,6 +3,7 @@ package goprecords
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"sort"
@@ -38,7 +39,7 @@ func RegisterReportFlags(fs *flag.FlagSet) *ReportFlags {
 		category:      fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName"),
 		metric:        fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan"),
 		limit:         fs.Uint("limit", 20, "Limit output to num of entries"),
-		outputFormat:  fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext"),
+		outputFormat:  fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext, HTML"),
 		all:           fs.Bool("all", false, "Generate all possible stats but Kernel"),
 		includeKernel: fs.Bool("include-kernel", false, "Also include Kernel when using -all"),
 		statsOrder:    fs.String("stats-order", "", "Comma-separated Category:Metric order for -all"),
@@ -212,6 +213,10 @@ type GemtextReporter struct {
 	builder reportBuilder
 }
 
+type HTMLReporter struct {
+	builder reportBuilder
+}
+
 func NewReporter(aggregates *Aggregates, category Category, limit uint, metric Metric, outputFormat OutputFormat, headerIndent uint) Reporter {
 	builder := reportBuilder{
 		aggregates:   aggregates,
@@ -225,6 +230,8 @@ func NewReporter(aggregates *Aggregates, category Category, limit uint, metric M
 		return &MarkdownReporter{builder: builder}
 	case FormatGemtext:
 		return &GemtextReporter{builder: builder}
+	case FormatHTML:
+		return &HTMLReporter{builder: builder}
 	default:
 		return &PlaintextReporter{builder: builder}
 	}
@@ -246,6 +253,10 @@ func (r *GemtextReporter) Report() string {
 	return r.builder.Report(FormatGemtext)
 }
 
+func (r *HTMLReporter) Report() string {
+	return r.builder.Report(FormatHTML)
+}
+
 func (r reportBuilder) Report(outputFormat OutputFormat) string {
 	var rows []tableRow
 	var hasLastKernel bool
@@ -256,6 +267,9 @@ func (r reportBuilder) Report(outputFormat OutputFormat) string {
 	}
 	if len(rows) == 0 {
 		return ""
+	}
+	if outputFormat == FormatHTML {
+		return r.formatReportHTML(rows, hasLastKernel)
 	}
 	return r.formatReport(rows, hasLastKernel, outputFormat)
 }
@@ -393,6 +407,50 @@ func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel bool, outputF
 		out += "```\n"
 	}
 	return out
+}
+
+func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel bool) string {
+	cW, nW, vW, lkW := r.reportWidths(rows, hasLastKernel)
+	border := r.buildBorder(cW, nW, vW, lkW, hasLastKernel)
+	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, hasLastKernel)
+	var headRow string
+	if hasLastKernel {
+		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel")
+	} else {
+		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String())
+	}
+	body := r.buildReportBody(rows, fmtStr, hasLastKernel)
+	ascii := border + headRow + border + body + border
+
+	hl := int(r.headerIndent)
+	if hl < 1 {
+		hl = 1
+	}
+	if hl > 6 {
+		hl = 6
+	}
+	title := fmt.Sprintf("Top %d %s's by %s", r.limit, r.metric, r.category)
+	desc := MetricDescription(r.metric)
+
+	var b strings.Builder
+	b.WriteString("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>")
+	b.WriteString(template.HTMLEscapeString(title))
+	b.WriteString("</title>\n</head>\n<body>\n<h")
+	b.WriteString(strconv.Itoa(hl))
+	b.WriteString(">")
+	b.WriteString(template.HTMLEscapeString(title))
+	b.WriteString("</h")
+	b.WriteString(strconv.Itoa(hl))
+	b.WriteString(">\n")
+	if desc != "" {
+		b.WriteString("<p>")
+		b.WriteString(template.HTMLEscapeString(desc))
+		b.WriteString("</p>\n")
+	}
+	b.WriteString("<pre>")
+	b.WriteString(template.HTMLEscapeString(ascii))
+	b.WriteString("</pre>\n</body>\n</html>\n")
+	return b.String()
 }
 
 func (r reportBuilder) reportWidths(rows []tableRow, hasLastKernel bool) (countW, nameW, valueW, lastKernelW int) {

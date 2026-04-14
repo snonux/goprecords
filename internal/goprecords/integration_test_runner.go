@@ -30,7 +30,7 @@ func testReportFixtures(aggregates *Aggregates, fixturesDir string) int {
 	limit := uint(3)
 	categories := []Category{CategoryHost, CategoryKernel, CategoryKernelMajor, CategoryKernelName}
 	metrics := []Metric{MetricBoots, MetricUptime, MetricScore, MetricDowntime, MetricLifespan}
-	formats := []OutputFormat{FormatPlaintext, FormatMarkdown, FormatGemtext}
+	formats := []OutputFormat{FormatPlaintext, FormatMarkdown, FormatGemtext, FormatHTML}
 	failed := 0
 	for _, cat := range categories {
 		for _, met := range metrics {

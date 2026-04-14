@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Boots&#39;s by Host</title>
+</head>
+<body>
+<h1>Top 3 Boots&#39;s by Host</h1>
+<p>Boots is the total number of host boots over the entire lifespan.</p>
+<pre>+-----+----------------+-------+-----------------------------+
+| Pos |           Host | Boots |                 Last Kernel |
++-----+----------------+-------+-----------------------------+
+|  1. |  alphacentauri |   671 |     FreeBSD 11.4-RELEASE-p7 |
+|  2. |           mars |   207 |         Linux 3.2.0-4-amd64 |
+|  3. |       callisto |   153 | Linux 4.0.4-303.fc22.x86_64 |
++-----+----------------+-------+-----------------------------+
+</pre>
+</body>
+</html>

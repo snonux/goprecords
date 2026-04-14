@@ -9,7 +9,7 @@ import (
 
 const (
 	// Day is seconds in 24 hours.
-	Day   = 24 * 3600
+	Day = 24 * 3600
 	// Month is 30 days in seconds.
 	Month = 30 * Day
 )
@@ -42,6 +42,7 @@ const (
 	FormatPlaintext OutputFormat = iota
 	FormatMarkdown
 	FormatGemtext
+	FormatHTML
 )
 
 // Epoch is a Unix timestamp for duration/date formatting.
@@ -135,6 +136,8 @@ func (f OutputFormat) String() string {
 		return "Markdown"
 	case FormatGemtext:
 		return "Gemtext"
+	case FormatHTML:
+		return "HTML"
 	default:
 		return "?"
 	}
@@ -254,6 +257,8 @@ func ParseOutputFormat(s string) (OutputFormat, error) {
 		return FormatMarkdown, nil
 	case "Gemtext":
 		return FormatGemtext, nil
+	case "HTML":
+		return FormatHTML, nil
 	default:
 		return 0, fmt.Errorf("invalid output-format %q", s)
 	}

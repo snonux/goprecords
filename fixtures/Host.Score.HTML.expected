@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Score&#39;s by Host</title>
+</head>
+<body>
+<h1>Top 3 Score&#39;s by Host</h1>
+<p>Score is calculated by combining all other metrics.</p>
+<pre>+-----+---------+-------+-----------------------------------+
+| Pos |    Host | Score |                       Last Kernel |
++-----+---------+-------+-----------------------------------+
+|  1. |  uranus |   309 |             Linux 5.16.14-arch1-1 |
+|  2. |  vulcan |   270 | Linux 3.10.0-1160.81.1.el7.x86_64 |
+|  3. |     sun |   238 |          FreeBSD 10.3-RELEASE-p24 |
++-----+---------+-------+-----------------------------------+
+</pre>
+</body>
+</html>

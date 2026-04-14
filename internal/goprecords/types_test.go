@@ -117,7 +117,7 @@ func TestEpochHumanDuration(t *testing.T) {
 	// Unix epoch + 1 year + 2 months + 3 days
 	epoch := Epoch(31536000 + (60 * 24 * 3600) + (3 * 24 * 3600))
 	duration := epoch.HumanDuration()
-	
+
 	if duration == "" {
 		t.Error("expected non-empty duration string")
 	}
@@ -129,13 +129,13 @@ func TestEpochHumanDuration(t *testing.T) {
 
 func TestEpochNewerThan(t *testing.T) {
 	now := uint64(time.Now().Unix())
-	
+
 	// Recent epoch
 	recent := Epoch(now - 10*24*3600) // 10 days ago
 	if !recent.NewerThan(20) {
 		t.Error("expected recent epoch to be newer than 20 days")
 	}
-	
+
 	// Old epoch
 	old := Epoch(now - 100*24*3600) // 100 days ago
 	if old.NewerThan(90) {
@@ -145,7 +145,7 @@ func TestEpochNewerThan(t *testing.T) {
 
 func TestCategoryString(t *testing.T) {
 	tests := []struct {
-		cat Category
+		cat  Category
 		want string
 	}{
 		{CategoryHost, "Host"},
@@ -154,7 +154,7 @@ func TestCategoryString(t *testing.T) {
 		{CategoryKernelName, "KernelName"},
 		{Category(999), "?"},
 	}
-	
+
 	for _, tt := range tests {
 		got := tt.cat.String()
 		if got != tt.want {
@@ -165,7 +165,7 @@ func TestCategoryString(t *testing.T) {
 
 func TestMetricString(t *testing.T) {
 	tests := []struct {
-		met Metric
+		met  Metric
 		want string
 	}{
 		{MetricBoots, "Boots"},
@@ -175,7 +175,7 @@ func TestMetricString(t *testing.T) {
 		{MetricLifespan, "Lifespan"},
 		{Metric(999), "?"},
 	}
-	
+
 	for _, tt := range tests {
 		got := tt.met.String()
 		if got != tt.want {
@@ -186,15 +186,16 @@ func TestMetricString(t *testing.T) {
 
 func TestOutputFormatString(t *testing.T) {
 	tests := []struct {
-		fmt OutputFormat
+		fmt  OutputFormat
 		want string
 	}{
 		{FormatPlaintext, "Plaintext"},
 		{FormatMarkdown, "Markdown"},
 		{FormatGemtext, "Gemtext"},
+		{FormatHTML, "HTML"},
 		{OutputFormat(999), "?"},
 	}
-	
+
 	for _, tt := range tests {
 		got := tt.fmt.String()
 		if got != tt.want {
@@ -205,7 +206,7 @@ func TestOutputFormatString(t *testing.T) {
 
 func TestMetricDescription(t *testing.T) {
 	tests := []struct {
-		metric Metric
+		metric   Metric
 		contains string
 	}{
 		{MetricBoots, "boots"},
@@ -214,7 +215,7 @@ func TestMetricDescription(t *testing.T) {
 		{MetricDowntime, "downtime"},
 		{MetricLifespan, "uptime"},
 	}
-	
+
 	for _, tt := range tests {
 		desc := MetricDescription(tt.metric)
 		if desc == "" {
@@ -225,15 +226,15 @@ func TestMetricDescription(t *testing.T) {
 
 func TestWordWrap(t *testing.T) {
 	tests := []struct {
-		text string
+		text  string
 		limit int
-		name string
+		name  string
 	}{
 		{"short text", 100, "short text no wrap"},
 		{"this is a very long text that should be wrapped at some point because it exceeds the limit", 30, "long text wrap"},
 		{"", 50, "empty string"},
 	}
-	
+
 	for _, tt := range tests {
 		result := wordWrap(tt.text, tt.limit)
 		lines := 0
@@ -242,7 +243,7 @@ func TestWordWrap(t *testing.T) {
 				lines++
 			}
 		}
-		
+
 		// Just verify it doesn't crash and returns something reasonable
 		if len(result) == 0 && len(tt.text) > 0 {
 			t.Errorf("wordWrap(%q, %d): returned empty for non-empty input", tt.text, tt.limit)
@@ -259,14 +260,14 @@ func TestFormatDuration(t *testing.T) {
 
 func TestFormatInt(t *testing.T) {
 	tests := []struct {
-		n uint64
+		n    uint64
 		want string
 	}{
 		{0, "0"},
 		{123, "123"},
 		{9999999, "9999999"},
 	}
-	
+
 	for _, tt := range tests {
 		got := formatInt(tt.n)
 		if got != tt.want {

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Downtime&#39;s by Host</title>
+</head>
+<body>
+<h1>Top 3 Downtime&#39;s by Host</h1>
+<p>Downtime is the total downtime of a host over the entire lifespan.</p>
+<pre>+-----+----------------+-----------------------------+--------------------------+
+| Pos |           Host |                    Downtime |              Last Kernel |
++-----+----------------+-----------------------------+--------------------------+
+|  1. |       dionysus |  8 years, 3 months, 16 days | FreeBSD 13.0-RELEASE-p11 |
+|  2. |  alphacentauri | 5 years, 11 months, 18 days |  FreeBSD 11.4-RELEASE-p7 |
+|  3. |         uranus |  3 years, 3 months, 28 days |    Linux 5.16.14-arch1-1 |
++-----+----------------+-----------------------------+--------------------------+
+</pre>
+</body>
+</html>

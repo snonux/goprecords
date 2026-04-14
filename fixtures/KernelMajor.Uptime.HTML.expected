@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Top 3 Uptime&#39;s by KernelMajor</title>
+</head>
+<body>
+<h1>Top 3 Uptime&#39;s by KernelMajor</h1>
+<p>Uptime is the total uptime of a host over the entire lifespan.</p>
+<pre>+-----+----------------+-----------------------------+
+| Pos |    KernelMajor |                      Uptime |
++-----+----------------+-----------------------------+
+|  1. |     Linux 3... | 11 years, 2 months, 11 days |
+|  2. |  FreeBSD 10... |   5 years, 9 months, 9 days |
+|  3. |     Linux 5... |  3 years, 12 months, 2 days |
++-----+----------------+-----------------------------+
+</pre>
+</body>
+</html>
