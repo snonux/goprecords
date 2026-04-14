@@ -38,6 +38,10 @@ func OpenStore(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open auth db: %w", err)
 	}
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping auth db: %w", err)
+	}
 	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("pragma: %w", err)

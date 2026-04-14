@@ -40,11 +40,15 @@ type Record struct {
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open sqlite: %w", err)
+	}
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
 		db.Close()
-		return nil, err
+		return nil, fmt.Errorf("pragma foreign_keys: %w", err)
 	}
 	return db, nil
 }

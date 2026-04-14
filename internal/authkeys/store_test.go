@@ -2,10 +2,24 @@ package authkeys
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestOpenStore_ContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	path := filepath.Join(t.TempDir(), "auth.db")
+	_, err := OpenStore(ctx, path)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
 
 func TestCreateVerifyReplace(t *testing.T) {
 	ctx := context.Background()
