@@ -3,6 +3,7 @@ package daemon
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -98,6 +99,86 @@ func TestLivez(t *testing.T) {
 	b, _ := io.ReadAll(res.Body)
 	if string(b) != "ok\n" {
 		t.Fatalf("body %q", b)
+	}
+}
+
+func TestRootHTML(t *testing.T) {
+	fixtures := filepath.Join("..", "..", "fixtures")
+	srv := httptest.NewServer(testHandler(t, fixtures))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	ct := res.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "text/html") {
+		t.Fatalf("content type %q", ct)
+	}
+	body, _ := io.ReadAll(res.Body)
+	if !strings.Contains(string(body), "<!DOCTYPE html>") {
+		t.Fatalf("expected html body, got %q", string(body))
+	}
+}
+
+func TestRootCacheReuseAndExpiry(t *testing.T) {
+	cache := &htmlCache{}
+	nowTime := time.Unix(1000, 0)
+	now := func() time.Time { return nowTime }
+	renderCalls := 0
+	h := rootWithCachedRenderer(cache, now, 10*time.Minute, func(context.Context) ([]byte, error) {
+		renderCalls++
+		return []byte(fmt.Sprintf("<html>%d</html>", renderCalls)), nil
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "http://example/", nil)
+	w := httptest.NewRecorder()
+	h(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d", w.Code)
+	}
+	first := w.Body.String()
+	if renderCalls != 1 {
+		t.Fatalf("render calls %d want 1", renderCalls)
+	}
+
+	w2 := httptest.NewRecorder()
+	h(w2, req)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("status %d", w2.Code)
+	}
+	if w2.Body.String() != first {
+		t.Fatalf("cached body mismatch: %q != %q", w2.Body.String(), first)
+	}
+	if renderCalls != 1 {
+		t.Fatalf("render calls %d want 1", renderCalls)
+	}
+
+	nowTime = nowTime.Add(11 * time.Minute)
+	w3 := httptest.NewRecorder()
+	h(w3, req)
+	if w3.Code != http.StatusOK {
+		t.Fatalf("status %d", w3.Code)
+	}
+	if renderCalls != 2 {
+		t.Fatalf("render calls %d want 2", renderCalls)
+	}
+}
+
+func TestRootNotFoundForUnknownPath(t *testing.T) {
+	fixtures := filepath.Join("..", "..", "fixtures")
+	srv := httptest.NewServer(testHandler(t, fixtures))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/no-such-route")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("status %d", res.StatusCode)
 	}
 }
 

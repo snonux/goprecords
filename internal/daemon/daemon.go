@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"codeberg.org/snonux/goprecords/internal/authkeys"
@@ -22,6 +23,7 @@ const (
 	defaultReadTimeout       = 2 * time.Minute
 	defaultWriteTimeout      = 2 * time.Minute
 	defaultIdleTimeout       = 2 * time.Minute
+	rootReportCacheTTL       = 10 * time.Minute
 )
 
 // Config holds settings for the HTTP report/upload daemon.
@@ -44,12 +46,38 @@ func NewHandler(statsDir string) (http.Handler, error) {
 
 func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", root(statsDir))
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/livez", health)
 	mux.HandleFunc("/readyz", readiness(statsDir, authDB))
 	mux.HandleFunc("/report", report(statsDir))
 	mux.Handle("/upload/", uploadHandler(statsDir, store))
 	return mux
+}
+
+type htmlCache struct {
+	mu      sync.Mutex
+	body    []byte
+	expires time.Time
+}
+
+func (c *htmlCache) get(now time.Time) ([]byte, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.body == nil || now.After(c.expires) {
+		return nil, false
+	}
+	cp := make([]byte, len(c.body))
+	copy(cp, c.body)
+	return cp, true
+}
+
+func (c *htmlCache) set(body []byte, now time.Time, ttl time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.body = make([]byte, len(body))
+	copy(c.body, body)
+	c.expires = now.Add(ttl)
 }
 
 func logWriter(cfg Config) io.Writer {
@@ -157,6 +185,60 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok\n"))
+}
+
+func root(statsDir string) http.HandlerFunc {
+	cache := &htmlCache{}
+	render := func(ctx context.Context) ([]byte, error) {
+		aggr := goprecords.NewAggregator(statsDir)
+		aggregates, err := aggr.Aggregate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		cfg := goprecords.ReportConfig{
+			Category:      goprecords.CategoryHost,
+			Metric:        goprecords.MetricUptime,
+			Limit:         20,
+			OutputFormat:  goprecords.FormatHTML,
+			All:           true,
+			IncludeKernel: true,
+		}
+		var buf bytes.Buffer
+		if err := goprecords.WriteReports(&buf, aggregates, cfg); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+	return rootWithCachedRenderer(cache, time.Now, rootReportCacheTTL, render)
+}
+
+func rootWithCachedRenderer(cache *htmlCache, now func() time.Time, ttl time.Duration, render func(context.Context) ([]byte, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		current := now()
+		if body, ok := cache.get(current); ok {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(body)
+			return
+		}
+		body, err := render(r.Context())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		cache.set(body, current, ttl)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(body)
+	}
 }
 
 func readiness(statsDir, authDB string) http.HandlerFunc {
