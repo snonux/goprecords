@@ -10,9 +10,27 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
+
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
+}
 
 func TestHealth(t *testing.T) {
 	srv := httptest.NewServer(Handler(t.TempDir()))
@@ -299,7 +317,7 @@ func TestRunEmptyAddr(t *testing.T) {
 }
 
 func TestRunWritesDaemonListenToLogOutput(t *testing.T) {
-	var buf bytes.Buffer
+	var buf syncBuffer
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg := Config{StatsDir: t.TempDir(), Addr: "127.0.0.1:0", LogOutput: &buf}
 	done := make(chan struct{})
@@ -326,7 +344,7 @@ func TestRunUsesStdoutWhenLogOutputNil(t *testing.T) {
 		t.Fatal(err)
 	}
 	os.Stdout = pw
-	var logBuf bytes.Buffer
+	var logBuf syncBuffer
 	copyDone := make(chan struct{})
 	go func() {
 		_, _ = io.Copy(&logBuf, pr)
