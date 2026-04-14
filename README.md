@@ -217,7 +217,133 @@ curl -fsS -X PUT --data-binary @./myhost.cpuinfo.txt \
   "http://127.0.0.1:8080/upload/myhost/cpuinfo.txt"
 ```
 
+### Setting up a new upload client
+
+Use the same **`HOSTNAME`** everywhere: the argument to **`--create-client-key`**, each **`PUT /upload/HOSTNAME/{kind}`** URL, and (by convention) the basename of your uptimed files under the stats directory. Pick a stable short name (for example the first label of **`hostname -f`**).
+
+**1. Issue a token on the server** (where the daemon’s stats tree and auth DB live). The plaintext token is printed **once**; store it only on the client.
+
+```bash
+# Daemon on this host; auth DB defaults to <stats-dir>/goprecords-auth.db
+goprecords --create-client-key myhost -stats-dir=/var/lib/goprecords/stats
+
+# Or pass auth DB explicitly
+goprecords --create-client-key myhost -auth-db=/var/lib/goprecords/goprecords-auth.db
+```
+
+If **`goprecords` runs in Kubernetes**, run the same subcommand in the pod (adjust namespace and stats mount if needed):
+
+```bash
+kubectl exec -n services deployment/goprecords -- \
+  goprecords --create-client-key myhost -stats-dir=/data/stats
+```
+
+Re-running **`--create-client-key`** for the same hostname **replaces** the previous token; update the client immediately after rotation.
+
+**2. On the client**, keep the token in a root-owned or user-private file (for example mode **`600`**) and use **`curl`** with **`Authorization: Bearer`** as in the examples above. Set the base URL to your daemon (plain HTTP behind the pod or **`https://`** behind ingress).
+
+**3. Source files** — Typical uptimed locations: **`/var/spool/uptimed/records`** (many Linux distributions), **`/usr/local/var/uptimed/records`** (macOS/Homebrew), **`/var/db/uptimed/records`** (some BSDs). Use **`uprecords`** from the **`uptimed`** package to regenerate **`txt`** and **`cur.txt`**-equivalent content when you upload those kinds. **`os.txt`** and **`cpuinfo.txt`** are often **`/etc/os-release`** and **`/proc/cpuinfo`** on Linux.
+
+**4. Automate (optional)** — A **`oneshot`** systemd service can call a small script that **`PUT`**s each present file; a **`systemd.timer`** (for example **`OnCalendar=hourly`**) triggers it. For a **user** timer, enable lingering if uploads should run while no graphical session is active:
+
+```bash
+sudo loginctl enable-linger "$USER"
+```
+
 If there are **no** keys in the auth database, uploads are accepted without **`Authorization`** (useful for local testing only).
+
+### Manual hourly upload (single host, not config-managed)
+
+Use this when the machine is **not** deployed from a Rex/Ansible repo. The reference script is **`contrib/goprecords-upload-client.sh`** (POSIX **`sh`**: Linux, FreeBSD, OpenBSD).
+
+**On each host**
+
+1. Install **`curl`** and **`uptimed`**, and ensure **`uptimed`** is running.
+2. Install the script (path is up to you; **`755`**, owned by **`root`**):
+
+   ```bash
+   sudo install -m 755 contrib/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
+   ```
+
+3. Create a token on the goprecords server (hostname must match **`GOPRECORDS_HOST`** exactly, e.g. **`f0`**, **`pi2`**):
+
+   ```bash
+   kubectl exec -n services deployment/goprecords -- \
+     goprecords --create-client-key f0 -stats-dir=/data/stats
+   ```
+
+4. Save the printed secret once as **`root`**, mode **`600`**:
+
+   ```bash
+   umask 077
+   sudo sh -c 'cat > /etc/goprecords-upload.token'
+   sudo chmod 600 /etc/goprecords-upload.token
+   ```
+
+5. **FreeBSD — hourly cron** (example for **`f0`**; use **`/etc/crontab`** or **`root`**’s crontab). **`curl`** must be on **`PATH`** for cron (often **`/usr/local/bin`**):
+
+   ```cron PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+   0 * * * * root /usr/bin/env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+   ```
+
+   Repeat for **`f1`**, **`f2`**, **`f4`**, … with the matching **`GOPRECORDS_HOST`**.
+
+6. **Linux (systemd) — hourly timer** (example for **`pi0`**). **`/etc/goprecords-upload.env`** (mode **`644`**, root):
+
+   ```ini
+   GOPRECORDS_HOST=pi0
+   ```
+
+   **`/etc/systemd/system/goprecords-upload.service`**:
+
+   ```ini
+   [Unit]
+   Description=Upload uptimed stats to goprecords
+
+   [Service]
+   Type=oneshot
+   EnvironmentFile=/etc/goprecords-upload.env
+   Environment=GOPRECORDS_TOKEN_FILE=/etc/goprecords-upload.token
+   ExecStart=/usr/local/bin/goprecords-upload-client.sh
+   ```
+
+   **`/etc/systemd/system/goprecords-upload.timer`**:
+
+   ```ini
+   [Unit]
+   Description=Hourly uptimed upload to goprecords
+
+   [Timer]
+   OnCalendar=hourly
+   RandomizedDelaySec=300
+   Persistent=true
+
+   [Install]
+   WantedBy=timers.target
+   ```
+
+   Then:
+
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now goprecords-upload.timer
+   ```
+
+   Use a different **`GOPRECORDS_HOST`** in **`/etc/goprecords-upload.env`** on **`pi1`**, **`pi2`**, **`pi3`**.
+
+**Environment (optional)**
+
+| Variable | Default |
+|----------|---------|
+| **`GOPRECORDS_HOST`** | (required) |
+| **`GOPRECORDS_TOKEN_FILE`** | **`/etc/goprecords-upload.token`** |
+| **`GOPRECORDS_BASE_URL`** | **`https://goprecords.f3s.buetow.org`** |
+
+**Test one run**
+
+```bash
+sudo GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+```
 
 ## Test
 
