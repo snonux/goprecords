@@ -79,6 +79,92 @@ goprecords --daemon -stats-dir="$HOME/git/uprecords/stats" -listen=":8080"
   - **`stats-order`**: comma-separated **`Category:Metric`** list when **`all`** is true
 - **`PUT /upload/{HOSTNAME}/{kind}`** — Writes one file under the stats directory; **`204`** on success. The **`HOSTNAME`** path segment must match the hostname the client key was issued for when auth is enforced.
 
+**HTTP API reference with curl**
+
+- **`GET /health`**
+  - Purpose: basic liveness probe.
+  - Success: `200 OK`, body `ok`.
+  - Example:
+
+```bash
+curl -i "http://127.0.0.1:8080/health"
+```
+
+- **`GET /livez`**
+  - Purpose: Kubernetes-style liveness probe (same semantics as `/health`).
+  - Success: `200 OK`, body `ok`.
+  - Example:
+
+```bash
+curl -i "http://127.0.0.1:8080/livez"
+```
+
+- **`GET /readyz`**
+  - Purpose: readiness probe (verifies required directories are readable and writable).
+  - Success: `200 OK`, body `ok`.
+  - Not ready: `503 Service Unavailable`.
+  - Example:
+
+```bash
+curl -i "http://127.0.0.1:8080/readyz"
+```
+
+- **`GET /report`**
+  - Purpose: generate reports from the daemon stats directory.
+  - Method: only `GET` (`405` for other methods).
+  - Main query parameters:
+    - `category`: `Host`, `Kernel`, `KernelMajor`, `KernelName`
+    - `metric`: `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan`
+    - `output-format`: `Plaintext`, `Markdown`, `Gemtext`, `HTML`
+    - `limit`: integer (default `20`)
+    - `all`, `include-kernel`: booleans
+    - `stats-order`: comma-separated `Category:Metric`
+    - aliases: `Category`, `Metric`, `OutputFormat`
+  - Content types:
+    - `Plaintext`/`Markdown`: `text/plain; charset=utf-8`
+    - `Gemtext`: `text/gemini; charset=utf-8`
+    - `HTML`: `text/html; charset=utf-8`
+  - Examples:
+
+```bash
+curl -fsS "http://127.0.0.1:8080/report?category=Host&metric=Uptime&limit=10&output-format=Plaintext"
+curl -fsS "http://127.0.0.1:8080/report?category=Kernel&metric=Boots&output-format=Gemtext"
+curl -fsS "http://127.0.0.1:8080/report?Category=Host&Metric=Score&OutputFormat=HTML&limit=5"
+curl -fsS "http://127.0.0.1:8080/report?all=true&include-kernel=true&output-format=Markdown"
+```
+
+- **`PUT /upload/{HOSTNAME}/{kind}`**
+  - Purpose: upload host files into the daemon stats directory.
+  - Method: only `PUT` (`405` for other methods).
+  - Success: `204 No Content`.
+  - Auth behavior:
+    - If no keys exist in auth DB: upload is accepted without `Authorization`.
+    - If one or more keys exist: requires `Authorization: Bearer <token>`.
+    - Missing/invalid header: `401 Unauthorized` (with `WWW-Authenticate: Bearer ...`).
+    - Wrong host/token pair: `403 Forbidden`.
+  - Examples:
+
+```bash
+# without auth (works only when no client keys exist in auth DB)
+curl -i -X PUT --data-binary @./myhost.records \
+  "http://127.0.0.1:8080/upload/myhost/records"
+
+# with auth (required when keys exist)
+TOKEN="..."  # from --create-client-key
+curl -i -X PUT --data-binary @./myhost.records \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/records"
+```
+
+- **Create upload client key (CLI companion flow)**
+  - This is not an HTTP API endpoint. Key creation is intentionally CLI-only.
+  - Command examples:
+
+```bash
+goprecords --create-client-key myhost -stats-dir="$HOME/git/uprecords/stats"
+goprecords --create-client-key otherbox -auth-db=/var/lib/goprecords/goprecords-auth.db
+```
+
 **`GET /report` examples**
 
 ```bash
