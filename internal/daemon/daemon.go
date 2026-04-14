@@ -4,27 +4,76 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"codeberg.org/snonux/goprecords/internal/goprecords"
 )
 
-// Config holds daemon HTTP server settings.
 type Config struct {
-	StatsDir string
-	Addr     string
+	StatsDir  string
+	Addr      string
+	LogOutput io.Writer
 }
 
-// Handler returns an HTTP handler that serves health checks and reports from statsDir.
-func Handler(statsDir string) http.Handler {
+func routes(statsDir string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/report", report(statsDir))
 	return mux
 }
 
-// Run starts a plain HTTP server until ctx is cancelled or ListenAndServe fails.
+func Handler(statsDir string) http.Handler {
+	return routes(statsDir)
+}
+
+func logWriter(cfg Config) io.Writer {
+	if cfg.LogOutput != nil {
+		return cfg.LogOutput
+	}
+	return os.Stdout
+}
+
+func newDaemonLogger(w io.Writer) (*slog.Logger, slog.Handler) {
+	h := slog.NewTextHandler(w, &slog.HandlerOptions{Level: slog.LevelInfo})
+	return slog.New(h), h
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	code int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	if r.code == 0 {
+		r.code = status
+	}
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (r *statusRecorder) Write(b []byte) (int, error) {
+	if r.code == 0 {
+		r.code = http.StatusOK
+	}
+	return r.ResponseWriter.Write(b)
+}
+
+func withAccessLog(log *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w}
+		start := time.Now()
+		next.ServeHTTP(rec, r)
+		code := rec.code
+		if code == 0 {
+			code = http.StatusOK
+		}
+		log.Info("http_request", "method", r.Method, "path", r.URL.Path, "status", code, "duration_ms", time.Since(start).Milliseconds())
+	})
+}
+
 func Run(ctx context.Context, cfg Config) error {
 	if cfg.StatsDir == "" {
 		return fmt.Errorf("stats directory is required")
@@ -32,10 +81,14 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Addr == "" {
 		return fmt.Errorf("listen address is required")
 	}
+	w := logWriter(cfg)
+	log, textHandler := newDaemonLogger(w)
 	srv := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: Handler(cfg.StatsDir),
+		Addr:     cfg.Addr,
+		Handler:  withAccessLog(log, routes(cfg.StatsDir)),
+		ErrorLog: slog.NewLogLogger(textHandler, slog.LevelError),
 	}
+	log.Info("daemon_listen", "addr", cfg.Addr)
 	errCh := make(chan error, 1)
 	go func() { errCh <- srv.ListenAndServe() }()
 	select {

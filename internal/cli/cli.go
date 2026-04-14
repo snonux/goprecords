@@ -135,13 +135,14 @@ func defaultListenFromEnv() string {
 
 func runDaemon(args []string) error {
 	fs := flag.NewFlagSet("daemon", flag.ExitOnError)
+	fs.SetOutput(os.Stdout)
 	statsDir := fs.String("stats-dir", os.Getenv("GOPRECORDS_STATS_DIR"), "Uptimed stats directory (required; env GOPRECORDS_STATS_DIR)")
 	listen := fs.String("listen", defaultListenFromEnv(), "TCP listen address (env GOPRECORDS_LISTEN, default :8080)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *statsDir == "" {
-		fmt.Fprintln(os.Stderr, "daemon: missing required flag: -stats-dir (or GOPRECORDS_STATS_DIR)")
+		fmt.Fprintln(os.Stdout, "daemon: missing required flag: -stats-dir (or GOPRECORDS_STATS_DIR)")
 		fs.Usage()
 		return fmt.Errorf("missing -stats-dir")
 	}

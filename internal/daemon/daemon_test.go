@@ -1,13 +1,16 @@
 package daemon
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHealth(t *testing.T) {
@@ -129,5 +132,46 @@ func TestRunEmptyAddr(t *testing.T) {
 	err := Run(context.Background(), Config{StatsDir: t.TempDir(), Addr: ""})
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestRunWritesDaemonListenToLogOutput(t *testing.T) {
+	var buf bytes.Buffer
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg := Config{StatsDir: t.TempDir(), Addr: "127.0.0.1:0", LogOutput: &buf}
+	done := make(chan struct{})
+	go func() {
+		_ = Run(ctx, cfg)
+		close(done)
+	}()
+	deadline := time.After(2 * time.Second)
+	for !strings.Contains(buf.String(), "daemon_listen") {
+		select {
+		case <-deadline:
+			t.Fatalf("timeout waiting for daemon_listen, got %q", buf.String())
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+	cancel()
+	<-done
+}
+
+func TestAccessLogLineToWriter(t *testing.T) {
+	var buf bytes.Buffer
+	h := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo})
+	log := slog.New(h)
+	srv := httptest.NewServer(withAccessLog(log, routes(t.TempDir())))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	body := buf.String()
+	if !strings.Contains(body, "http_request") || !strings.Contains(body, "method=GET") {
+		t.Fatalf("expected http_request line with method=GET, got %q", body)
+	}
+	if !strings.Contains(body, "path=/health") || !strings.Contains(body, "status=200") {
+		t.Fatalf("expected path and status in log, got %q", body)
 	}
 }
