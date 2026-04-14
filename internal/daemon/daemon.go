@@ -3,6 +3,7 @@ package daemon
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -131,12 +132,12 @@ func Run(ctx context.Context, cfg Config) error {
 		defer cancel()
 		_ = srv.Shutdown(shutCtx)
 		err := <-errCh
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("shutdown: %w", err)
 		}
 		return ctx.Err()
 	case err := <-errCh:
-		if err == http.ErrServerClosed {
+		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
 		if err != nil {
@@ -200,7 +201,7 @@ func checkReadinessDirs(statsDir, authDB string) error {
 func checkDirReadableWritable(dir string) error {
 	fi, err := os.Stat(dir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("missing")
 		}
 		return err
@@ -214,7 +215,7 @@ func checkDirReadableWritable(dir string) error {
 	}
 	_, err = f.Readdirnames(1)
 	_ = f.Close()
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("not readable: %w", err)
 	}
 	tmp, err := os.CreateTemp(dir, ".goprecords-ready-*")

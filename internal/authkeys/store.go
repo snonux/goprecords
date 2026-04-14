@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -102,7 +103,7 @@ func (s *Store) CreateKey(ctx context.Context, hostname string) (token string, e
 func (s *Store) Verify(ctx context.Context, hostname, token string) (bool, error) {
 	var stored []byte
 	err := s.db.QueryRowContext(ctx, "SELECT key_hash FROM client_key WHERE hostname = ?", hostname).Scan(&stored)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {

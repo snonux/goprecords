@@ -5,6 +5,7 @@ package main
 // Magefile for goprecords. Targets follow the same style as other Go projects (e.g. hexai).
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -82,7 +83,7 @@ func Uninstall() error {
 		gopath = filepath.Join(home, "go")
 	}
 	dest := filepath.Join(gopath, "bin", binaryName)
-	if err := os.Remove(dest); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(dest); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return nil
