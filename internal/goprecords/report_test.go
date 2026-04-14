@@ -2,6 +2,7 @@ package goprecords
 
 import (
 	"bytes"
+	"flag"
 	"net/url"
 	"strings"
 	"testing"
@@ -358,6 +359,42 @@ func TestParseReportQuery(t *testing.T) {
 	}
 	if cfg.Category != CategoryKernelName || cfg.Metric != MetricScore || cfg.OutputFormat != FormatGemtext {
 		t.Fatalf("PascalCase keys: %+v", cfg)
+	}
+}
+
+func TestRegisterReportFlagsStableNames(t *testing.T) {
+	fs := flag.NewFlagSet("x", flag.ContinueOnError)
+	RegisterReportFlags(fs)
+	found := map[string]bool{}
+	fs.VisitAll(func(f *flag.Flag) {
+		found[f.Name] = true
+	})
+	required := []string{
+		"category", "metric", "limit", "output-format",
+		"all", "include-kernel", "stats-order",
+	}
+	for _, name := range required {
+		if !found[name] {
+			t.Errorf("missing required report flag %q (CLI and HTTP report contract)", name)
+		}
+	}
+}
+
+func TestRegisterReportFlagsDefaultsUnchanged(t *testing.T) {
+	fs := flag.NewFlagSet("x", flag.ContinueOnError)
+	rf := RegisterReportFlags(fs)
+	if err := fs.Parse(nil); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := rf.Parse()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 20 {
+		t.Fatalf("defaults: %+v", cfg)
+	}
+	if cfg.OutputFormat != FormatPlaintext || cfg.All || cfg.IncludeKernel || cfg.StatsOrder != "" {
+		t.Fatalf("defaults: %+v", cfg)
 	}
 }
 

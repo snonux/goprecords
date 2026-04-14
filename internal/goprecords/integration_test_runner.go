@@ -82,17 +82,27 @@ func testStatsOrder() int {
 }
 
 func testImportExport(ctx context.Context, aggregates *Aggregates, fixturesDir string) int {
-	tmpDB := fixturesDir + "/test_import.db"
-	os.Remove(tmpDB)
+	f, err := os.CreateTemp("", "goprecords-import-*.db")
+	if err != nil {
+		fmt.Printf("FAIL: temp db path: %v\n", err)
+		return 1
+	}
+	tmpDB := f.Name()
+	if err := f.Close(); err != nil {
+		fmt.Printf("FAIL: close temp db placeholder: %v\n", err)
+		_ = os.Remove(tmpDB)
+		return 1
+	}
 	failed := 0
 	db, err := OpenDB(ctx, tmpDB)
 	if err != nil {
+		_ = os.Remove(tmpDB)
 		fmt.Printf("FAIL: open tmp db: %v\n", err)
 		return 1
 	}
 	defer func() {
 		db.Close()
-		os.Remove(tmpDB)
+		_ = os.Remove(tmpDB)
 	}()
 	CreateSchema(ctx, db)
 	if err := ImportFromDir(ctx, db, fixturesDir); err != nil {
