@@ -28,6 +28,16 @@ func Test() error {
 	return sh.RunV("go", "test", "./...")
 }
 
+// CoverMicroservice runs tests with coverage for daemon, authkeys, and cli, then prints per-function coverage (go tool cover -func).
+func CoverMicroservice() error {
+	profile := filepath.Join(os.TempDir(), "goprecords-microservice.cover")
+	if err := sh.RunV("go", "test", "-coverprofile", profile, "-covermode", "count",
+		"./internal/daemon/...", "./internal/authkeys/...", "./internal/cli/..."); err != nil {
+		return err
+	}
+	return sh.RunV("go", "tool", "cover", "-func", profile)
+}
+
 // Install builds and installs the binary to GOPATH/bin.
 func Install() error {
 	mg.Deps(Build)

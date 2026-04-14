@@ -3,6 +3,7 @@ package authkeys
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -61,5 +62,81 @@ func TestDefaultPath(t *testing.T) {
 	p := DefaultPath("/var/stats")
 	if filepath.Base(p) != "goprecords-auth.db" {
 		t.Fatalf("got %q", p)
+	}
+}
+
+func TestCloseNilStore(t *testing.T) {
+	var s *Store
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close nil: %v", err)
+	}
+}
+
+func TestCloseNilDB(t *testing.T) {
+	s := &Store{}
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close nil db: %v", err)
+	}
+}
+
+func TestCreateKeyEmptyHostname(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "auth.db")
+	s, err := OpenStore(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.EnsureSchema(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err = s.CreateKey(ctx, "")
+	if err == nil || !strings.Contains(err.Error(), "hostname") {
+		t.Fatalf("expected empty hostname error, got %v", err)
+	}
+}
+
+func TestVerifyUnknownHost(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "auth.db")
+	s, err := OpenStore(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.EnsureSchema(ctx); err != nil {
+		t.Fatal(err)
+	}
+	ok, err := s.Verify(ctx, "nohost", "any")
+	if err != nil || ok {
+		t.Fatalf("Verify unknown host: ok=%v err=%v", ok, err)
+	}
+}
+
+func TestOpsAfterClose(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "auth.db")
+	s, err := OpenStore(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.EnsureSchema(ctx); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if _, err := s.CreateKey(ctx, "h"); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, err = s.KeyCount(ctx)
+	if err == nil {
+		t.Fatal("KeyCount after close expected error")
+	}
+	_, err = s.Verify(ctx, "h", "x")
+	if err == nil {
+		t.Fatal("Verify after close expected error")
 	}
 }

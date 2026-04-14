@@ -118,7 +118,14 @@ func TestStableImportAndQuery(t *testing.T) {
 
 func TestStableIntegrationTestSubcommand(t *testing.T) {
 	root := moduleRoot(t)
-	t.Chdir(root)
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(cwd) }()
 	if err := Execute([]string{"test"}); err != nil {
 		t.Fatal(err)
 	}
@@ -172,5 +179,28 @@ func TestCreateClientKeyWritesToken(t *testing.T) {
 	tok := strings.TrimSpace(out)
 	if len(tok) < 20 {
 		t.Fatalf("token too short %q", tok)
+	}
+}
+
+func TestDefaultListenFromEnv(t *testing.T) {
+	t.Setenv("GOPRECORDS_LISTEN", ":7777")
+	if defaultListenFromEnv() != ":7777" {
+		t.Fatalf("got %q", defaultListenFromEnv())
+	}
+	t.Setenv("GOPRECORDS_LISTEN", "")
+	if defaultListenFromEnv() != ":8080" {
+		t.Fatalf("default got %q", defaultListenFromEnv())
+	}
+}
+
+func TestCreateClientKeyWithAuthDBOnly(t *testing.T) {
+	db := filepath.Join(t.TempDir(), "keys.db")
+	out := captureStdout(t, func() {
+		if err := Execute([]string{"--create-client-key", "hostonly", "-auth-db", db}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if len(strings.TrimSpace(out)) < 20 {
+		t.Fatalf("token too short %q", out)
 	}
 }

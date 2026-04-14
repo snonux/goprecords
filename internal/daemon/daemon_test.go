@@ -162,102 +162,125 @@ func TestReadyzAuthDBDirNotWritable(t *testing.T) {
 	}
 }
 
-func TestReport(t *testing.T) {
-	fixtures := filepath.Join("..", "..", "fixtures")
-	h := Handler(fixtures)
-	srv := httptest.NewServer(h)
-	defer srv.Close()
-	res, err := http.Get(srv.URL + "/report?category=Host&metric=Boots&limit=3&output-format=Plaintext")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status %d", res.StatusCode)
-	}
-	if ct := res.Header.Get("Content-Type"); ct != "text/plain; charset=utf-8" {
-		t.Fatalf("Content-Type %q", ct)
-	}
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(b), "Host") {
-		t.Fatalf("expected report body, got %q", b)
-	}
-}
-
-func TestReportQueryAliases(t *testing.T) {
+func TestReportHTTPTable(t *testing.T) {
 	fixtures := filepath.Join("..", "..", "fixtures")
 	srv := httptest.NewServer(Handler(fixtures))
 	defer srv.Close()
-	res, err := http.Get(srv.URL + "/report?Category=Host&Metric=Uptime&limit=2&OutputFormat=Markdown")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name       string
+		query      string
+		wantCode   int
+		wantCTPfx  string
+		bodyNeedle []string
+	}{
+		{
+			name:       "plaintext",
+			query:      "category=Host&metric=Boots&limit=3&output-format=Plaintext",
+			wantCode:   http.StatusOK,
+			wantCTPfx:  "text/plain",
+			bodyNeedle: []string{"Host"},
+		},
+		{
+			name:       "markdown aliases",
+			query:      "Category=Host&Metric=Uptime&limit=2&OutputFormat=Markdown",
+			wantCode:   http.StatusOK,
+			wantCTPfx:  "text/markdown",
+			bodyNeedle: []string{"# Top", "```"},
+		},
+		{
+			name:       "html",
+			query:      "OutputFormat=HTML&limit=2",
+			wantCode:   http.StatusOK,
+			wantCTPfx:  "text/html",
+			bodyNeedle: []string{"<!DOCTYPE html>", "<pre>"},
+		},
+		{
+			name:      "gemtext",
+			query:     "output-format=Gemtext&limit=2",
+			wantCode:  http.StatusOK,
+			wantCTPfx: "text/gemini",
+		},
+		{
+			name:     "bad category",
+			query:    "category=Nope",
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "invalid limit",
+			query:    "limit=notnum",
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "invalid all bool",
+			query:    "all=nope",
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			name:     "downtime on non host",
+			query:    "category=Kernel&metric=Downtime&limit=2",
+			wantCode: http.StatusBadRequest,
+		},
 	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status %d", res.StatusCode)
-	}
-	if ct := res.Header.Get("Content-Type"); ct != "text/markdown; charset=utf-8" {
-		t.Fatalf("Content-Type %q", ct)
-	}
-	b, _ := io.ReadAll(res.Body)
-	body := string(b)
-	if !strings.Contains(body, "# Top") || !strings.Contains(body, "```") {
-		t.Fatalf("expected markdown heading and fence, got %q", b)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := http.Get(srv.URL + "/report?" + tt.query)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != tt.wantCode {
+				t.Fatalf("status %d want %d", res.StatusCode, tt.wantCode)
+			}
+			if tt.wantCTPfx != "" {
+				ct := res.Header.Get("Content-Type")
+				if !strings.HasPrefix(ct, tt.wantCTPfx) {
+					t.Fatalf("Content-Type %q want prefix %q", ct, tt.wantCTPfx)
+				}
+			}
+			b, _ := io.ReadAll(res.Body)
+			body := string(b)
+			for _, sub := range tt.bodyNeedle {
+				if !strings.Contains(body, sub) {
+					t.Fatalf("body missing %q: %q", sub, body)
+				}
+			}
+		})
 	}
 }
 
-func TestReportHTMLContentType(t *testing.T) {
+func TestReportMethodNotAllowed(t *testing.T) {
 	fixtures := filepath.Join("..", "..", "fixtures")
 	srv := httptest.NewServer(Handler(fixtures))
 	defer srv.Close()
-	res, err := http.Get(srv.URL + "/report?OutputFormat=HTML&limit=2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status %d", res.StatusCode)
-	}
-	if ct := res.Header.Get("Content-Type"); ct != "text/html; charset=utf-8" {
-		t.Fatalf("Content-Type %q", ct)
-	}
-	b, _ := io.ReadAll(res.Body)
-	body := string(b)
-	if !strings.Contains(body, "<!DOCTYPE html>") || !strings.Contains(body, "<pre>") {
-		t.Fatalf("expected HTML body, got %q", body)
-	}
-}
-
-func TestReportGemtextContentType(t *testing.T) {
-	fixtures := filepath.Join("..", "..", "fixtures")
-	srv := httptest.NewServer(Handler(fixtures))
-	defer srv.Close()
-	res, err := http.Get(srv.URL + "/report?output-format=Gemtext&limit=2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status %d", res.StatusCode)
-	}
-	if ct := res.Header.Get("Content-Type"); ct != "text/gemini; charset=utf-8" {
-		t.Fatalf("Content-Type %q", ct)
-	}
-}
-
-func TestReportBadQuery(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
-	defer srv.Close()
-	res, err := http.Get(srv.URL + "/report?category=Nope")
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/report?limit=2", nil)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	res.Body.Close()
-	if res.StatusCode != http.StatusBadRequest {
+	if res.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("status %d", res.StatusCode)
+	}
+}
+
+func TestReportAggregateFailure(t *testing.T) {
+	dir := t.TempDir()
+	line := "1:1:Linux 5.13.14-200.fc34.x86_64\n"
+	if err := os.WriteFile(filepath.Join(dir, "dup.x.records"), []byte(line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "dup.y.records"), []byte(line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(Handler(dir))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/report?limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("status %d want 500", res.StatusCode)
 	}
 }
 
@@ -294,6 +317,83 @@ func TestRunWritesDaemonListenToLogOutput(t *testing.T) {
 	}
 	cancel()
 	<-done
+}
+
+func TestRunUsesStdoutWhenLogOutputNil(t *testing.T) {
+	old := os.Stdout
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = pw
+	var logBuf bytes.Buffer
+	copyDone := make(chan struct{})
+	go func() {
+		_, _ = io.Copy(&logBuf, pr)
+		close(copyDone)
+	}()
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg := Config{StatsDir: t.TempDir(), Addr: "127.0.0.1:0", LogOutput: nil}
+	runDone := make(chan struct{})
+	go func() {
+		_ = Run(ctx, cfg)
+		close(runDone)
+	}()
+	deadline := time.After(2 * time.Second)
+	for !strings.Contains(logBuf.String(), "daemon_listen") {
+		select {
+		case <-deadline:
+			cancel()
+			_ = pw.Close()
+			<-runDone
+			<-copyDone
+			_ = pr.Close()
+			os.Stdout = old
+			t.Fatalf("timeout, got %q", logBuf.String())
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+	cancel()
+	<-runDone
+	os.Stdout = old
+	if err := pw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	<-copyDone
+	if err := pr.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunInvalidListenAddress(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := Run(ctx, Config{StatsDir: t.TempDir(), Addr: ":999999999"})
+	if err == nil {
+		t.Fatal("expected listen error")
+	}
+	if !strings.Contains(err.Error(), "listen") {
+		t.Fatalf("expected listen in error: %v", err)
+	}
+}
+
+func TestAccessLogImplicitOKStatus(t *testing.T) {
+	var buf bytes.Buffer
+	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/nohdr", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	srv := httptest.NewServer(withAccessLog(log, mux))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/nohdr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if !strings.Contains(buf.String(), "status=200") {
+		t.Fatalf("log %q", buf.String())
+	}
 }
 
 func TestAccessLogLineToWriter(t *testing.T) {
