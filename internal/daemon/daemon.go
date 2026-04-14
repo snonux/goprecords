@@ -30,6 +30,16 @@ type Config struct {
 	LogOutput io.Writer
 }
 
+// NewHandler returns HTTP handlers for daemon routes using the default auth DB
+// under statsDir. It returns an error if the auth store cannot be opened.
+func NewHandler(statsDir string) (http.Handler, error) {
+	store, err := openAuthStore(context.Background(), statsDir, "")
+	if err != nil {
+		return nil, fmt.Errorf("auth db: %w", err)
+	}
+	return routes(statsDir, "", store), nil
+}
+
 func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
@@ -38,14 +48,6 @@ func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
 	mux.HandleFunc("/report", report(statsDir))
 	mux.Handle("/upload/", uploadHandler(statsDir, store))
 	return mux
-}
-
-func Handler(statsDir string) http.Handler {
-	store, err := openAuthStore(context.Background(), statsDir, "")
-	if err != nil {
-		panic(err)
-	}
-	return routes(statsDir, "", store)
 }
 
 func logWriter(cfg Config) io.Writer {

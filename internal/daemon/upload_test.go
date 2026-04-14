@@ -179,7 +179,7 @@ func TestOpenAuthStoreBadPath(t *testing.T) {
 
 func TestUploadMethodNotAllowedTable(t *testing.T) {
 	statsDir := t.TempDir()
-	srv := httptest.NewServer(Handler(statsDir))
+	srv := httptest.NewServer(testHandler(t, statsDir))
 	defer srv.Close()
 	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
 		t.Run(method, func(t *testing.T) {

@@ -32,8 +32,29 @@ func (s *syncBuffer) String() string {
 	return s.b.String()
 }
 
+func testHandler(t *testing.T, statsDir string) http.Handler {
+	t.Helper()
+	h, err := NewHandler(statsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
+
+func TestNewHandlerOpenAuthStoreFails(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chmod(dir, 0o755) }()
+	_, err := NewHandler(dir)
+	if err == nil {
+		t.Fatal("expected error when auth db cannot be created")
+	}
+}
+
 func TestHealth(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
+	srv := httptest.NewServer(testHandler(t, t.TempDir()))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/health")
 	if err != nil {
@@ -50,7 +71,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestHealthMethodNotAllowed(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
+	srv := httptest.NewServer(testHandler(t, t.TempDir()))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/health", nil)
 	res, err := http.DefaultClient.Do(req)
@@ -64,7 +85,7 @@ func TestHealthMethodNotAllowed(t *testing.T) {
 }
 
 func TestLivez(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
+	srv := httptest.NewServer(testHandler(t, t.TempDir()))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/livez")
 	if err != nil {
@@ -81,7 +102,7 @@ func TestLivez(t *testing.T) {
 }
 
 func TestReadyzOK(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
+	srv := httptest.NewServer(testHandler(t, t.TempDir()))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/readyz")
 	if err != nil {
@@ -98,7 +119,7 @@ func TestReadyzOK(t *testing.T) {
 }
 
 func TestReadyzMethodNotAllowed(t *testing.T) {
-	srv := httptest.NewServer(Handler(t.TempDir()))
+	srv := httptest.NewServer(testHandler(t, t.TempDir()))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/readyz", nil)
 	res, err := http.DefaultClient.Do(req)
@@ -182,7 +203,7 @@ func TestReadyzAuthDBDirNotWritable(t *testing.T) {
 
 func TestReportHTTPTable(t *testing.T) {
 	fixtures := filepath.Join("..", "..", "fixtures")
-	srv := httptest.NewServer(Handler(fixtures))
+	srv := httptest.NewServer(testHandler(t, fixtures))
 	defer srv.Close()
 	tests := []struct {
 		name       string
@@ -268,7 +289,7 @@ func TestReportHTTPTable(t *testing.T) {
 
 func TestReportMethodNotAllowed(t *testing.T) {
 	fixtures := filepath.Join("..", "..", "fixtures")
-	srv := httptest.NewServer(Handler(fixtures))
+	srv := httptest.NewServer(testHandler(t, fixtures))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/report?limit=2", nil)
 	res, err := http.DefaultClient.Do(req)
@@ -290,7 +311,7 @@ func TestReportAggregateFailure(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "dup.y.records"), []byte(line), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(Handler(dir))
+	srv := httptest.NewServer(testHandler(t, dir))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/report?limit=2")
 	if err != nil {
@@ -458,7 +479,7 @@ func TestAccessLogLineToWriter(t *testing.T) {
 
 func TestUploadOpenWhenNoKeys(t *testing.T) {
 	statsDir := t.TempDir()
-	srv := httptest.NewServer(Handler(statsDir))
+	srv := httptest.NewServer(testHandler(t, statsDir))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("hello"))
 	res, err := http.DefaultClient.Do(req)
@@ -556,7 +577,7 @@ func TestUploadWrongHostForbidden(t *testing.T) {
 
 func TestUploadBadKind(t *testing.T) {
 	statsDir := t.TempDir()
-	srv := httptest.NewServer(Handler(statsDir))
+	srv := httptest.NewServer(testHandler(t, statsDir))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/nope", strings.NewReader("x"))
 	res, err := http.DefaultClient.Do(req)
@@ -571,7 +592,7 @@ func TestUploadBadKind(t *testing.T) {
 
 func TestUploadAllKindsWriteExpectedFiles(t *testing.T) {
 	statsDir := t.TempDir()
-	srv := httptest.NewServer(Handler(statsDir))
+	srv := httptest.NewServer(testHandler(t, statsDir))
 	defer srv.Close()
 	cases := []struct {
 		kind     string
