@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"codeberg.org/snonux/goprecords/internal/authkeys"
@@ -21,9 +22,11 @@ type Config struct {
 	LogOutput io.Writer
 }
 
-func routes(statsDir string, store *authkeys.Store) http.Handler {
+func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
+	mux.HandleFunc("/livez", health)
+	mux.HandleFunc("/readyz", readiness(statsDir, authDB))
 	mux.HandleFunc("/report", report(statsDir))
 	mux.Handle("/upload/", uploadHandler(statsDir, store))
 	return mux
@@ -34,7 +37,7 @@ func Handler(statsDir string) http.Handler {
 	if err != nil {
 		panic(err)
 	}
-	return routes(statsDir, store)
+	return routes(statsDir, "", store)
 }
 
 func logWriter(cfg Config) io.Writer {
@@ -97,7 +100,7 @@ func Run(ctx context.Context, cfg Config) error {
 	defer store.Close()
 	srv := &http.Server{
 		Addr:     cfg.Addr,
-		Handler:  withAccessLog(log, routes(cfg.StatsDir, store)),
+		Handler:  withAccessLog(log, routes(cfg.StatsDir, cfg.AuthDB, store)),
 		ErrorLog: slog.NewLogLogger(textHandler, slog.LevelError),
 	}
 	log.Info("daemon_listen", "addr", cfg.Addr)
@@ -132,6 +135,82 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok\n"))
+}
+
+func readiness(statsDir, authDB string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if err := checkReadinessDirs(statsDir, authDB); err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	}
+}
+
+func checkReadinessDirs(statsDir, authDB string) error {
+	absStats, err := filepath.Abs(statsDir)
+	if err != nil {
+		return fmt.Errorf("stats-dir: %w", err)
+	}
+	if err := checkDirReadableWritable(absStats); err != nil {
+		return fmt.Errorf("stats-dir: %w", err)
+	}
+	authPath := authDB
+	if authPath == "" {
+		authPath = authkeys.DefaultPath(statsDir)
+	}
+	absAuth, err := filepath.Abs(authPath)
+	if err != nil {
+		return fmt.Errorf("auth-db: %w", err)
+	}
+	dbDir := filepath.Clean(filepath.Dir(absAuth))
+	if dbDir != filepath.Clean(absStats) {
+		if err := checkDirReadableWritable(dbDir); err != nil {
+			return fmt.Errorf("auth-db dir: %w", err)
+		}
+	}
+	return nil
+}
+
+func checkDirReadableWritable(dir string) error {
+	fi, err := os.Stat(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("missing")
+		}
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("not a directory")
+	}
+	f, err := os.Open(dir)
+	if err != nil {
+		return fmt.Errorf("not readable: %w", err)
+	}
+	_, err = f.Readdirnames(1)
+	_ = f.Close()
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("not readable: %w", err)
+	}
+	tmp, err := os.CreateTemp(dir, ".goprecords-ready-*")
+	if err != nil {
+		return fmt.Errorf("not writable: %w", err)
+	}
+	name := tmp.Name()
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(name)
+		return fmt.Errorf("not writable: %w", err)
+	}
+	if err := os.Remove(name); err != nil {
+		return fmt.Errorf("not writable: %w", err)
+	}
+	return nil
 }
 
 func report(statsDir string) http.HandlerFunc {
