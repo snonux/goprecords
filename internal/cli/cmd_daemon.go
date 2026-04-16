@@ -24,8 +24,7 @@ func runDaemon(args []string) error {
 	fs.SetOutput(os.Stdout)
 	statsDir := fs.String("stats-dir", os.Getenv("GOPRECORDS_STATS_DIR"), "Uptimed stats directory (required; env GOPRECORDS_STATS_DIR)")
 	listen := fs.String("listen", defaultListenFromEnv(), "TCP listen address (env GOPRECORDS_LISTEN, default :8080)")
-	authDB := fs.String("auth-db", "", "SQLite file for upload API keys (default: <stats-dir>/goprecords-auth.db)")
-	db := fs.String("db", os.Getenv("GOPRECORDS_DB"), "SQLite database path for excluded hosts used by /metrics (env GOPRECORDS_DB)")
+	authDB := fs.String("auth-db", "", "SQLite file for upload API keys and excluded hosts (default: <stats-dir>/goprecords-auth.db)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -36,7 +35,7 @@ func runDaemon(args []string) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	err := daemon.Run(ctx, daemon.Config{StatsDir: *statsDir, Addr: *listen, AuthDB: *authDB, DB: *db})
+	err := daemon.Run(ctx, daemon.Config{StatsDir: *statsDir, Addr: *listen, AuthDB: *authDB})
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}

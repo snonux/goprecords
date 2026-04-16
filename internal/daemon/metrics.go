@@ -35,7 +35,11 @@ func buildMetrics(ctx context.Context, statsDir, dbPath string) ([]byte, error) 
 	if err != nil {
 		return nil, fmt.Errorf("list records: %w", err)
 	}
-	excluded, err := loadExcludedSet(ctx, dbPath)
+	db := openMetricsDB(ctx, dbPath)
+	if db != nil {
+		defer db.Close()
+	}
+	excluded, err := loadExcludedMap(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("load excluded hosts: %w", err)
 	}
@@ -46,10 +50,61 @@ func buildMetrics(ctx context.Context, statsDir, dbPath string) ([]byte, error) 
 		if err != nil {
 			continue
 		}
-		isExcluded := excluded[e.Host]
+		isExcluded := resolveExcluded(ctx, db, e.Host, mtime, excluded)
 		writeHostMetric(&sb, e.Host, mtime, isExcluded)
 	}
 	return []byte(sb.String()), nil
+}
+
+// openMetricsDB opens (and schema-initialises) the SQLite DB at dbPath.
+// Returns nil silently on empty path or any open/schema error so the metrics
+// endpoint degrades gracefully when no DB is configured.
+func openMetricsDB(ctx context.Context, dbPath string) *sql.DB {
+	if dbPath == "" {
+		return nil
+	}
+	db, err := storage.Open(ctx, dbPath)
+	if err != nil {
+		return nil
+	}
+	if err := storage.CreateSchema(ctx, db); err != nil {
+		db.Close()
+		return nil
+	}
+	return db
+}
+
+// loadExcludedMap returns a map of host→excluded_at for all excluded hosts.
+func loadExcludedMap(ctx context.Context, db *sql.DB) (map[string]int64, error) {
+	if db == nil {
+		return map[string]int64{}, nil
+	}
+	hosts, err := storage.LoadExcludedHosts(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]int64, len(hosts))
+	for _, h := range hosts {
+		m[h.Host] = h.ExcludedAt
+	}
+	return m, nil
+}
+
+// resolveExcluded returns true if the host is currently excluded.
+// If the records file mtime is newer than excluded_at the exclusion is
+// automatically lifted in the DB and the host is treated as active again.
+func resolveExcluded(ctx context.Context, db *sql.DB, host string, mtime int64, excluded map[string]int64) bool {
+	excludedAt, isExcluded := excluded[host]
+	if !isExcluded {
+		return false
+	}
+	if mtime > excludedAt {
+		if db != nil {
+			_ = storage.RemoveExcludedHost(ctx, db, host)
+		}
+		return false
+	}
+	return true
 }
 
 func writeMetricHeader(sb *strings.Builder) {
@@ -73,28 +128,4 @@ func recordsMtime(statsDir, host string) (int64, error) {
 		return 0, err
 	}
 	return fi.ModTime().Unix(), nil
-}
-
-func loadExcludedSet(ctx context.Context, dbPath string) (map[string]bool, error) {
-	if dbPath == "" {
-		return map[string]bool{}, nil
-	}
-	db, err := storage.Open(ctx, dbPath)
-	if err != nil {
-		return map[string]bool{}, nil
-	}
-	defer db.Close()
-	return loadExcludedHosts(ctx, db)
-}
-
-func loadExcludedHosts(ctx context.Context, db *sql.DB) (map[string]bool, error) {
-	hosts, err := storage.LoadExcludedHosts(ctx, db)
-	if err != nil {
-		return nil, err
-	}
-	set := make(map[string]bool, len(hosts))
-	for _, h := range hosts {
-		set[h.Host] = true
-	}
-	return set, nil
 }

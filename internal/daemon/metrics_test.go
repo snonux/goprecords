@@ -109,6 +109,57 @@ func TestMetricsMethodNotAllowed(t *testing.T) {
 	}
 }
 
+func TestMetricsAutoUnexclude(t *testing.T) {
+	statsDir := t.TempDir()
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	recordsFile := filepath.Join(statsDir, "comeback.records")
+	if err := os.WriteFile(recordsFile, []byte("1:1:Linux 5.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	db, err := storage.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := storage.CreateSchema(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	fi, err := os.Stat(recordsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pastTime := fi.ModTime().Unix() - 3600
+	_, err = db.ExecContext(ctx,
+		"INSERT OR REPLACE INTO excluded_host (host, reason, excluded_at) VALUES (?, ?, ?)",
+		"comeback", "old exclusion", pastTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	body, err := buildMetrics(ctx, statsDir, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(body)
+	if !strings.Contains(s, `excluded="false"`) {
+		t.Fatalf("expected auto-unexclude (excluded=false) but got: %q", s)
+	}
+	db2, err := storage.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db2.Close()
+	hosts, err := storage.LoadExcludedHosts(ctx, db2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, h := range hosts {
+		if h.Host == "comeback" {
+			t.Fatalf("expected comeback to be removed from exclusion list after auto-unexclude")
+		}
+	}
+}
+
 func TestBuildMetricsNoDBPath(t *testing.T) {
 	statsDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(statsDir, "h1.records"), []byte("1:1:Linux 5.0\n"), 0o644); err != nil {

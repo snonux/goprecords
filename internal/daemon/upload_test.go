@@ -207,7 +207,7 @@ func TestUploadAuthBearerNegativeTable(t *testing.T) {
 	if _, err := store.CreateKey(ctx, "myhost"); err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", "", store))
+	srv := httptest.NewServer(routes(statsDir, "", store))
 	defer srv.Close()
 	url := srv.URL + "/upload/myhost/txt"
 	tests := []struct {

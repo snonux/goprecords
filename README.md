@@ -252,6 +252,43 @@ sudo loginctl enable-linger "$USER"
 
 If there are **no** keys in the auth database, uploads are accepted without **`Authorization`** (useful for local testing only).
 
+### Excluding hosts from /metrics alerts
+
+Hosts that no longer send updates can be marked as excluded so Prometheus
+alert rules can filter them out. Excluded hosts still appear in `/metrics`
+with `excluded="true"`.
+
+**Exclude a host**
+
+```bash
+# daemon on Kubernetes — auth DB lives on the stats PVC
+kubectl exec -n services deployment/goprecords -- \
+  goprecords exclude -db=/data/stats/goprecords-auth.db -reason="decommissioned" myhost
+
+# local daemon
+goprecords exclude -db=/var/lib/goprecords/goprecords-auth.db -reason="decommissioned" myhost
+```
+
+**List excluded hosts**
+
+```bash
+kubectl exec -n services deployment/goprecords -- \
+  goprecords list-excluded -db=/data/stats/goprecords-auth.db
+```
+
+**Remove an exclusion manually**
+
+```bash
+kubectl exec -n services deployment/goprecords -- \
+  goprecords unexclude -db=/data/stats/goprecords-auth.db myhost
+```
+
+**Auto-unexclude**
+
+When a host resumes sending uploads its records file mtime becomes newer than
+`excluded_at`. On the next `/metrics` scrape the daemon detects this and
+automatically removes the exclusion — no manual intervention needed.
+
 ### Manual upload client (all operating systems)
 
 The unified script **`scripts/goprecords-upload-client.sh`** works on
