@@ -30,6 +30,12 @@ func Execute(args []string) error {
 		return runImport(args[1:])
 	case "query":
 		return runQuery(args[1:])
+	case "exclude":
+		return runExclude(args[1:])
+	case "unexclude":
+		return runUnexclude(args[1:])
+	case "list-excluded":
+		return runListExcluded(args[1:])
 	case "test":
 		return runTests()
 	default:

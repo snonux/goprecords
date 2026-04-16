@@ -26,6 +26,11 @@ CREATE INDEX IF NOT EXISTS idx_record_host ON record(host);
 CREATE INDEX IF NOT EXISTS idx_record_os ON record(os);
 CREATE INDEX IF NOT EXISTS idx_record_os_kernel_name ON record(os_kernel_name);
 CREATE INDEX IF NOT EXISTS idx_record_os_kernel_major ON record(os_kernel_major);
+CREATE TABLE IF NOT EXISTS excluded_host (
+	host TEXT NOT NULL PRIMARY KEY,
+	reason TEXT NOT NULL DEFAULT '',
+	excluded_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
 `
 
 // Record is one uptimed boot row stored in the record table.
@@ -134,6 +139,69 @@ func LoadRecords(ctx context.Context, db *sql.DB) ([]Record, error) {
 		return nil, fmt.Errorf("rows: %w", err)
 	}
 	return out, nil
+}
+
+// ExcludedHost holds an entry from the excluded_host table.
+type ExcludedHost struct {
+	Host       string
+	Reason     string
+	ExcludedAt int64
+}
+
+// AddExcludedHost inserts or replaces a host in the excluded_host table.
+func AddExcludedHost(ctx context.Context, db *sql.DB, host, reason string) error {
+	_, err := db.ExecContext(ctx,
+		"INSERT OR REPLACE INTO excluded_host (host, reason) VALUES (?, ?)",
+		host, reason)
+	if err != nil {
+		return fmt.Errorf("add excluded host: %w", err)
+	}
+	return nil
+}
+
+// RemoveExcludedHost removes a host from the excluded_host table.
+func RemoveExcludedHost(ctx context.Context, db *sql.DB, host string) error {
+	_, err := db.ExecContext(ctx, "DELETE FROM excluded_host WHERE host = ?", host)
+	if err != nil {
+		return fmt.Errorf("remove excluded host: %w", err)
+	}
+	return nil
+}
+
+// LoadExcludedHosts returns all rows from the excluded_host table.
+func LoadExcludedHosts(ctx context.Context, db *sql.DB) ([]ExcludedHost, error) {
+	rows, err := db.QueryContext(ctx, "SELECT host, reason, excluded_at FROM excluded_host ORDER BY host")
+	if err != nil {
+		return nil, fmt.Errorf("query excluded hosts: %w", err)
+	}
+	defer rows.Close()
+	var out []ExcludedHost
+	for rows.Next() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+		var e ExcludedHost
+		if err := rows.Scan(&e.Host, &e.Reason, &e.ExcludedAt); err != nil {
+			return nil, fmt.Errorf("scan excluded host: %w", err)
+		}
+		out = append(out, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows excluded hosts: %w", err)
+	}
+	return out, nil
+}
+
+// IsExcludedHost reports whether a host is in the excluded_host table.
+func IsExcludedHost(ctx context.Context, db *sql.DB, host string) (bool, error) {
+	var count int
+	err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM excluded_host WHERE host = ?", host).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("check excluded host: %w", err)
+	}
+	return count > 0, nil
 }
 
 func importFile(ctx context.Context, insert *sql.Stmt, fsys fs.FS, relPath, host string) error {
