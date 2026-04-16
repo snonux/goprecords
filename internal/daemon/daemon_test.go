@@ -542,7 +542,7 @@ func TestAccessLogLineToWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	srv := httptest.NewServer(withAccessLog(log, routes(statsDir, "", store)))
+	srv := httptest.NewServer(withAccessLog(log, routes(statsDir, "", "", store)))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/health")
 	if err != nil {
@@ -591,7 +591,7 @@ func TestUploadRequiresBearerWhenKeysExist(t *testing.T) {
 	if _, err := store.CreateKey(ctx, "myhost"); err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", "", store))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("x"))
 	res, err := http.DefaultClient.Do(req)
@@ -616,7 +616,7 @@ func TestUploadWithValidBearer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", "", store))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/os.txt", strings.NewReader("os"))
 	req.Header.Set("Authorization", "Bearer "+tok)
@@ -642,7 +642,7 @@ func TestUploadWrongHostForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", "", store))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/other/txt", strings.NewReader("x"))
 	req.Header.Set("Authorization", "Bearer "+tok)

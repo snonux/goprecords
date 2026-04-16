@@ -31,6 +31,7 @@ type Config struct {
 	StatsDir  string
 	Addr      string
 	AuthDB    string
+	DB        string
 	LogOutput io.Writer
 }
 
@@ -41,16 +42,17 @@ func NewHandler(statsDir string) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("auth db: %w", err)
 	}
-	return routes(statsDir, "", store), nil
+	return routes(statsDir, "", "", store), nil
 }
 
-func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
+func routes(statsDir, authDB, db string, store *authkeys.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", root(statsDir))
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/livez", health)
 	mux.HandleFunc("/readyz", readiness(statsDir, authDB))
 	mux.HandleFunc("/report", report(statsDir))
+	mux.HandleFunc("/metrics", metricsHandler(statsDir, db))
 	mux.Handle("/upload/", uploadHandler(statsDir, store))
 	return mux
 }
@@ -151,7 +153,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("auth db: %w", err)
 	}
 	defer store.Close()
-	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(slogLog, routes(cfg.StatsDir, cfg.AuthDB, store)),
+	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(slogLog, routes(cfg.StatsDir, cfg.AuthDB, cfg.DB, store)),
 		slog.NewLogLogger(textHandler, slog.LevelError))
 	slogLog.Info("daemon_listen", "addr", cfg.Addr)
 	errCh := make(chan error, 1)
