@@ -254,52 +254,74 @@ If there are **no** keys in the auth database, uploads are accepted without **`A
 
 ### Manual hourly upload (single host, not config-managed)
 
-Use this when the machine is **not** deployed from a Rex/Ansible repo. The reference script is **`contrib/goprecords-upload-client.sh`** (POSIX **`sh`**: Linux, FreeBSD, OpenBSD).
+Use this when the machine is **not** deployed from a Rex/Ansible repo. The unified script is **`scripts/goprecords-upload-client.sh`** (POSIX **`sh`**: Linux, FreeBSD, OpenBSD; runs as root or as a regular user). A copy is also kept in **`contrib/`** for backward compatibility.
 
-**SSH vs upload name:** **`GOPRECORDS_HOST`** must stay the **short** stats name (**`f0`**, **`pi2`**). For **SSH**, use a real host — e.g. **`ssh -p 22 paul@f0.lan.buetow.org`** or **`paul@192.168.1.130`**, not **`f0.lan`** (incomplete / invalid). OpenBSD frontends may use **port 2** in Rex; **f0–f3** and **Pis** use **port 22**.
+The script works on all host types:
+
+| Host class | OS | Privilege | Token path |
+|------------|----|-----------|------------|
+| **f0–f3** | FreeBSD | root via `doas` | `/etc/goprecords-upload.token` |
+| **pi0–pi3** | Rocky Linux (aarch64) | root via `sudo` | `/etc/goprecords-upload.token` |
+| **earth** (laptop) | Fedora / Linux | user (no root) | `$XDG_CONFIG_HOME/goprecords-upload-<HOST>/token` |
+| **blowfish**, **fishfinger** | OpenBSD | root (Rex) | deployed by Rex from template |
+
+**SSH vs upload name:** **`GOPRECORDS_HOST`** must stay the **short** stats name (**`f0`**, **`pi2`**, **`earth`**). For **SSH**, use a real host — e.g. **`ssh -p 22 paul@f0.lan.buetow.org`** or **`paul@192.168.1.130`**, not **`f0.lan`** (incomplete / invalid). OpenBSD frontends may use **port 2** in Rex; **f0–f3** and **Pis** use **port 22**.
 
 **Privilege on FreeBSD:** many hosts (e.g. **f0–f3**) ship **`doas`** and no **`sudo`**. Use **`doas`** for install, writing the token, and one-off test runs below; on Linux (Pis) use **`sudo`**.
+
+**Token path (non-root):** when run as a non-root user the script defaults to **`${XDG_CONFIG_HOME:-$HOME/.config}/goprecords-upload-${GOPRECORDS_HOST}/token`** (mode **`600`**). Override with **`GOPRECORDS_TOKEN_FILE`**.
 
 **On each host**
 
 1. Install **`curl`** and **`uptimed`**, and ensure **`uptimed`** is running.
-2. Install the script (path is up to you; **`755`**, owned by **`root`**):
+2. Install the script (path is up to you; **`755`**, owned by **`root`** for system-wide use or **`700`** in `~/.local/bin` for user installs):
 
-   **Linux**
-
-   ```bash
-   sudo install -m 755 contrib/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
-   ```
-
-   **FreeBSD**
+   **Linux (root)**
 
    ```bash
-   doas install -m 755 contrib/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
+   sudo install -m 755 scripts/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
    ```
 
-3. Create a token on the goprecords server (hostname must match **`GOPRECORDS_HOST`** exactly, e.g. **`f0`**, **`pi2`**):
+   **FreeBSD (root)**
+
+   ```bash
+   doas install -m 755 scripts/goprecords-upload-client.sh /usr/local/bin/goprecords-upload-client.sh
+   ```
+
+   **Linux (user, e.g. earth)**
+
+   ```bash
+   install -m 700 scripts/goprecords-upload-client.sh ~/.local/bin/goprecords-upload-client.sh
+   ```
+
+3. Create a token on the goprecords server (hostname must match **`GOPRECORDS_HOST`** exactly, e.g. **`f0`**, **`pi2`**, **`earth`**):
 
    ```bash
    kubectl exec -n services deployment/goprecords -- \
      goprecords --create-client-key f0 -stats-dir=/data/stats
    ```
 
-4. Save the printed secret once as **`root`**, mode **`600`**:
+4. Save the printed secret, mode **`600`**:
 
-   **Linux**
+   **Linux / FreeBSD (root)**
 
    ```bash
+   # Linux
    umask 077
-   sudo sh -c 'cat > /etc/goprecords-upload.token'
+   sudo sh -c ‘cat > /etc/goprecords-upload.token’
    sudo chmod 600 /etc/goprecords-upload.token
+   # FreeBSD
+   umask 077
+   doas sh -c ‘cat > /etc/goprecords-upload.token’
+   doas chmod 600 /etc/goprecords-upload.token
    ```
 
-   **FreeBSD**
+   **Linux (user, e.g. earth)**
 
    ```bash
+   mkdir -p ~/.config/goprecords-upload-earth
    umask 077
-   doas sh -c 'cat > /etc/goprecords-upload.token'
-   doas chmod 600 /etc/goprecords-upload.token
+   cat > ~/.config/goprecords-upload-earth/token
    ```
 
 5. **FreeBSD — hourly cron** (example for **`f0`**; use **`/etc/crontab`** or **`root`**’s crontab). **`curl`** must be on **`PATH`** for cron (often **`/usr/local/bin`**):
@@ -310,7 +332,7 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
 
    Repeat for **`f1`**, **`f2`**, **`f3`**, … with the matching **`GOPRECORDS_HOST`**.
 
-6. **Linux (systemd) — hourly timer** (example for **`pi0`**). **`/etc/goprecords-upload.env`** (mode **`644`**, root):
+6. **Linux (systemd) — hourly timer, system-wide** (example for **`pi0`**). **`/etc/goprecords-upload.env`** (mode **`644`**, root):
 
    ```ini
    GOPRECORDS_HOST=pi0
@@ -356,26 +378,68 @@ Use this when the machine is **not** deployed from a Rex/Ansible repo. The refer
 
    Use a different **`GOPRECORDS_HOST`** in **`/etc/goprecords-upload.env`** on **`pi1`**, **`pi2`**, **`pi3`**.
 
+7. **Linux (systemd) — hourly timer, user session** (example for **`earth`** laptop). **`~/.config/systemd/user/goprecords-upload-earth.service`**:
+
+   ```ini
+   [Unit]
+   Description=Upload uptimed stats to goprecords
+
+   [Service]
+   Type=oneshot
+   Environment=GOPRECORDS_HOST=earth
+   ExecStart=%h/.local/bin/goprecords-upload-client.sh
+   ```
+
+   **`~/.config/systemd/user/goprecords-upload-earth.timer`**:
+
+   ```ini
+   [Unit]
+   Description=Hourly uptimed upload to goprecords (earth)
+
+   [Timer]
+   OnCalendar=hourly
+   OnActiveSec=90s
+   RandomizedDelaySec=300
+   Persistent=true
+
+   [Install]
+   WantedBy=timers.target
+   ```
+
+   Then (enable lingering so uploads continue without an active login session):
+
+   ```bash
+   sudo loginctl enable-linger "$USER"
+   systemctl --user daemon-reload
+   systemctl --user enable --now goprecords-upload-earth.timer
+   ```
+
 **Environment (optional)**
 
-| Variable | Default |
-|----------|---------|
-| **`GOPRECORDS_HOST`** | (required) |
-| **`GOPRECORDS_TOKEN_FILE`** | **`/etc/goprecords-upload.token`** |
-| **`GOPRECORDS_BASE_URL`** | **`https://goprecords.f3s.buetow.org`** |
+| Variable | Default (root) | Default (non-root) |
+|----------|----------------|--------------------|
+| **`GOPRECORDS_HOST`** | (required) | (required) |
+| **`GOPRECORDS_TOKEN_FILE`** | **`/etc/goprecords-upload.token`** | **`$XDG_CONFIG_HOME/goprecords-upload-<HOST>/token`** |
+| **`GOPRECORDS_BASE_URL`** | **`https://goprecords.f3s.buetow.org`** | same |
 
 **Test one run**
 
-**Linux**
+**Linux (root)**
 
 ```bash
-sudo env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+sudo env GOPRECORDS_HOST=pi0 /usr/local/bin/goprecords-upload-client.sh
 ```
 
-**FreeBSD**
+**FreeBSD (root)**
 
 ```bash
 doas env GOPRECORDS_HOST=f0 /usr/local/bin/goprecords-upload-client.sh
+```
+
+**Linux (user)**
+
+```bash
+GOPRECORDS_HOST=earth ~/.local/bin/goprecords-upload-client.sh
 ```
 
 ## Test
