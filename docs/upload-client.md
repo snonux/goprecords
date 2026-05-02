@@ -4,7 +4,12 @@
 uptimed record files to a running `goprecords` daemon. It works on FreeBSD,
 Linux, and OpenBSD, and runs as root or as a regular user.
 
-A copy is also kept in `contrib/` for backward compatibility.
+`scripts/goprecords-upload-client-darwin.fish` is a fish-shell variant for
+macOS (Darwin). It handles both Intel (`/usr/local/var/uptimed`) and Apple
+Silicon (`/opt/homebrew/var/uptimed`) Homebrew prefixes and uses macOS-native
+commands (`sw_vers`, `sysctl`) for OS and CPU identification.
+
+A copy of the POSIX script is also kept in `contrib/` for backward compatibility.
 
 ## Prerequisites
 
@@ -16,6 +21,8 @@ running before setting up uploads.
 | FreeBSD | `pkg install curl uptimed` |
 | Rocky Linux / Fedora | `sudo dnf install curl uptimed` |
 | OpenBSD | `pkg_add curl uptimed` |
+| macOS (Intel) | `brew install curl uptimed` |
+| macOS (Apple Silicon) | `brew install curl uptimed` |
 
 ## Token path
 
@@ -81,6 +88,21 @@ install -m 700 scripts/goprecords-upload-client.sh \
   ~/.local/bin/goprecords-upload-client.sh
 ```
 
+**macOS (user session)**
+
+The Darwin variant is a fish script and runs as a regular user (no root needed
+for Homebrew-installed `uptimed`):
+
+```sh
+install -m 700 scripts/goprecords-upload-client-darwin.fish \
+  ~/.local/bin/goprecords-upload-client-darwin.fish
+```
+
+Ensure `fish` is on `PATH` (it is when installed via Homebrew). The script
+requires `curl`, `uptimed`, and `uprecords` — all provided by `brew install uptimed`.
+Set `GOPRECORDS_RECORDS_FILE` only when your `uptimed` records file is outside
+the standard Homebrew paths.
+
 ## Step 3 — Store the token
 
 **FreeBSD / Linux (root)**
@@ -111,6 +133,17 @@ doas chmod 600 /etc/goprecords-upload.token
 mkdir -p ~/.config/goprecords-upload-earth
 umask 077
 echo 'TOKEN' > ~/.config/goprecords-upload-earth/token
+```
+
+**macOS (user session)**
+
+Replace `mymac` with the `GOPRECORDS_HOST` value you chose:
+
+```sh
+mkdir -p ~/.config/goprecords-upload-mymac
+chmod 700 ~/.config/goprecords-upload-mymac
+echo 'TOKEN' > ~/.config/goprecords-upload-mymac/token
+chmod 600 ~/.config/goprecords-upload-mymac/token
 ```
 
 ## Step 4 — Automate
@@ -221,6 +254,62 @@ GOPRECORDS_HOST=blowfish /usr/local/bin/goprecords-upload-client.sh
 
 Adjust `GOPRECORDS_HOST` for each OpenBSD host (`fishfinger`, etc.).
 
+### macOS — hourly LaunchAgent
+
+Create `~/Library/LaunchAgents/org.buetow.goprecords-upload.plist`.
+Replace `mymac` with your `GOPRECORDS_HOST` value and adjust the path to
+`fish` if your Homebrew prefix differs:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.buetow.goprecords-upload</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/fish</string>
+    <string>/Users/paul/.local/bin/goprecords-upload-client-darwin.fish</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>GOPRECORDS_HOST</key>
+    <string>mymac</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>/tmp/goprecords-upload.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/goprecords-upload.err</string>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+```
+
+Load it with:
+
+```sh
+launchctl load ~/Library/LaunchAgents/org.buetow.goprecords-upload.plist
+```
+
+For Intel Macs, replace `/opt/homebrew/bin/fish` with `/usr/local/bin/fish`.
+
+### macOS — fish shell supersync integration
+
+If you use the `supersync` fish function from the dotfiles, you can call the
+upload script directly from your shell session by adding a call to your
+`supersync` function or running it manually:
+
+```fish
+GOPRECORDS_HOST=mymac fish ~/.local/bin/goprecords-upload-client-darwin.fish
+```
+
 ## Step 5 — Test one run
 
 **FreeBSD**
@@ -245,4 +334,10 @@ doas env GOPRECORDS_HOST=blowfish /usr/local/bin/goprecords-upload-client.sh
 
 ```sh
 GOPRECORDS_HOST=earth ~/.local/bin/goprecords-upload-client.sh
+```
+
+**macOS (user session)**
+
+```sh
+GOPRECORDS_HOST=mymac fish ~/.local/bin/goprecords-upload-client-darwin.fish
 ```
