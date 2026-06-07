@@ -49,6 +49,9 @@ func TestListNonEmptyFiles(t *testing.T) {
 	if entries[0].Host != "h1" || filepath.Base(entries[0].Path) != "h1.records" {
 		t.Fatalf("unexpected entry: %#v", entries[0])
 	}
+	if entries[0].ModTime.IsZero() {
+		t.Fatal("expected non-zero ModTime")
+	}
 }
 
 func TestListNonEmptyFiles_ReadError(t *testing.T) {

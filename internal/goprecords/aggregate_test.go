@@ -118,6 +118,9 @@ func TestAggregateFixturesContent(t *testing.T) {
 		if host.LastKernel == "" {
 			t.Error("expected non-empty LastKernel for earth")
 		}
+		if host.LastUpdated.IsZero() {
+			t.Error("expected non-zero LastUpdated for earth")
+		}
 	} else {
 		t.Error("expected earth host in aggregates")
 	}

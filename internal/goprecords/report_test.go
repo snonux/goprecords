@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewReporter(t *testing.T) {
@@ -487,5 +488,77 @@ func hostName(i int) string {
 		return "host8"
 	default:
 		return "host9"
+	}
+}
+
+func TestReportWithLastUpdated(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+
+	hagg := NewHostAggregate("host1", "Linux 5.10")
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
+	hagg.LastUpdated = time.Date(2024, 1, 15, 9, 30, 0, 0, time.UTC)
+	aggs.Host["host1"] = hagg
+
+	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatPlaintext, 1)
+	report := reporter.Report()
+
+	if !strings.Contains(report, "Updated") {
+		t.Error("expected report to contain Updated header")
+	}
+	if !strings.Contains(report, "2024-01-15 09:30") {
+		t.Error("expected report to contain formatted LastUpdated")
+	}
+}
+
+func TestReportWithoutLastUpdated(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+
+	hagg := NewHostAggregate("host1", "Linux 5.10")
+	hagg.Stats.Uptime = 86400000
+	hagg.Stats.Boots = 10
+	hagg.Stats.FirstBoot = 1000
+	hagg.Stats.LastSeen = 86401000
+	// LastUpdated is zero
+	aggs.Host["host1"] = hagg
+
+	reporter := NewReporter(aggs, CategoryHost, 20, MetricUptime, FormatPlaintext, 1)
+	report := reporter.Report()
+
+	if strings.Contains(report, "Updated") {
+		t.Error("expected report NOT to contain Updated header when LastUpdated is zero")
+	}
+}
+
+func TestReportKernelNoUpdatedColumn(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+
+	kernel := NewAggregate("Linux 5.10.0")
+	kernel.Uptime = 86400000
+	kernel.Boots = 5
+	aggs.Kernel["Linux 5.10.0"] = kernel
+
+	reporter := NewReporter(aggs, CategoryKernel, 20, MetricUptime, FormatPlaintext, 1)
+	report := reporter.Report()
+
+	if strings.Contains(report, "Updated") {
+		t.Error("expected Kernel report NOT to contain Updated column")
 	}
 }

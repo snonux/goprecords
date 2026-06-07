@@ -7,12 +7,12 @@ import (
 	"strings"
 )
 
-func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel bool, outputFormat OutputFormat) string {
-	cW, nW, vW, lkW := r.reportWidths(rows, hasLastKernel)
-	border := r.buildBorder(cW, nW, vW, lkW, hasLastKernel)
-	header := r.buildReportHeader(cW, nW, vW, lkW, hasLastKernel, border, outputFormat)
-	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, hasLastKernel)
-	body := r.buildReportBody(rows, fmtStr, hasLastKernel)
+func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel, hasLastUpdated bool, outputFormat OutputFormat) string {
+	cW, nW, vW, lkW, luW := r.reportWidths(rows, hasLastKernel, hasLastUpdated)
+	border := r.buildBorder(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
+	header := r.buildReportHeader(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated, border, outputFormat)
+	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
+	body := r.buildReportBody(rows, fmtStr, hasLastKernel, hasLastUpdated)
 	out := header + body + border
 	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
 		out += "```\n"
@@ -20,17 +20,21 @@ func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel bool, outputF
 	return out
 }
 
-func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel bool) string {
-	cW, nW, vW, lkW := r.reportWidths(rows, hasLastKernel)
-	border := r.buildBorder(cW, nW, vW, lkW, hasLastKernel)
-	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, hasLastKernel)
+func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel, hasLastUpdated bool) string {
+	cW, nW, vW, lkW, luW := r.reportWidths(rows, hasLastKernel, hasLastUpdated)
+	border := r.buildBorder(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
+	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
 	var headRow string
-	if hasLastKernel {
+	if hasLastKernel && hasLastUpdated {
+		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel", "Updated")
+	} else if hasLastKernel {
 		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel")
+	} else if hasLastUpdated {
+		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Updated")
 	} else {
 		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String())
 	}
-	body := r.buildReportBody(rows, fmtStr, hasLastKernel)
+	body := r.buildReportBody(rows, fmtStr, hasLastKernel, hasLastUpdated)
 	ascii := border + headRow + border + body + border
 
 	hl := int(r.headerIndent)
@@ -66,12 +70,15 @@ func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel bool) str
 	return b.String()
 }
 
-func (r reportBuilder) reportWidths(rows []tableRow, hasLastKernel bool) (countW, nameW, valueW, lastKernelW int) {
+func (r reportBuilder) reportWidths(rows []tableRow, hasLastKernel, hasLastUpdated bool) (countW, nameW, valueW, lastKernelW, lastUpdatedW int) {
 	countW = 3
 	nameW = len(r.category.String())
 	valueW = len(r.metric.String())
 	if hasLastKernel {
 		lastKernelW = len("Last Kernel")
+	}
+	if hasLastUpdated {
+		lastUpdatedW = len("Updated")
 	}
 	for _, row := range rows {
 		if len(row.Pos) > countW {
@@ -86,11 +93,14 @@ func (r reportBuilder) reportWidths(rows []tableRow, hasLastKernel bool) (countW
 		if len(row.LastKernel) > lastKernelW {
 			lastKernelW = len(row.LastKernel)
 		}
+		if len(row.LastUpdated) > lastUpdatedW {
+			lastUpdatedW = len(row.LastUpdated)
+		}
 	}
-	return countW, nameW, valueW, lastKernelW
+	return countW, nameW, valueW, lastKernelW, lastUpdatedW
 }
 
-func (r reportBuilder) buildBorder(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
+func (r reportBuilder) buildBorder(countW, nameW, valueW, lastKernelW, lastUpdatedW int, hasLastKernel, hasLastUpdated bool) string {
 	parts := []string{
 		"+" + strings.Repeat("-", 2+countW),
 		"+" + strings.Repeat("-", 2+nameW),
@@ -99,10 +109,13 @@ func (r reportBuilder) buildBorder(countW, nameW, valueW, lastKernelW int, hasLa
 	if hasLastKernel {
 		parts = append(parts, "+"+strings.Repeat("-", 2+lastKernelW))
 	}
+	if hasLastUpdated {
+		parts = append(parts, "+"+strings.Repeat("-", 2+lastUpdatedW))
+	}
 	return strings.Join(parts, "") + "+\n"
 }
 
-func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW int, hasLastKernel bool, border string, outputFormat OutputFormat) string {
+func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW, lastUpdatedW int, hasLastKernel, hasLastUpdated bool, border string, outputFormat OutputFormat) string {
 	var b strings.Builder
 	if outputFormat == FormatMarkdown || outputFormat == FormatGemtext {
 		b.WriteString(strings.Repeat("#", int(r.headerIndent)))
@@ -120,9 +133,13 @@ func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW int,
 		b.WriteString("```\n")
 	}
 	b.WriteString(border)
-	fmtStr := r.buildFormatStr(countW, nameW, valueW, lastKernelW, hasLastKernel)
-	if hasLastKernel {
+	fmtStr := r.buildFormatStr(countW, nameW, valueW, lastKernelW, lastUpdatedW, hasLastKernel, hasLastUpdated)
+	if hasLastKernel && hasLastUpdated {
+		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel", "Updated"))
+	} else if hasLastKernel {
 		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel"))
+	} else if hasLastUpdated {
+		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Updated"))
 	} else {
 		b.WriteString(fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String()))
 	}
@@ -130,18 +147,28 @@ func (r reportBuilder) buildReportHeader(countW, nameW, valueW, lastKernelW int,
 	return b.String()
 }
 
-func (r reportBuilder) buildFormatStr(countW, nameW, valueW, lastKernelW int, hasLastKernel bool) string {
+func (r reportBuilder) buildFormatStr(countW, nameW, valueW, lastKernelW, lastUpdatedW int, hasLastKernel, hasLastUpdated bool) string {
+	if hasLastKernel && hasLastUpdated {
+		return fmt.Sprintf("| %%%ds | %%%ds | %%%ds | %%%ds | %%%ds |", countW, nameW, valueW, lastKernelW, lastUpdatedW)
+	}
 	if hasLastKernel {
 		return fmt.Sprintf("| %%%ds | %%%ds | %%%ds | %%%ds |", countW, nameW, valueW, lastKernelW)
+	}
+	if hasLastUpdated {
+		return fmt.Sprintf("| %%%ds | %%%ds | %%%ds | %%%ds |", countW, nameW, valueW, lastUpdatedW)
 	}
 	return fmt.Sprintf("| %%%ds | %%%ds | %%%ds |", countW, nameW, valueW)
 }
 
-func (r reportBuilder) buildReportBody(rows []tableRow, fmtStr string, hasLastKernel bool) string {
+func (r reportBuilder) buildReportBody(rows []tableRow, fmtStr string, hasLastKernel, hasLastUpdated bool) string {
 	var b strings.Builder
 	for _, row := range rows {
-		if hasLastKernel {
+		if hasLastKernel && hasLastUpdated {
+			b.WriteString(fmt.Sprintf(fmtStr+"\n", row.Pos, row.Name, row.Value, row.LastKernel, row.LastUpdated))
+		} else if hasLastKernel {
 			b.WriteString(fmt.Sprintf(fmtStr+"\n", row.Pos, row.Name, row.Value, row.LastKernel))
+		} else if hasLastUpdated {
+			b.WriteString(fmt.Sprintf(fmtStr+"\n", row.Pos, row.Name, row.Value, row.LastUpdated))
 		} else {
 			b.WriteString(fmt.Sprintf(fmtStr+"\n", row.Pos, row.Name, row.Value))
 		}

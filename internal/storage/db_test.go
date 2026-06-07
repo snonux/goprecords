@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 	"testing/fstest"
+	"time"
 )
 
 func TestOpen_ContextCanceled(t *testing.T) {
@@ -462,5 +463,62 @@ func TestImportFromDir_pathIsFileNotDirectory(t *testing.T) {
 	err = ImportFromDir(context.Background(), db, filePath)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestHostMetaRoundTrip(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.db")
+	db, err := Open(context.Background(), dbPath)
+	if err != nil {
+		t.Fatalf("open DB: %v", err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	if err := CreateSchema(ctx, db); err != nil {
+		t.Fatalf("schema: %v", err)
+	}
+
+	if err := ResetHostMeta(ctx, db); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := AddHostMeta(ctx, tx, "host1", 1705312200); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := AddHostMeta(ctx, tx, "host2", 1705312300); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	meta, err := LoadHostMeta(ctx, db)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(meta) != 2 {
+		t.Fatalf("len=%d, want 2", len(meta))
+	}
+	if meta["host1"] != time.Unix(1705312200, 0).UTC() {
+		t.Fatalf("host1 time mismatch: %v", meta["host1"])
+	}
+	if meta["host2"] != time.Unix(1705312300, 0).UTC() {
+		t.Fatalf("host2 time mismatch: %v", meta["host2"])
+	}
+
+	if err := ResetHostMeta(ctx, db); err != nil {
+		t.Fatalf("reset2: %v", err)
+	}
+	meta, err = LoadHostMeta(ctx, db)
+	if err != nil {
+		t.Fatalf("load after reset: %v", err)
+	}
+	if len(meta) != 0 {
+		t.Fatalf("len after reset=%d, want 0", len(meta))
 	}
 }

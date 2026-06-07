@@ -14,6 +14,10 @@ func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load records: %w", err)
 	}
+	hostMeta, err := storage.LoadHostMeta(ctx, db)
+	if err != nil {
+		return nil, fmt.Errorf("load host meta: %w", err)
+	}
 	out := &Aggregates{
 		Host:        make(map[string]*HostAggregate),
 		Kernel:      make(map[string]*Aggregate),
@@ -38,6 +42,9 @@ func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 	}
 	for host, h := range out.Host {
 		h.LastKernel = hostLastKernel[host]
+		if t, ok := hostMeta[host]; ok {
+			h.LastUpdated = t
+		}
 	}
 	return out, nil
 }

@@ -58,6 +58,7 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 			return nil, fmt.Errorf("last kernel %s: %w", relPath, err)
 		}
 		out.Host[host] = NewHostAggregate(host, lastKernel)
+		out.Host[host].LastUpdated = f.ModTime
 		if err := processRecordsFile(ctx, ag.fsys, relPath, host, out); err != nil {
 			return nil, err
 		}

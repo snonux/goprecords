@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"time"
 
 	"codeberg.org/snonux/goprecords/internal/recordline"
 	"codeberg.org/snonux/goprecords/internal/recordsdir"
@@ -26,6 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_record_host ON record(host);
 CREATE INDEX IF NOT EXISTS idx_record_os ON record(os);
 CREATE INDEX IF NOT EXISTS idx_record_os_kernel_name ON record(os_kernel_name);
 CREATE INDEX IF NOT EXISTS idx_record_os_kernel_major ON record(os_kernel_major);
+CREATE TABLE IF NOT EXISTS host_meta (
+	host TEXT NOT NULL PRIMARY KEY,
+	last_updated INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS excluded_host (
 	host TEXT NOT NULL PRIMARY KEY,
 	reason TEXT NOT NULL DEFAULT '',
@@ -72,6 +77,43 @@ func ResetRecords(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
+// ResetHostMeta deletes all rows from the host_meta table.
+func ResetHostMeta(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, "DELETE FROM host_meta")
+	return err
+}
+
+// AddHostMeta inserts a host_meta row.
+func AddHostMeta(ctx context.Context, tx *sql.Tx, host string, lastUpdated int64) error {
+	_, err := tx.ExecContext(ctx, "INSERT INTO host_meta (host, last_updated) VALUES (?, ?)", host, lastUpdated)
+	if err != nil {
+		return fmt.Errorf("insert host meta: %w", err)
+	}
+	return nil
+}
+
+// LoadHostMeta returns a map of host to last-updated time from the host_meta table.
+func LoadHostMeta(ctx context.Context, db *sql.DB) (map[string]time.Time, error) {
+	rows, err := db.QueryContext(ctx, "SELECT host, last_updated FROM host_meta")
+	if err != nil {
+		return nil, fmt.Errorf("query host meta: %w", err)
+	}
+	defer rows.Close()
+	out := make(map[string]time.Time)
+	for rows.Next() {
+		var host string
+		var lu int64
+		if err := rows.Scan(&host, &lu); err != nil {
+			return nil, fmt.Errorf("scan host meta: %w", err)
+		}
+		out[host] = time.Unix(lu, 0).UTC()
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows host meta: %w", err)
+	}
+	return out, nil
+}
+
 // ImportFromDir imports non-empty .records files from statsDir into the database,
 // replacing existing rows. It is equivalent to ImportFromFS with os.DirFS(statsDir).
 func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
@@ -82,6 +124,9 @@ func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
 func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	if err := ResetRecords(ctx, db); err != nil {
 		return fmt.Errorf("reset records: %w", err)
+	}
+	if err := ResetHostMeta(ctx, db); err != nil {
+		return fmt.Errorf("reset host meta: %w", err)
 	}
 	files, err := recordsdir.ListNonEmptyFilesFS(fsys, ".")
 	if err != nil {
@@ -99,6 +144,9 @@ func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 	defer insert.Close()
 	for _, f := range files {
 		if err := importFile(ctx, insert, fsys, f.Path, f.Host); err != nil {
+			return err
+		}
+		if err := AddHostMeta(ctx, tx, f.Host, f.ModTime.Unix()); err != nil {
 			return err
 		}
 	}

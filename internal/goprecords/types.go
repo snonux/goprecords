@@ -64,8 +64,9 @@ func NewAggregate(name string) *Aggregate {
 
 // HostAggregate adds last-kernel and lifespan/downtime for host reports.
 type HostAggregate struct {
-	Stats      Aggregate
-	LastKernel string
+	Stats       Aggregate
+	LastKernel  string
+	LastUpdated time.Time
 }
 
 // NewHostAggregate constructs a HostAggregate.
@@ -86,10 +87,11 @@ func (h *HostAggregate) IsActive(limitDays uint) bool {
 
 // tableRow is one row in the report table.
 type tableRow struct {
-	Pos        string
-	Name       string
-	Value      string
-	LastKernel string
+	Pos         string
+	Name        string
+	Value       string
+	LastKernel  string
+	LastUpdated string
 }
 
 // String returns the category name.

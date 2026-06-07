@@ -186,9 +186,9 @@ func (r *HTMLReporter) Report() string {
 
 func (r reportBuilder) Report(outputFormat OutputFormat) string {
 	var rows []tableRow
-	var hasLastKernel bool
+	var hasLastKernel, hasLastUpdated bool
 	if r.category == CategoryHost {
-		rows, hasLastKernel = r.buildHostTable()
+		rows, hasLastKernel, hasLastUpdated = r.buildHostTable()
 	} else {
 		rows, hasLastKernel = r.buildCategoryTable()
 	}
@@ -196,12 +196,12 @@ func (r reportBuilder) Report(outputFormat OutputFormat) string {
 		return ""
 	}
 	if outputFormat == FormatHTML {
-		return r.formatReportHTML(rows, hasLastKernel)
+		return r.formatReportHTML(rows, hasLastKernel, hasLastUpdated)
 	}
-	return r.formatReport(rows, hasLastKernel, outputFormat)
+	return r.formatReport(rows, hasLastKernel, hasLastUpdated, outputFormat)
 }
 
-func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
+func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 	type keyVal struct {
 		agg *HostAggregate
 		key uint64
@@ -214,6 +214,7 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].key > list[j].key })
 	var rows []tableRow
+	var hasLastUpdated bool
 	for i, kv := range list {
 		if uint(i) >= r.limit {
 			break
@@ -223,14 +224,20 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool) {
 		if h.IsActive(90) {
 			active = "*"
 		}
+		lastUpdated := ""
+		if !h.LastUpdated.IsZero() {
+			lastUpdated = h.LastUpdated.UTC().Format("2006-01-02 15:04")
+			hasLastUpdated = true
+		}
 		rows = append(rows, tableRow{
-			Pos:        fmt.Sprintf("%d.", i+1),
-			Name:       active + h.Stats.Name,
-			Value:      r.humanStrHost(h),
-			LastKernel: h.LastKernel,
+			Pos:         fmt.Sprintf("%d.", i+1),
+			Name:        active + h.Stats.Name,
+			Value:       r.humanStrHost(h),
+			LastKernel:  h.LastKernel,
+			LastUpdated: lastUpdated,
 		})
 	}
-	return rows, true
+	return rows, true, hasLastUpdated
 }
 
 func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
