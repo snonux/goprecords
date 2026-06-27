@@ -75,7 +75,7 @@ func testStatsOrder() int {
 		fmt.Printf("FAIL: stats-order custom first entry\n")
 		failed++
 	}
-	for _, bad := range []string{"Host", "Bad:Uptime", "Kernel:Downtime", "Host:Nope"} {
+	for _, bad := range []string{"Host", "Bad:Uptime", "Kernel:Downtime", "Kernel:LastUpdated", "Host:Nope"} {
 		if _, err := ParseStatsOrder(bad); err == nil {
 			fmt.Printf("FAIL: parse %q should error\n", bad)
 			failed++

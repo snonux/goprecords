@@ -34,7 +34,7 @@ type ReportFlags struct {
 func RegisterReportFlags(fs *flag.FlagSet) *ReportFlags {
 	return &ReportFlags{
 		category:      fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName"),
-		metric:        fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan"),
+		metric:        fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan, LastUpdated"),
 		limit:         fs.Uint("limit", 20, "Limit output to num of entries"),
 		outputFormat:  fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext, HTML"),
 		all:           fs.Bool("all", false, "Generate all possible stats but Kernel"),

@@ -47,6 +47,22 @@ var metricExtractors = map[Metric]metricExtractor{
 		hostHuman:   func(h *HostAggregate) string { return formatDuration(h.Lifespan()) },
 		aggHuman:    func(a *Aggregate) string { return formatDuration(a.Uptime) },
 	},
+	MetricLastUpdated: {
+		hostSortKey: func(h *HostAggregate) uint64 {
+			if h.LastUpdated.IsZero() {
+				return 0
+			}
+			return uint64(h.LastUpdated.UTC().Unix())
+		},
+		aggSortKey: func(a *Aggregate) uint64 { return 0 },
+		hostHuman: func(h *HostAggregate) string {
+			if h.LastUpdated.IsZero() {
+				return ""
+			}
+			return h.LastUpdated.UTC().Format("2006-01-02 15:04")
+		},
+		aggHuman: func(a *Aggregate) string { return "" },
+	},
 }
 
 func extractorFor(m Metric) metricExtractor {
@@ -59,7 +75,7 @@ func extractorFor(m Metric) metricExtractor {
 // WriteReports renders reports to w based on the given config.
 func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 	if !cfg.All {
-		if cfg.Category != CategoryHost && (cfg.Metric == MetricDowntime || cfg.Metric == MetricLifespan) {
+		if cfg.Category != CategoryHost && (cfg.Metric == MetricDowntime || cfg.Metric == MetricLifespan || cfg.Metric == MetricLastUpdated) {
 			return fmt.Errorf("Category %s only supports: Boots, Uptime, Score", cfg.Category)
 		}
 		s := reportForPair(aggregates, cfg.Category, cfg.Metric, cfg.Limit, 1, cfg.OutputFormat)
@@ -108,7 +124,7 @@ func skipPair(cfg ReportConfig, c Category, m Metric) bool {
 	if !cfg.IncludeKernel && c == CategoryKernel {
 		return true
 	}
-	if c != CategoryHost && (m == MetricDowntime || m == MetricLifespan) {
+	if c != CategoryHost && (m == MetricDowntime || m == MetricLifespan || m == MetricLastUpdated) {
 		return true
 	}
 	return false
@@ -322,6 +338,9 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 			LastKernel:  h.LastKernel,
 			LastUpdated: lastUpdated,
 		})
+	}
+	if r.metric == MetricLastUpdated {
+		hasLastUpdated = false
 	}
 	return rows, true, hasLastUpdated
 }

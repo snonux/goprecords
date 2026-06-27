@@ -33,6 +33,7 @@ const (
 	MetricScore
 	MetricDowntime
 	MetricLifespan
+	MetricLastUpdated
 )
 
 // OutputFormat is the report output format.
@@ -123,6 +124,8 @@ func (m Metric) String() string {
 		return "Downtime"
 	case MetricLifespan:
 		return "Lifespan"
+	case MetricLastUpdated:
+		return "LastUpdated"
 	default:
 		return "?"
 	}
@@ -221,6 +224,8 @@ func MetricDescription(m Metric) string {
 		return "Lifespan is the total uptime + the total downtime of a host."
 	case MetricScore:
 		return "Score is calculated by combining all other metrics."
+	case MetricLastUpdated:
+		return "LastUpdated is the date a host's records file was last updated."
 	default:
 		return ""
 	}
@@ -255,6 +260,8 @@ func ParseMetric(s string) (Metric, error) {
 		return MetricDowntime, nil
 	case "lifespan":
 		return MetricLifespan, nil
+	case "lastupdated":
+		return MetricLastUpdated, nil
 	default:
 		return 0, fmt.Errorf("invalid metric %q", s)
 	}

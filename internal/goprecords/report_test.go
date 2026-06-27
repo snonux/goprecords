@@ -122,6 +122,86 @@ func TestReportHTML(t *testing.T) {
 	}
 }
 
+func TestReportLastUpdated(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+
+	old := NewHostAggregate("oldhost", "Linux 5.10")
+	old.Stats.Uptime = 86400000
+	old.Stats.Boots = 1
+	old.Stats.FirstBoot = 1000
+	old.Stats.LastSeen = 86401000
+	old.LastUpdated = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	aggs.Host["oldhost"] = old
+
+	recent := NewHostAggregate("recenthost", "Linux 6.0")
+	recent.Stats.Uptime = 1000
+	recent.Stats.Boots = 1
+	recent.Stats.FirstBoot = 1000
+	recent.Stats.LastSeen = 2000
+	recent.LastUpdated = time.Date(2026, 6, 27, 12, 0, 0, 0, time.UTC)
+	aggs.Host["recenthost"] = recent
+
+	unknown := NewHostAggregate("unknownhost", "Linux 6.1")
+	unknown.Stats.Uptime = 100
+	unknown.Stats.Boots = 1
+	unknown.Stats.FirstBoot = 1000
+	unknown.Stats.LastSeen = 1100
+	aggs.Host["unknownhost"] = unknown
+
+	report := NewHostReporter(aggs, 20, MetricLastUpdated, FormatPlaintext, 1).Report()
+	if report == "" {
+		t.Fatal("expected non-empty report")
+	}
+	if !strings.Contains(report, "LastUpdated") {
+		t.Error("expected report to contain LastUpdated header")
+	}
+	if !strings.Contains(report, "Last Kernel") {
+		t.Error("expected report to contain Last Kernel column")
+	}
+	if strings.Contains(report, " Updated |") {
+		t.Errorf("expected no redundant Updated column; got %q", report)
+	}
+	recentPos := strings.Index(report, "recenthost")
+	oldPos := strings.Index(report, "oldhost")
+	unknownPos := strings.Index(report, "unknownhost")
+	if recentPos == -1 || oldPos == -1 || unknownPos == -1 {
+		t.Fatalf("missing hosts in report: %q", report)
+	}
+	if recentPos > oldPos {
+		t.Errorf("expected recenthost before oldhost (descending LastUpdated); got %q", report)
+	}
+	if unknownPos < oldPos {
+		t.Errorf("expected zero-LastUpdated host sorted to bottom; got %q", report)
+	}
+	if !strings.Contains(report, "2026-06-27 12:00") || !strings.Contains(report, "2024-01-01 00:00") {
+		t.Errorf("expected datestamps in report; got %q", report)
+	}
+
+	htmlReport := NewHostReporter(aggs, 20, MetricLastUpdated, FormatHTML, 2).Report()
+	if !strings.Contains(htmlReport, "<table>") {
+		t.Fatalf("expected HTML fragment with table, got %q", htmlReport)
+	}
+	if !strings.Contains(htmlReport, "<th>Last Kernel</th>") {
+		t.Error("expected HTML to contain Last Kernel column")
+	}
+	if strings.Contains(htmlReport, "<th>Updated</th>") {
+		t.Errorf("expected no redundant Updated column in HTML; got %q", htmlReport)
+	}
+
+	mdReport := NewHostReporter(aggs, 20, MetricLastUpdated, FormatMarkdown, 2).Report()
+	if !strings.Contains(mdReport, "##") || !strings.Contains(mdReport, "```") {
+		t.Fatalf("expected markdown code block, got %q", mdReport)
+	}
+	if !strings.Contains(mdReport, "Last Kernel") {
+		t.Error("expected markdown report to contain Last Kernel column")
+	}
+}
+
 func TestReportMarkdown(t *testing.T) {
 	aggs := &Aggregates{
 		Host:        make(map[string]*HostAggregate),

@@ -44,7 +44,7 @@ func ParseStatsOrder(s string) ([]CategoryMetric, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid -stats-order metric %q", metName)
 		}
-		if cat != CategoryHost && (met == MetricDowntime || met == MetricLifespan) {
+		if cat != CategoryHost && (met == MetricDowntime || met == MetricLifespan || met == MetricLastUpdated) {
 			return nil, fmt.Errorf("invalid -stats-order entry %q (metric %s not supported for category %s)", entry, metName, catName)
 		}
 		key := cat.String() + ":" + met.String()
@@ -98,5 +98,6 @@ func defaultStatsOrder() []CategoryMetric {
 		{CategoryKernel, MetricBoots},
 		{CategoryKernel, MetricUptime},
 		{CategoryKernel, MetricScore},
+		{CategoryHost, MetricLastUpdated},
 	}
 }

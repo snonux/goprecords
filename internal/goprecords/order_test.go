@@ -23,6 +23,7 @@ func TestParseStatsOrder(t *testing.T) {
 		{in: "Host", valid: false},
 		{in: "Bad:Uptime", valid: false},
 		{in: "Kernel:Downtime", valid: false},
+		{in: "Kernel:LastUpdated", valid: false},
 		{in: "Host:Nope", valid: false},
 		{in: "", valid: false},
 		{in: "  ,  ", valid: false},
@@ -65,6 +66,7 @@ func TestStatsOrderList(t *testing.T) {
 		{CategoryKernel, MetricBoots},
 		{CategoryKernel, MetricUptime},
 		{CategoryKernel, MetricScore},
+		{CategoryHost, MetricLastUpdated},
 	}
 	got, err := StatsOrderList("")
 	if err != nil {
