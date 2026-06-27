@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Score&#39;s by Kernel</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Score&#39;s by Kernel</h1><br />
-<br />
-<span class="quote">Score is calculated by combining all other metrics.</span><br />
-<br />
-<pre>+-----+------------------------------------+-------+
-| Pos |                             Kernel | Score |
-+-----+------------------------------------+-------+
-|  1. |                Linux 3.2.0-4-amd64 |   241 |
-|  2. |  Linux 3.10.0-1160.15.2.el7.x86_64 |   123 |
-|  3. |   Linux 3.10.0-957.21.3.el7.x86_64 |    96 |
-+-----+------------------------------------+-------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Score&#39;s by Kernel</h1>
+<p>Score is calculated by combining all other metrics.</p>
+<table>
+<tr><th>Pos</th><th>Kernel</th><th>Score</th></tr>
+<tr><td>1.</td><td> Linux 3.2.0-4-amd64</td><td>241</td></tr>
+<tr><td>2.</td><td> Linux 3.10.0-1160.15.2.el7.x86_64</td><td>123</td></tr>
+<tr><td>3.</td><td> Linux 3.10.0-957.21.3.el7.x86_64</td><td>96</td></tr>
+</table>

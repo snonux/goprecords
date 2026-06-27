@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Boots&#39;s by Kernel</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Boots&#39;s by Kernel</h1><br />
-<br />
-<span class="quote">Boots is the total number of host boots over the entire lifespan.</span><br />
-<br />
-<pre>+-----+------------------------------+-------+
-| Pos |                       Kernel | Boots |
-+-----+------------------------------+-------+
-|  1. |          Linux 3.2.0-4-amd64 |   321 |
-|  2. |  Linux 4.0.4-303.fc22.x86_64 |   103 |
-|  3. |         FreeBSD 10.1-RELEASE |    76 |
-+-----+------------------------------+-------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Boots&#39;s by Kernel</h1>
+<p>Boots is the total number of host boots over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>Kernel</th><th>Boots</th></tr>
+<tr><td>1.</td><td> Linux 3.2.0-4-amd64</td><td>321</td></tr>
+<tr><td>2.</td><td> Linux 4.0.4-303.fc22.x86_64</td><td>103</td></tr>
+<tr><td>3.</td><td> FreeBSD 10.1-RELEASE</td><td>76</td></tr>
+</table>

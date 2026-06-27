@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Downtime&#39;s by Host</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Downtime&#39;s by Host</h1><br />
-<br />
-<span class="quote">Downtime is the total downtime of a host over the entire lifespan.</span><br />
-<br />
-<pre>+-----+----------------+-----------------------------+--------------------------+------------------+
-| Pos |           Host |                    Downtime |              Last Kernel |          Updated |
-+-----+----------------+-----------------------------+--------------------------+------------------+
-|  1. |       dionysus |  8 years, 3 months, 16 days | FreeBSD 13.0-RELEASE-p11 | 2026-03-03 18:29 |
-|  2. |  alphacentauri | 5 years, 11 months, 18 days |  FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
-|  3. |         uranus |  3 years, 3 months, 28 days |    Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
-+-----+----------------+-----------------------------+--------------------------+------------------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Downtime&#39;s by Host</h1>
+<p>Downtime is the total downtime of a host over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>Host</th><th>Downtime</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> dionysus</td><td>8 years, 3 months, 16 days</td><td>FreeBSD 13.0-RELEASE-p11</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> alphacentauri</td><td>5 years, 11 months, 18 days</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> uranus</td><td>3 years, 3 months, 28 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
+</table>

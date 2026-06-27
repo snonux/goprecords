@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 )
 
 type metricExtractor struct {
@@ -61,38 +62,33 @@ func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 		if cfg.Category != CategoryHost && (cfg.Metric == MetricDowntime || cfg.Metric == MetricLifespan) {
 			return fmt.Errorf("Category %s only supports: Boots, Uptime, Score", cfg.Category)
 		}
-		if cfg.Category == CategoryHost {
-			if err := writeReportString(w, NewHostReporter(aggregates, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report()); err != nil {
-				return err
-			}
-		} else {
-			if err := writeReportString(w, NewReporter(aggregates, cfg.Category, cfg.Limit, cfg.Metric, cfg.OutputFormat, 1).Report()); err != nil {
-				return err
-			}
-		}
-		return nil
+		s := reportForPair(aggregates, cfg.Category, cfg.Metric, cfg.Limit, 1, cfg.OutputFormat)
+		return writeReportString(w, wrapIfHTML(s, cfg.OutputFormat))
 	}
 	order, err := StatsOrderList(cfg.StatsOrder)
 	if err != nil {
 		return err
 	}
 	headerIndent := uint(2)
+	if cfg.OutputFormat == FormatHTML {
+		var parts []string
+		for _, pair := range order {
+			if skipPair(cfg, pair.Category, pair.Metric) {
+				continue
+			}
+			if s := reportForPair(aggregates, pair.Category, pair.Metric, cfg.Limit, headerIndent, cfg.OutputFormat); s != "" {
+				parts = append(parts, s)
+			}
+		}
+		return writeReportString(w, wrapHTMLDocument(strings.Join(parts, "\n")))
+	}
 	for _, pair := range order {
-		c, m := pair.Category, pair.Metric
-		if !cfg.IncludeKernel && c == CategoryKernel {
+		if skipPair(cfg, pair.Category, pair.Metric) {
 			continue
 		}
-		if c != CategoryHost && (m == MetricDowntime || m == MetricLifespan) {
-			continue
-		}
-		if c == CategoryHost {
-			if err := writeReportString(w, NewHostReporter(aggregates, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report()); err != nil {
-				return err
-			}
-		} else {
-			if err := writeReportString(w, NewReporter(aggregates, c, cfg.Limit, m, cfg.OutputFormat, headerIndent).Report()); err != nil {
-				return err
-			}
+		s := reportForPair(aggregates, pair.Category, pair.Metric, cfg.Limit, headerIndent, cfg.OutputFormat)
+		if err := writeReportString(w, s); err != nil {
+			return err
 		}
 		if err := writeReportString(w, "\n"); err != nil {
 			return err
@@ -100,6 +96,96 @@ func WriteReports(w io.Writer, aggregates *Aggregates, cfg ReportConfig) error {
 	}
 	return nil
 }
+
+func reportForPair(aggregates *Aggregates, c Category, m Metric, limit, headerIndent uint, outputFormat OutputFormat) string {
+	if c == CategoryHost {
+		return NewHostReporter(aggregates, limit, m, outputFormat, headerIndent).Report()
+	}
+	return NewReporter(aggregates, c, limit, m, outputFormat, headerIndent).Report()
+}
+
+func skipPair(cfg ReportConfig, c Category, m Metric) bool {
+	if !cfg.IncludeKernel && c == CategoryKernel {
+		return true
+	}
+	if c != CategoryHost && (m == MetricDowntime || m == MetricLifespan) {
+		return true
+	}
+	return false
+}
+
+func wrapIfHTML(s string, f OutputFormat) string {
+	if f != FormatHTML {
+		return s
+	}
+	return wrapHTMLDocument(s)
+}
+
+func wrapHTMLDocument(body string) string {
+	var b strings.Builder
+	b.WriteString("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n")
+	b.WriteString("<meta charset=\"UTF-8\">\n")
+	b.WriteString("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n")
+	b.WriteString("<title>goprecords uptime report</title>\n")
+	b.WriteString(htmlStyle)
+	b.WriteString("</head>\n<body>\n")
+	b.WriteString(body)
+	b.WriteString("</body>\n</html>\n")
+	return b.String()
+}
+
+const htmlStyle = `<style>
+        /* Compact, full-width layout */
+        :root {
+            --pad: 8px;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            line-height: 1.3;
+            margin: 0;
+            padding: var(--pad);
+            background: #fff;
+            color: #000;
+        }
+        /* Headings: smaller and tighter */
+        h1, h2, h3 { margin: 0.5em 0 0.25em; font-weight: 600; }
+        h1 { font-size: 1em; }
+        h2 { font-size: 0.95em; }
+        h3 { font-size: 0.9em; }
+        /* Paragraphs and lists: minimal vertical rhythm */
+        p { margin: 0.2em 0; }
+        ul { margin: 0.3em 0; padding-left: 1.2em; }
+        li { margin: 0.1em 0; }
+        /* Code blocks and tables */
+        pre {
+            overflow-x: auto;
+            white-space: pre;
+            margin: 0.3em 0;
+        }
+        table {
+            border-collapse: collapse;
+            table-layout: auto; /* size columns by content */
+            width: auto;        /* do not stretch to full width */
+            max-width: 100%;
+            margin: 0.5em 0;
+            font-size: 0.95em;
+            display: inline-table; /* keep as compact as content allows */
+        }
+        th, td {
+            padding: 0.1em 0.3em;
+            text-align: left;
+            white-space: nowrap; /* avoid wide columns caused by wrapping */
+        }
+        /* Links */
+        a { color: #06c; text-decoration: underline; }
+        a:visited { color: #639; }
+        /* Rules */
+        hr { border: none; border-top: 1px solid #ccc; margin: 0.5em 0; }
+    </style>
+`
 
 func writeReportString(w io.Writer, s string) error {
 	_, err := io.WriteString(w, s)

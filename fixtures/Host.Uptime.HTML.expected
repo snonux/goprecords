@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Uptime&#39;s by Host</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Uptime&#39;s by Host</h1><br />
-<br />
-<span class="quote">Uptime is the total uptime of a host over the entire lifespan.</span><br />
-<br />
-<pre>+-----+---------+-----------------------------+-----------------------------------+------------------+
-| Pos |    Host |                      Uptime |                       Last Kernel |          Updated |
-+-----+---------+-----------------------------+-----------------------------------+------------------+
-|  1. |  vulcan |   4 years, 4 months, 7 days | Linux 3.10.0-1160.81.1.el7.x86_64 | 2026-03-03 18:29 |
-|  2. |  uranus | 3 years, 11 months, 21 days |             Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
-|  3. |     sun |  3 years, 9 months, 26 days |          FreeBSD 10.3-RELEASE-p24 | 2026-03-03 18:29 |
-+-----+---------+-----------------------------+-----------------------------------+------------------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Uptime&#39;s by Host</h1>
+<p>Uptime is the total uptime of a host over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>Host</th><th>Uptime</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> vulcan</td><td>4 years, 4 months, 7 days</td><td>Linux 3.10.0-1160.81.1.el7.x86_64</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> uranus</td><td>3 years, 11 months, 21 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> sun</td><td>3 years, 9 months, 26 days</td><td>FreeBSD 10.3-RELEASE-p24</td><td>2026-03-03 18:29</td></tr>
+</table>

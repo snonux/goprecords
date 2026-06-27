@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Score&#39;s by KernelName</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Score&#39;s by KernelName</h1><br />
-<br />
-<span class="quote">Score is calculated by combining all other metrics.</span><br />
-<br />
-<pre>+-----+------------+-------+
-| Pos | KernelName | Score |
-+-----+------------+-------+
-|  1. |      Linux |  1292 |
-|  2. |    FreeBSD |   700 |
-|  3. |    OpenBSD |   196 |
-+-----+------------+-------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Score&#39;s by KernelName</h1>
+<p>Score is calculated by combining all other metrics.</p>
+<table>
+<tr><th>Pos</th><th>KernelName</th><th>Score</th></tr>
+<tr><td>1.</td><td> Linux</td><td>1292</td></tr>
+<tr><td>2.</td><td> FreeBSD</td><td>700</td></tr>
+<tr><td>3.</td><td> OpenBSD</td><td>196</td></tr>
+</table>

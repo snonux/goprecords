@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Uptime&#39;s by KernelName</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Uptime&#39;s by KernelName</h1><br />
-<br />
-<span class="quote">Uptime is the total uptime of a host over the entire lifespan.</span><br />
-<br />
-<pre>+-----+------------+-----------------------------+
-| Pos | KernelName |                      Uptime |
-+-----+------------+-----------------------------+
-|  1. |      Linux | 19 years, 4 months, 18 days |
-|  2. |    FreeBSD | 9 years, 11 months, 29 days |
-|  3. |    OpenBSD |  3 years, 1 months, 18 days |
-+-----+------------+-----------------------------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Uptime&#39;s by KernelName</h1>
+<p>Uptime is the total uptime of a host over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>KernelName</th><th>Uptime</th></tr>
+<tr><td>1.</td><td> Linux</td><td>19 years, 4 months, 18 days</td></tr>
+<tr><td>2.</td><td> FreeBSD</td><td>9 years, 11 months, 29 days</td></tr>
+<tr><td>3.</td><td> OpenBSD</td><td>3 years, 1 months, 18 days</td></tr>
+</table>

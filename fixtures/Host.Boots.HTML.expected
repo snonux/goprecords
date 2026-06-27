@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Boots&#39;s by Host</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Boots&#39;s by Host</h1><br />
-<br />
-<span class="quote">Boots is the total number of host boots over the entire lifespan.</span><br />
-<br />
-<pre>+-----+----------------+-------+-----------------------------+------------------+
-| Pos |           Host | Boots |                 Last Kernel |          Updated |
-+-----+----------------+-------+-----------------------------+------------------+
-|  1. |  alphacentauri |   671 |     FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
-|  2. |           mars |   207 |         Linux 3.2.0-4-amd64 | 2026-03-03 18:29 |
-|  3. |       callisto |   153 | Linux 4.0.4-303.fc22.x86_64 | 2026-03-03 18:29 |
-+-----+----------------+-------+-----------------------------+------------------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Boots&#39;s by Host</h1>
+<p>Boots is the total number of host boots over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>Host</th><th>Boots</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> alphacentauri</td><td>671</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> mars</td><td>207</td><td>Linux 3.2.0-4-amd64</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> callisto</td><td>153</td><td>Linux 4.0.4-303.fc22.x86_64</td><td>2026-03-03 18:29</td></tr>
+</table>

@@ -312,7 +312,7 @@ func TestReportHTTPTable(t *testing.T) {
 			query:      "OutputFormat=HTML&limit=2",
 			wantCode:   http.StatusOK,
 			wantCTPfx:  "text/html",
-			bodyNeedle: []string{"<!DOCTYPE html>", "<pre>"},
+			bodyNeedle: []string{"<!DOCTYPE html>", "<table>"},
 		},
 		{
 			name:      "gemtext",

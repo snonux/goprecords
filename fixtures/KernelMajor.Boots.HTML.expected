@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<link rel="shortcut icon" type="image/gif" href="https://foo.zone/favicon.ico" />
-<link rel="stylesheet" href="https://foo.zone/style.css" />
-<title>Top 3 Boots&#39;s by KernelMajor</title>
-</head>
-<body>
-<h1 style="display: inline">Top 3 Boots&#39;s by KernelMajor</h1><br />
-<br />
-<span class="quote">Boots is the total number of host boots over the entire lifespan.</span><br />
-<br />
-<pre>+-----+----------------+-------+
-| Pos |    KernelMajor | Boots |
-+-----+----------------+-------+
-|  1. |  FreeBSD 10... |   551 |
-|  2. |     Linux 3... |   410 |
-|  3. |     Linux 5... |   249 |
-+-----+----------------+-------+
-</pre>
-</body>
-</html>
+<h1>Top 3 Boots&#39;s by KernelMajor</h1>
+<p>Boots is the total number of host boots over the entire lifespan.</p>
+<table>
+<tr><th>Pos</th><th>KernelMajor</th><th>Boots</th></tr>
+<tr><td>1.</td><td> FreeBSD 10...</td><td>551</td></tr>
+<tr><td>2.</td><td> Linux 3...</td><td>410</td></tr>
+<tr><td>3.</td><td> Linux 5...</td><td>249</td></tr>
+</table>

@@ -114,8 +114,8 @@ func TestReportHTML(t *testing.T) {
 		t.Fatalf("expected HTMLReporter, got %T", reporter)
 	}
 	report := reporter.Report()
-	if !strings.Contains(report, "<!DOCTYPE html>") || !strings.Contains(report, "<pre>") {
-		t.Fatalf("expected HTML document with pre, got %q", report)
+	if !strings.Contains(report, "<table>") || !strings.Contains(report, "<h2>") {
+		t.Fatalf("expected HTML fragment with table, got %q", report)
 	}
 	if !strings.Contains(report, "host1") {
 		t.Error("expected report to contain host1")

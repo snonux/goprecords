@@ -21,22 +21,6 @@ func (r reportBuilder) formatReport(rows []tableRow, hasLastKernel, hasLastUpdat
 }
 
 func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel, hasLastUpdated bool) string {
-	cW, nW, vW, lkW, luW := r.reportWidths(rows, hasLastKernel, hasLastUpdated)
-	border := r.buildBorder(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
-	fmtStr := r.buildFormatStr(cW, nW, vW, lkW, luW, hasLastKernel, hasLastUpdated)
-	var headRow string
-	if hasLastKernel && hasLastUpdated {
-		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel", "Updated")
-	} else if hasLastKernel {
-		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Last Kernel")
-	} else if hasLastUpdated {
-		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String(), "Updated")
-	} else {
-		headRow = fmt.Sprintf(fmtStr+"\n", "Pos", r.category.String(), r.metric.String())
-	}
-	body := r.buildReportBody(rows, fmtStr, hasLastKernel, hasLastUpdated)
-	ascii := border + headRow + border + body + border
-
 	hl := int(r.headerIndent)
 	if hl < 1 {
 		hl = 1
@@ -46,27 +30,54 @@ func (r reportBuilder) formatReportHTML(rows []tableRow, hasLastKernel, hasLastU
 	}
 	title := fmt.Sprintf("Top %d %s's by %s", r.limit, r.metric, r.category)
 	desc := MetricDescription(r.metric)
+	htag := strconv.Itoa(hl)
 
 	var b strings.Builder
-	b.WriteString("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n")
-	b.WriteString("<link rel=\"shortcut icon\" type=\"image/gif\" href=\"https://foo.zone/favicon.ico\" />\n")
-	b.WriteString("<link rel=\"stylesheet\" href=\"https://foo.zone/style.css\" />\n<title>")
-	b.WriteString(template.HTMLEscapeString(title))
-	b.WriteString("</title>\n</head>\n<body>\n<h")
-	b.WriteString(strconv.Itoa(hl))
-	b.WriteString(" style=\"display: inline\">")
+	b.WriteString("<h")
+	b.WriteString(htag)
+	b.WriteString(">")
 	b.WriteString(template.HTMLEscapeString(title))
 	b.WriteString("</h")
-	b.WriteString(strconv.Itoa(hl))
-	b.WriteString("><br />\n<br />\n")
+	b.WriteString(htag)
+	b.WriteString(">\n")
 	if desc != "" {
-		b.WriteString("<span class=\"quote\">")
+		b.WriteString("<p>")
 		b.WriteString(template.HTMLEscapeString(desc))
-		b.WriteString("</span><br />\n<br />\n")
+		b.WriteString("</p>\n")
 	}
-	b.WriteString("<pre>")
-	b.WriteString(template.HTMLEscapeString(ascii))
-	b.WriteString("</pre>\n</body>\n</html>\n")
+	b.WriteString("<table>\n<tr><th>Pos</th><th>")
+	b.WriteString(template.HTMLEscapeString(r.category.String()))
+	b.WriteString("</th><th>")
+	b.WriteString(template.HTMLEscapeString(r.metric.String()))
+	b.WriteString("</th>")
+	if hasLastKernel {
+		b.WriteString("<th>Last Kernel</th>")
+	}
+	if hasLastUpdated {
+		b.WriteString("<th>Updated</th>")
+	}
+	b.WriteString("</tr>\n")
+	for _, row := range rows {
+		b.WriteString("<tr><td>")
+		b.WriteString(template.HTMLEscapeString(row.Pos))
+		b.WriteString("</td><td>")
+		b.WriteString(template.HTMLEscapeString(row.Name))
+		b.WriteString("</td><td>")
+		b.WriteString(template.HTMLEscapeString(row.Value))
+		b.WriteString("</td>")
+		if hasLastKernel {
+			b.WriteString("<td>")
+			b.WriteString(template.HTMLEscapeString(row.LastKernel))
+			b.WriteString("</td>")
+		}
+		if hasLastUpdated {
+			b.WriteString("<td>")
+			b.WriteString(template.HTMLEscapeString(row.LastUpdated))
+			b.WriteString("</td>")
+		}
+		b.WriteString("</tr>\n")
+	}
+	b.WriteString("</table>\n")
 	return b.String()
 }
 
