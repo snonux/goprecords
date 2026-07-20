@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 )
 
 type metricExtractor struct {
@@ -145,6 +146,7 @@ func wrapHTMLDocument(body string) string {
 	b.WriteString("<title>goprecords uptime report</title>\n")
 	b.WriteString(htmlStyle)
 	b.WriteString("</head>\n<body>\n")
+	b.WriteString("<p><strong>Host markers:</strong> * current uptime record; + recent upload with stale or not-yet-recorded uptime.</p>\n")
 	b.WriteString(body)
 	b.WriteString("</body>\n</html>\n")
 	return b.String()
@@ -322,10 +324,6 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 			break
 		}
 		h := kv.agg
-		active := " "
-		if h.IsActive(90) {
-			active = "*"
-		}
 		lastUpdated := ""
 		if !h.LastUpdated.IsZero() {
 			lastUpdated = h.LastUpdated.UTC().Format("2006-01-02 15:04")
@@ -333,7 +331,7 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 		}
 		rows = append(rows, tableRow{
 			Pos:         fmt.Sprintf("%d.", i+1),
-			Name:        active + h.Stats.Name,
+			Name:        hostStatusMarker(h) + h.Stats.Name,
 			Value:       r.humanStrHost(h),
 			LastKernel:  h.LastKernel,
 			LastUpdated: lastUpdated,
@@ -343,6 +341,17 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 		hasLastUpdated = false
 	}
 	return rows, true, hasLastUpdated
+}
+
+func hostStatusMarker(h *HostAggregate) string {
+	if h.IsActive(90) {
+		return "*"
+	}
+	age := time.Since(h.LastUpdated)
+	if !h.LastUpdated.IsZero() && age >= 0 && age < 24*time.Hour {
+		return "+"
+	}
+	return " "
 }
 
 func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {

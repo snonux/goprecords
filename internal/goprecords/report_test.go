@@ -93,6 +93,50 @@ func TestReportWithData(t *testing.T) {
 	}
 }
 
+func TestHostStatusMarker(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name        string
+		lastSeen    uint64
+		lastUpdated time.Time
+		want        string
+	}{
+		{name: "current uptime record", lastSeen: uint64(now.Unix()), lastUpdated: now.Add(-time.Hour), want: "*"},
+		{name: "recent upload with stale record", lastSeen: uint64(now.Add(-100 * 24 * time.Hour).Unix()), lastUpdated: now.Add(-time.Hour), want: "+"},
+		{name: "stale upload and record", lastSeen: uint64(now.Add(-100 * 24 * time.Hour).Unix()), lastUpdated: now.Add(-25 * time.Hour), want: " "},
+		{name: "future upload timestamp", lastSeen: uint64(now.Add(-100 * 24 * time.Hour).Unix()), lastUpdated: now.Add(time.Hour), want: " "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			host := NewHostAggregate("host", "Linux")
+			host.Stats.LastSeen = tt.lastSeen
+			host.LastUpdated = tt.lastUpdated
+			if got := hostStatusMarker(host); got != tt.want {
+				t.Fatalf("hostStatusMarker() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReportMarksRecentUploadWithStaleRecord(t *testing.T) {
+	aggs := &Aggregates{
+		Host:        make(map[string]*HostAggregate),
+		Kernel:      make(map[string]*Aggregate),
+		KernelMajor: make(map[string]*Aggregate),
+		KernelName:  make(map[string]*Aggregate),
+	}
+	host := NewHostAggregate("reporting", "FreeBSD 14.2")
+	host.Stats.LastSeen = uint64(time.Now().Add(-100 * 24 * time.Hour).Unix())
+	host.LastUpdated = time.Now().Add(-time.Hour)
+	aggs.Host[host.Stats.Name] = host
+
+	report := NewHostReporter(aggs, 20, MetricUptime, FormatPlaintext, 1).Report()
+	if !strings.Contains(report, "+reporting") {
+		t.Fatalf("expected recent-upload marker in report, got %q", report)
+	}
+}
+
 func TestReportHTML(t *testing.T) {
 	aggs := &Aggregates{
 		Host:        make(map[string]*HostAggregate),
@@ -119,6 +163,13 @@ func TestReportHTML(t *testing.T) {
 	}
 	if !strings.Contains(report, "host1") {
 		t.Error("expected report to contain host1")
+	}
+}
+
+func TestHTMLDocumentExplainsHostMarkers(t *testing.T) {
+	report := wrapHTMLDocument("<p>report</p>")
+	if !strings.Contains(report, "* current uptime record; + recent upload") {
+		t.Fatalf("expected host marker legend, got %q", report)
 	}
 }
 

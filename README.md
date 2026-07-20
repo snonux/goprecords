@@ -380,6 +380,12 @@ Or without a database:
 ./goprecords -stats-dir=$HOME/git/uprecords/stats -all
 ```
 
+Host names have a one-character status marker: **`*`** means the latest uptime
+record is within 90 days; **`+`** means the host uploaded within the last 24
+hours, but its latest completed uptime record is stale or has not yet been
+written. The latter commonly occurs during the first hour after boot when
+uptimed uses `LOG_MINIMUM_UPTIME=1h`.
+
 ... to generate something like the following:
 
 ## Top 20 Boots's by Host
