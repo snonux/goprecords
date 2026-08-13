@@ -1,4 +1,4 @@
 package version
 
 // Tag is the application release version.
-const Tag = "0.5.5"
+const Tag = "0.6.0"
