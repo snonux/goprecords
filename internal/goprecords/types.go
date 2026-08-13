@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"codeberg.org/snonux/goprecords/internal/hostclass"
 )
 
 const (
@@ -63,11 +65,13 @@ func NewAggregate(name string) *Aggregate {
 	return &Aggregate{Name: name}
 }
 
-// HostAggregate adds last-kernel and lifespan/downtime for host reports.
+// HostAggregate adds last-kernel, classification and lifespan/downtime for host
+// reports.
 type HostAggregate struct {
 	Stats       Aggregate
 	LastKernel  string
 	LastUpdated time.Time
+	Class       hostclass.Class
 }
 
 // NewHostAggregate constructs a HostAggregate.
@@ -90,6 +94,7 @@ func (h *HostAggregate) IsActive(limitDays uint) bool {
 type tableRow struct {
 	Pos         string
 	Name        string
+	Class       string
 	Value       string
 	LastKernel  string
 	LastUpdated string

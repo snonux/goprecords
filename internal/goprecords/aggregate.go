@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 
+	"codeberg.org/snonux/goprecords/internal/hostclass"
 	"codeberg.org/snonux/goprecords/internal/recordline"
 	"codeberg.org/snonux/goprecords/internal/recordsdir"
 )
@@ -47,6 +48,10 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read stats dir: %w", err)
 	}
+	classes, err := hostclass.LoadFS(ag.fsys, ag.root)
+	if err != nil {
+		return nil, fmt.Errorf("read host classes: %w", err)
+	}
 	for _, f := range files {
 		host := f.Host
 		relPath := f.Path
@@ -59,6 +64,7 @@ func (ag *Aggregator) Aggregate(ctx context.Context) (*Aggregates, error) {
 		}
 		out.Host[host] = NewHostAggregate(host, lastKernel)
 		out.Host[host].LastUpdated = f.ModTime
+		out.Host[host].Class = classes[host]
 		if err := processRecordsFile(ctx, ag.fsys, relPath, host, out); err != nil {
 			return nil, err
 		}

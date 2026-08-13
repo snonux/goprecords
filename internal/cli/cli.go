@@ -36,6 +36,10 @@ func Execute(args []string) error {
 		return runUnexclude(args[1:])
 	case "list-excluded":
 		return runListExcluded(args[1:])
+	case "classify":
+		return runClassify(args[1:])
+	case "list-classes":
+		return runListClasses(args[1:])
 	case "test":
 		return runTests()
 	default:

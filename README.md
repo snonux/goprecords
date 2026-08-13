@@ -8,6 +8,7 @@
 - Supports multiple metrics: `Boots`, `Uptime`, `Score`, `Downtime`, and `Lifespan`
 - Output formats available: `Plaintext`, `Markdown`, `Gemtext`, and `HTML`
 - Provides top entries based on the specified limit
+- Classifies hosts as server, workstation/laptop, hybrid or unknown and shows the letter (`S`, `W`, `H`, `U`) in host reports
 
 Whereas:
 
@@ -26,6 +27,10 @@ Whereas:
 - **`query`** — Generate reports from an existing SQLite database.
   - `-db`: Database path (default: `goprecords.db`).
   - `-category`, `-metric`, `-limit`, `-output-format`, `-all`, `-include-kernel`, `-stats-order` (same as below).
+- **`classify`** — Set the classification of a host (see [Host classification](#host-classification)).
+  - `-stats-dir`: Stats directory in which the `HOSTNAME.class` file is written.
+  - `-db`: SQLite database to update as well (optional; at least one of the two is required).
+- **`list-classes`** — List classified hosts from a stats directory (`-stats-dir`) or a database (`-db`).
 - **No subcommand** — Generate reports directly from a stats directory (no DB).
   - `-stats-dir` (required): The uptimed raw record input dir.
   - `-category`: One of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`).
@@ -181,6 +186,11 @@ For **`kind`** in the upload URL, the server creates or overwrites this file in 
 | `records`       | `HOSTNAME.records`  |
 | `os.txt`        | `HOSTNAME.os.txt`   |
 | `cpuinfo.txt`   | `HOSTNAME.cpuinfo.txt` |
+| `class`         | `HOSTNAME.class`    |
+
+The **`class`** kind is validated and normalized: the body must be a host
+classification (see [Host classification](#host-classification)), and the file
+is written with its canonical long name.
 
 **Per-client keys** — When the auth database has **at least one** key, each upload must send **`Authorization: Bearer <token>`** where **`<token>`** is the secret printed once by **`goprecords --create-client-key HOSTNAME`** (or **`-create-client-key`**). The token is validated for that **`HOSTNAME`** only (same string as in the upload path). You need **`-stats-dir`** (to derive the default auth DB path) or **`-auth-db`**:
 
@@ -251,6 +261,61 @@ sudo loginctl enable-linger "$USER"
 ```
 
 If there are **no** keys in the auth database, uploads are accepted without **`Authorization`** (useful for local testing only).
+
+### Host classification
+
+Every host is classified as a **server**, a **workstation** (laptop/desktop), a
+**hybrid** (used as both) or **unknown**. Unknown is the default for hosts that
+were never classified. Host report tables show the classification in the
+**`Cls`** column as a single letter:
+
+| Letter | Classification |
+|--------|----------------|
+| `S`    | server |
+| `W`    | workstation/laptop |
+| `H`    | hybrid (server and workstation) |
+| `U`    | unknown (default) |
+
+Kernel reports aggregate many hosts, so they have no **`Cls`** column.
+
+A classification lives in **`HOSTNAME.class`** next to the uptimed files in the
+stats directory. It holds one word (**`server`**, **`workstation`**,
+**`hybrid`** or **`unknown`**; **`laptop`** is an alias for **`workstation`**,
+and the single letters work too). A file that cannot be parsed is ignored, so
+a typo leaves that host **`unknown`** instead of breaking reports.
+
+**Set it by hand**
+
+```bash
+echo server > /var/lib/goprecords/stats/myhost.class
+```
+
+**Set it with the CLI**
+
+```bash
+goprecords classify -stats-dir=/var/lib/goprecords/stats myhost server
+goprecords list-classes -stats-dir=/var/lib/goprecords/stats
+
+# in Kubernetes
+kubectl exec -n services deployment/goprecords -- \
+  goprecords classify -stats-dir=/data/stats myhost hybrid
+```
+
+**Set it through the API**
+
+```bash
+curl -fsS -X PUT --data "workstation" \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8080/upload/myhost/class"
+```
+
+An invalid value returns **`400`** and leaves the previous classification
+untouched.
+
+**`import` / `query` mode** — **`import`** mirrors the **`HOSTNAME.class`**
+files into the **`host_class`** table, and **`query`** reads them from there.
+Hosts classified only in the database (**`goprecords classify -db=…`**) keep
+their classification across re-imports.
 
 ### Excluding hosts from /metrics alerts
 

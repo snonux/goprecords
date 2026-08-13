@@ -1,8 +1,8 @@
 <h1>Top 3 Boots&#39;s by Host</h1>
-<p>Boots is the total number of host boots over the entire lifespan.</p>
+<p>Boots is the total number of host boots over the entire lifespan. Cls: S = server, W = workstation/laptop, H = hybrid, U = unknown.</p>
 <table>
-<tr><th>Pos</th><th>Host</th><th>Boots</th><th>Last Kernel</th><th>Updated</th></tr>
-<tr><td>1.</td><td> alphacentauri</td><td>671</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
-<tr><td>2.</td><td> mars</td><td>207</td><td>Linux 3.2.0-4-amd64</td><td>2026-03-03 18:29</td></tr>
-<tr><td>3.</td><td> callisto</td><td>153</td><td>Linux 4.0.4-303.fc22.x86_64</td><td>2026-03-03 18:29</td></tr>
+<tr><th>Pos</th><th>Host</th><th>Cls</th><th>Boots</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> alphacentauri</td><td>U</td><td>671</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> mars</td><td>U</td><td>207</td><td>Linux 3.2.0-4-amd64</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> callisto</td><td>U</td><td>153</td><td>Linux 4.0.4-303.fc22.x86_64</td><td>2026-03-03 18:29</td></tr>
 </table>

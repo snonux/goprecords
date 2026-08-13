@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"codeberg.org/snonux/goprecords/internal/hostclass"
 	"codeberg.org/snonux/goprecords/internal/storage"
 )
 
@@ -17,6 +18,10 @@ func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 	hostMeta, err := storage.LoadHostMeta(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("load host meta: %w", err)
+	}
+	hostClasses, err := storage.LoadHostClasses(ctx, db)
+	if err != nil {
+		return nil, fmt.Errorf("load host classes: %w", err)
 	}
 	out := &Aggregates{
 		Host:        make(map[string]*HostAggregate),
@@ -44,6 +49,13 @@ func LoadAggregates(ctx context.Context, db *sql.DB) (*Aggregates, error) {
 		h.LastKernel = hostLastKernel[host]
 		if t, ok := hostMeta[host]; ok {
 			h.LastUpdated = t
+		}
+		// An unparsable class name leaves the host Unknown, matching how
+		// hand-edited .class files are treated.
+		if name, ok := hostClasses[host]; ok {
+			if c, err := hostclass.Parse(name); err == nil {
+				h.Class = c
+			}
 		}
 	}
 	return out, nil

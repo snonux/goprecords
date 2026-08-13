@@ -10,9 +10,13 @@ import (
 	"strings"
 
 	"codeberg.org/snonux/goprecords/internal/authkeys"
+	"codeberg.org/snonux/goprecords/internal/hostclass"
 )
 
 const maxUploadBytes = 8 << 20
+
+// maxClassBytes caps a classification upload; a valid body is one short word.
+const maxClassBytes = 64
 
 func uploadKindExtension(kind string) (ext string, ok bool) {
 	switch kind {
@@ -26,6 +30,8 @@ func uploadKindExtension(kind string) (ext string, ok bool) {
 		return ".os.txt", true
 	case "cpuinfo.txt":
 		return ".cpuinfo.txt", true
+	case "class":
+		return hostclass.Ext, true
 	default:
 		return "", false
 	}
@@ -67,11 +73,29 @@ func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, sto
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
-	if err := writeUploadBody(target, r.Body); err != nil {
+	if err := writeUpload(target, kind, r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// writeUpload stores one uploaded file. Classifications are validated and
+// normalized first, so a HOST.class file always holds a name the reports and
+// the import understand.
+func writeUpload(target, kind string, body io.Reader) error {
+	if kind != "class" {
+		return writeUploadBody(target, body)
+	}
+	raw, err := io.ReadAll(io.LimitReader(body, maxClassBytes))
+	if err != nil {
+		return fmt.Errorf("read: %w", err)
+	}
+	c, err := hostclass.Parse(string(raw))
+	if err != nil {
+		return err
+	}
+	return writeUploadBody(target, strings.NewReader(c.String()+"\n"))
 }
 
 func uploadAuthorized(ctx context.Context, w http.ResponseWriter, store *authkeys.Store, host, authz string) bool {

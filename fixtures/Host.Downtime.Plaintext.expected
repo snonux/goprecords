@@ -1,11 +1,12 @@
 Top 3 Downtime's by Host
 
-Downtime is the total downtime of a host over the entire lifespan.
+ Downtime is the total downtime of a host over the entire lifespan. Cls: S = server, W =
+workstation/laptop, H = hybrid, U = unknown.
 
-+-----+----------------+-----------------------------+--------------------------+------------------+
-| Pos |           Host |                    Downtime |              Last Kernel |          Updated |
-+-----+----------------+-----------------------------+--------------------------+------------------+
-|  1. |       dionysus |  8 years, 3 months, 16 days | FreeBSD 13.0-RELEASE-p11 | 2026-03-03 18:29 |
-|  2. |  alphacentauri | 5 years, 11 months, 18 days |  FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
-|  3. |         uranus |  3 years, 3 months, 28 days |    Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
-+-----+----------------+-----------------------------+--------------------------+------------------+
++-----+----------------+-----+-----------------------------+--------------------------+------------------+
+| Pos |           Host | Cls |                    Downtime |              Last Kernel |          Updated |
++-----+----------------+-----+-----------------------------+--------------------------+------------------+
+|  1. |       dionysus |   U |  8 years, 3 months, 16 days | FreeBSD 13.0-RELEASE-p11 | 2026-03-03 18:29 |
+|  2. |  alphacentauri |   U | 5 years, 11 months, 18 days |  FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
+|  3. |         uranus |   W |  3 years, 3 months, 28 days |    Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
++-----+----------------+-----+-----------------------------+--------------------------+------------------+

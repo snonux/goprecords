@@ -66,9 +66,11 @@ goprecords/
 - Metrics: `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan`
 - Output formats: `Plaintext`, `Markdown`, `Gemtext`, `HTML`
 - `Downtime` and `Lifespan` metrics only apply to `Host` category
+- Host classification (`server`/`workstation`/`hybrid`/`unknown`, shown as `S`/`W`/`H`/`U` in the `Cls` column of host reports) lives in `internal/hostclass`; source of truth is a `HOSTNAME.class` file in the stats dir, mirrored into the `host_class` table on `import`
 
 ## Key Types
 
 - `Category`, `Metric`, `OutputFormat` - enums for report configuration
 - `Aggregate` - per-entity stats (host, kernel, etc.)
-- `HostAggregate` - extends Aggregate with LastKernel, Downtime, Lifespan
+- `HostAggregate` - extends Aggregate with LastKernel, LastUpdated, Class, Downtime, Lifespan
+- `hostclass.Class` - per-host classification (Unknown, Server, Workstation, Hybrid)

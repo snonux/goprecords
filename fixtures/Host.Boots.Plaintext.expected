@@ -1,11 +1,12 @@
 Top 3 Boots's by Host
 
-Boots is the total number of host boots over the entire lifespan.
+ Boots is the total number of host boots over the entire lifespan. Cls: S = server, W =
+workstation/laptop, H = hybrid, U = unknown.
 
-+-----+----------------+-------+-----------------------------+------------------+
-| Pos |           Host | Boots |                 Last Kernel |          Updated |
-+-----+----------------+-------+-----------------------------+------------------+
-|  1. |  alphacentauri |   671 |     FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
-|  2. |           mars |   207 |         Linux 3.2.0-4-amd64 | 2026-03-03 18:29 |
-|  3. |       callisto |   153 | Linux 4.0.4-303.fc22.x86_64 | 2026-03-03 18:29 |
-+-----+----------------+-------+-----------------------------+------------------+
++-----+----------------+-----+-------+-----------------------------+------------------+
+| Pos |           Host | Cls | Boots |                 Last Kernel |          Updated |
++-----+----------------+-----+-------+-----------------------------+------------------+
+|  1. |  alphacentauri |   U |   671 |     FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
+|  2. |           mars |   U |   207 |         Linux 3.2.0-4-amd64 | 2026-03-03 18:29 |
+|  3. |       callisto |   U |   153 | Linux 4.0.4-303.fc22.x86_64 | 2026-03-03 18:29 |
++-----+----------------+-----+-------+-----------------------------+------------------+

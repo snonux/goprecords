@@ -1,8 +1,8 @@
 <h1>Top 3 Lifespan&#39;s by Host</h1>
-<p>Lifespan is the total uptime + the total downtime of a host.</p>
+<p>Lifespan is the total uptime + the total downtime of a host. Cls: S = server, W = workstation/laptop, H = hybrid, U = unknown.</p>
 <table>
-<tr><th>Pos</th><th>Host</th><th>Lifespan</th><th>Last Kernel</th><th>Updated</th></tr>
-<tr><td>1.</td><td> dionysus</td><td>8 years, 6 months, 17 days</td><td>FreeBSD 13.0-RELEASE-p11</td><td>2026-03-03 18:29</td></tr>
-<tr><td>2.</td><td> uranus</td><td>7 years, 2 months, 16 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
-<tr><td>3.</td><td> alphacentauri</td><td>6 years, 9 months, 13 days</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
+<tr><th>Pos</th><th>Host</th><th>Cls</th><th>Lifespan</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> dionysus</td><td>U</td><td>8 years, 6 months, 17 days</td><td>FreeBSD 13.0-RELEASE-p11</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> uranus</td><td>W</td><td>7 years, 2 months, 16 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> alphacentauri</td><td>U</td><td>6 years, 9 months, 13 days</td><td>FreeBSD 11.4-RELEASE-p7</td><td>2026-03-03 18:29</td></tr>
 </table>

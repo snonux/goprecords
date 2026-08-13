@@ -1,13 +1,13 @@
 # Top 3 Lifespan's by Host
 
-Lifespan is the total uptime + the total downtime of a host.
+Lifespan is the total uptime + the total downtime of a host. Cls: S = server, W = workstation/laptop, H = hybrid, U = unknown.
 
 ```
-+-----+----------------+----------------------------+--------------------------+------------------+
-| Pos |           Host |                   Lifespan |              Last Kernel |          Updated |
-+-----+----------------+----------------------------+--------------------------+------------------+
-|  1. |       dionysus | 8 years, 6 months, 17 days | FreeBSD 13.0-RELEASE-p11 | 2026-03-03 18:29 |
-|  2. |         uranus | 7 years, 2 months, 16 days |    Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
-|  3. |  alphacentauri | 6 years, 9 months, 13 days |  FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
-+-----+----------------+----------------------------+--------------------------+------------------+
++-----+----------------+-----+----------------------------+--------------------------+------------------+
+| Pos |           Host | Cls |                   Lifespan |              Last Kernel |          Updated |
++-----+----------------+-----+----------------------------+--------------------------+------------------+
+|  1. |       dionysus |   U | 8 years, 6 months, 17 days | FreeBSD 13.0-RELEASE-p11 | 2026-03-03 18:29 |
+|  2. |         uranus |   W | 7 years, 2 months, 16 days |    Linux 5.16.14-arch1-1 | 2026-03-03 18:29 |
+|  3. |  alphacentauri |   U | 6 years, 9 months, 13 days |  FreeBSD 11.4-RELEASE-p7 | 2026-03-03 18:29 |
++-----+----------------+-----+----------------------------+--------------------------+------------------+
 ```

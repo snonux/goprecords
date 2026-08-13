@@ -1,8 +1,8 @@
 <h1>Top 3 Uptime&#39;s by Host</h1>
-<p>Uptime is the total uptime of a host over the entire lifespan.</p>
+<p>Uptime is the total uptime of a host over the entire lifespan. Cls: S = server, W = workstation/laptop, H = hybrid, U = unknown.</p>
 <table>
-<tr><th>Pos</th><th>Host</th><th>Uptime</th><th>Last Kernel</th><th>Updated</th></tr>
-<tr><td>1.</td><td> vulcan</td><td>4 years, 4 months, 7 days</td><td>Linux 3.10.0-1160.81.1.el7.x86_64</td><td>2026-03-03 18:29</td></tr>
-<tr><td>2.</td><td> uranus</td><td>3 years, 11 months, 21 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
-<tr><td>3.</td><td> sun</td><td>3 years, 9 months, 26 days</td><td>FreeBSD 10.3-RELEASE-p24</td><td>2026-03-03 18:29</td></tr>
+<tr><th>Pos</th><th>Host</th><th>Cls</th><th>Uptime</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> vulcan</td><td>S</td><td>4 years, 4 months, 7 days</td><td>Linux 3.10.0-1160.81.1.el7.x86_64</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> uranus</td><td>W</td><td>3 years, 11 months, 21 days</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> sun</td><td>H</td><td>3 years, 9 months, 26 days</td><td>FreeBSD 10.3-RELEASE-p24</td><td>2026-03-03 18:29</td></tr>
 </table>

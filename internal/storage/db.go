@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"codeberg.org/snonux/goprecords/internal/hostclass"
 	"codeberg.org/snonux/goprecords/internal/recordline"
 	"codeberg.org/snonux/goprecords/internal/recordsdir"
 	_ "modernc.org/sqlite"
@@ -30,6 +31,10 @@ CREATE INDEX IF NOT EXISTS idx_record_os_kernel_major ON record(os_kernel_major)
 CREATE TABLE IF NOT EXISTS host_meta (
 	host TEXT NOT NULL PRIMARY KEY,
 	last_updated INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS host_class (
+	host TEXT NOT NULL PRIMARY KEY,
+	class TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS excluded_host (
 	host TEXT NOT NULL PRIMARY KEY,
@@ -114,6 +119,53 @@ func LoadHostMeta(ctx context.Context, db *sql.DB) (map[string]time.Time, error)
 	return out, nil
 }
 
+// SetHostClass stores the classification of a host, replacing a previous one.
+func SetHostClass(ctx context.Context, db *sql.DB, host, class string) error {
+	_, err := db.ExecContext(ctx,
+		"INSERT OR REPLACE INTO host_class (host, class) VALUES (?, ?)", host, class)
+	if err != nil {
+		return fmt.Errorf("set host class: %w", err)
+	}
+	return nil
+}
+
+// LoadHostClasses returns a map of host to classification name. Databases
+// written by older versions have no host_class table; those yield an empty map
+// so reports keep working until the next import recreates the schema.
+func LoadHostClasses(ctx context.Context, db *sql.DB) (map[string]string, error) {
+	ok, err := tableExists(ctx, db, "host_class")
+	if err != nil || !ok {
+		return map[string]string{}, err
+	}
+	rows, err := db.QueryContext(ctx, "SELECT host, class FROM host_class")
+	if err != nil {
+		return nil, fmt.Errorf("query host classes: %w", err)
+	}
+	defer rows.Close()
+	out := make(map[string]string)
+	for rows.Next() {
+		var host, class string
+		if err := rows.Scan(&host, &class); err != nil {
+			return nil, fmt.Errorf("scan host class: %w", err)
+		}
+		out[host] = class
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows host classes: %w", err)
+	}
+	return out, nil
+}
+
+func tableExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+	var count int
+	err := db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", name).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("check table %s: %w", name, err)
+	}
+	return count > 0, nil
+}
+
 // ImportFromDir imports non-empty .records files from statsDir into the database,
 // replacing existing rows. It is equivalent to ImportFromFS with os.DirFS(statsDir).
 func ImportFromDir(ctx context.Context, db *sql.DB, statsDir string) error {
@@ -149,6 +201,9 @@ func ImportFromFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 		if err := AddHostMeta(ctx, tx, f.Host, f.ModTime.Unix()); err != nil {
 			return err
 		}
+	}
+	if err := importHostClasses(ctx, tx, fsys); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
@@ -250,6 +305,25 @@ func IsExcludedHost(ctx context.Context, db *sql.DB, host string) (bool, error) 
 		return false, fmt.Errorf("check excluded host: %w", err)
 	}
 	return count > 0, nil
+}
+
+// importHostClasses mirrors the HOST.class files of the stats directory into
+// the host_class table. Hosts without a .class file keep whatever the table
+// already holds, so a classification set directly in the database survives
+// re-imports.
+func importHostClasses(ctx context.Context, tx *sql.Tx, fsys fs.FS) error {
+	classes, err := hostclass.LoadFS(fsys, ".")
+	if err != nil {
+		return fmt.Errorf("read host classes: %w", err)
+	}
+	for host, c := range classes {
+		_, err := tx.ExecContext(ctx,
+			"INSERT OR REPLACE INTO host_class (host, class) VALUES (?, ?)", host, c.String())
+		if err != nil {
+			return fmt.Errorf("insert host class: %w", err)
+		}
+	}
+	return nil
 }
 
 func importFile(ctx context.Context, insert *sql.Stmt, fsys fs.FS, relPath, host string) error {

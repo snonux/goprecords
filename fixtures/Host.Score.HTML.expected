@@ -1,8 +1,8 @@
 <h1>Top 3 Score&#39;s by Host</h1>
-<p>Score is calculated by combining all other metrics.</p>
+<p>Score is calculated by combining all other metrics. Cls: S = server, W = workstation/laptop, H = hybrid, U = unknown.</p>
 <table>
-<tr><th>Pos</th><th>Host</th><th>Score</th><th>Last Kernel</th><th>Updated</th></tr>
-<tr><td>1.</td><td> uranus</td><td>309</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
-<tr><td>2.</td><td> vulcan</td><td>270</td><td>Linux 3.10.0-1160.81.1.el7.x86_64</td><td>2026-03-03 18:29</td></tr>
-<tr><td>3.</td><td> sun</td><td>238</td><td>FreeBSD 10.3-RELEASE-p24</td><td>2026-03-03 18:29</td></tr>
+<tr><th>Pos</th><th>Host</th><th>Cls</th><th>Score</th><th>Last Kernel</th><th>Updated</th></tr>
+<tr><td>1.</td><td> uranus</td><td>W</td><td>309</td><td>Linux 5.16.14-arch1-1</td><td>2026-03-03 18:29</td></tr>
+<tr><td>2.</td><td> vulcan</td><td>S</td><td>270</td><td>Linux 3.10.0-1160.81.1.el7.x86_64</td><td>2026-03-03 18:29</td></tr>
+<tr><td>3.</td><td> sun</td><td>H</td><td>238</td><td>FreeBSD 10.3-RELEASE-p24</td><td>2026-03-03 18:29</td></tr>
 </table>

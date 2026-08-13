@@ -288,24 +288,34 @@ func (r *HTMLReporter) Report() string {
 	return r.builder.Report(FormatHTML)
 }
 
+// reportTable is the content of one report table: its rows plus which optional
+// columns those rows carry.
+type reportTable struct {
+	rows           []tableRow
+	hasClass       bool
+	hasLastKernel  bool
+	hasLastUpdated bool
+}
+
 func (r reportBuilder) Report(outputFormat OutputFormat) string {
-	var rows []tableRow
-	var hasLastKernel, hasLastUpdated bool
+	var t reportTable
 	if r.category == CategoryHost {
-		rows, hasLastKernel, hasLastUpdated = r.buildHostTable()
+		t = r.buildHostTable()
 	} else {
-		rows, hasLastKernel = r.buildCategoryTable()
+		t = r.buildCategoryTable()
 	}
-	if len(rows) == 0 {
+	if len(t.rows) == 0 {
 		return ""
 	}
 	if outputFormat == FormatHTML {
-		return r.formatReportHTML(rows, hasLastKernel, hasLastUpdated)
+		return r.formatReportHTML(t)
 	}
-	return r.formatReport(rows, hasLastKernel, hasLastUpdated, outputFormat)
+	return r.formatReport(t, outputFormat)
 }
 
-func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
+// buildHostTable builds the rows of a Host report. Hosts always carry a
+// classification (Unknown by default), so the Cls column is always present.
+func (r reportBuilder) buildHostTable() reportTable {
 	type keyVal struct {
 		agg *HostAggregate
 		key uint64
@@ -332,6 +342,7 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 		rows = append(rows, tableRow{
 			Pos:         fmt.Sprintf("%d.", i+1),
 			Name:        hostStatusMarker(h) + h.Stats.Name,
+			Class:       h.Class.Short(),
 			Value:       r.humanStrHost(h),
 			LastKernel:  h.LastKernel,
 			LastUpdated: lastUpdated,
@@ -340,7 +351,12 @@ func (r reportBuilder) buildHostTable() ([]tableRow, bool, bool) {
 	if r.metric == MetricLastUpdated {
 		hasLastUpdated = false
 	}
-	return rows, true, hasLastUpdated
+	return reportTable{
+		rows:           rows,
+		hasClass:       true,
+		hasLastKernel:  true,
+		hasLastUpdated: hasLastUpdated,
+	}
 }
 
 func hostStatusMarker(h *HostAggregate) string {
@@ -354,7 +370,9 @@ func hostStatusMarker(h *HostAggregate) string {
 	return " "
 }
 
-func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
+// buildCategoryTable builds the rows of a Kernel-style report. Those group many
+// hosts, so they carry neither a classification nor a last-kernel column.
+func (r reportBuilder) buildCategoryTable() reportTable {
 	m := r.aggregates.Kernel
 	switch r.category {
 	case CategoryKernelMajor:
@@ -389,7 +407,7 @@ func (r reportBuilder) buildCategoryTable() ([]tableRow, bool) {
 			Value: r.humanStrAgg(a),
 		})
 	}
-	return rows, false
+	return reportTable{rows: rows}
 }
 
 func (r reportBuilder) humanStrHost(h *HostAggregate) string {

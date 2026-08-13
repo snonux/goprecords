@@ -708,3 +708,58 @@ func TestUploadAllKindsWriteExpectedFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestUploadClassNormalizesBody(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(testHandler(t, statsDir))
+	defer srv.Close()
+	cases := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"long name", "server", "server\n"},
+		{"short letter", "W", "workstation\n"},
+		{"alias", "laptop\n", "workstation\n"},
+		{"hybrid", "  Hybrid  ", "hybrid\n"},
+		{"empty is unknown", "", "unknown\n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/class", strings.NewReader(tc.body))
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			res.Body.Close()
+			if res.StatusCode != http.StatusNoContent {
+				t.Fatalf("status %d", res.StatusCode)
+			}
+			b, err := os.ReadFile(filepath.Join(statsDir, "myhost.class"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(b) != tc.want {
+				t.Fatalf("file content %q want %q", b, tc.want)
+			}
+		})
+	}
+}
+
+func TestUploadClassRejectsInvalidValue(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(testHandler(t, statsDir))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/class", strings.NewReader("toaster"))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d want %d", res.StatusCode, http.StatusBadRequest)
+	}
+	if _, err := os.Stat(filepath.Join(statsDir, "myhost.class")); err == nil {
+		t.Fatal("class file should not have been written")
+	}
+}
