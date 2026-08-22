@@ -7,9 +7,9 @@ import (
 	"io/fs"
 	"os"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
-	"codeberg.org/snonux/goprecords/internal/recordline"
-	"codeberg.org/snonux/goprecords/internal/recordsdir"
+	"github.com/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/recordline"
+	"github.com/snonux/goprecords/internal/recordsdir"
 )
 
 // Aggregates holds all category maps. Host uses HostAggregate; others use Aggregate.

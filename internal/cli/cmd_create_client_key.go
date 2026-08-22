@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"codeberg.org/snonux/goprecords/internal/authkeys"
+	"github.com/snonux/goprecords/internal/authkeys"
 )
 
 func runCreateClientKey(hostname string, args []string) error {

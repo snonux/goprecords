@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func runImport(args []string) error {

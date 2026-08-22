@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"codeberg.org/snonux/goprecords/internal/goprecords"
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/goprecords"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func runQuery(args []string) error {

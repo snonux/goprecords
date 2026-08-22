@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/snonux/goprecords/internal/recordsdir"
+	"github.com/snonux/goprecords/internal/recordsdir"
 )
 
 // Ext is the file name extension of a host classification file.

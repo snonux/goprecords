@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"codeberg.org/snonux/goprecords/internal/daemon"
+	"github.com/snonux/goprecords/internal/daemon"
 )
 
 func defaultListenFromEnv() string {

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/snonux/goprecords/internal/recordsdir"
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/recordsdir"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func metricsHandler(statsDir, dbPath string) http.HandlerFunc {

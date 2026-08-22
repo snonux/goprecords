@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/hostclass"
 )
 
 func classTestAggregates(classes map[string]hostclass.Class) *Aggregates {

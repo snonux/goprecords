@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func TestTestImportExportOnDB_createSchemaError(t *testing.T) {

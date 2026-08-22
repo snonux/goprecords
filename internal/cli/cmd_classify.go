@@ -7,8 +7,8 @@ import (
 	"os"
 	"sort"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func runClassify(args []string) error {

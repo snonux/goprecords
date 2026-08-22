@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"codeberg.org/snonux/goprecords/internal/authkeys"
-	"codeberg.org/snonux/goprecords/internal/goprecords"
+	"github.com/snonux/goprecords/internal/authkeys"
+	"github.com/snonux/goprecords/internal/goprecords"
 )
 
 const (

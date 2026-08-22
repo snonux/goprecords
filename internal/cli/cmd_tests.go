@@ -1,6 +1,6 @@
 package cli
 
-import "codeberg.org/snonux/goprecords/internal/goprecords"
+import "github.com/snonux/goprecords/internal/goprecords"
 
 func runTests() error {
 	return goprecords.RunIntegrationTests("./fixtures")

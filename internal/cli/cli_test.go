@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"codeberg.org/snonux/goprecords/internal/version"
+	"github.com/snonux/goprecords/internal/version"
 )
 
 func moduleRoot(t *testing.T) string {

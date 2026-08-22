@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/hostclass"
 )
 
 const (

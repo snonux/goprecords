@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func TestMetricsEndpointEmpty(t *testing.T) {

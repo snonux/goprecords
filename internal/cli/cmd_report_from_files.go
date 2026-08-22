@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"codeberg.org/snonux/goprecords/internal/goprecords"
+	"github.com/snonux/goprecords/internal/goprecords"
 )
 
 func runReportFromFiles(args []string) error {

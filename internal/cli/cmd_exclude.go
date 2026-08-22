@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 func runExclude(args []string) error {

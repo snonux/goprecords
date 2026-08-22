@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"codeberg.org/snonux/goprecords/internal/version"
+	"github.com/snonux/goprecords/internal/version"
 )
 
 func Execute(args []string) error {

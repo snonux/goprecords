@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/snonux/goprecords/internal/authkeys"
-	"codeberg.org/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/authkeys"
+	"github.com/snonux/goprecords/internal/hostclass"
 )
 
 const maxUploadBytes = 8 << 20

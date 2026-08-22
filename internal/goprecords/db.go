@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
-	"codeberg.org/snonux/goprecords/internal/storage"
+	"github.com/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/storage"
 )
 
 // LoadAggregates reads all rows from the DB and builds Aggregates (same shape as file-based aggregation).

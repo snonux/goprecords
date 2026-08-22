@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"codeberg.org/snonux/goprecords/internal/hostclass"
-	"codeberg.org/snonux/goprecords/internal/recordline"
-	"codeberg.org/snonux/goprecords/internal/recordsdir"
+	"github.com/snonux/goprecords/internal/hostclass"
+	"github.com/snonux/goprecords/internal/recordline"
+	"github.com/snonux/goprecords/internal/recordsdir"
 	_ "modernc.org/sqlite"
 )
 
