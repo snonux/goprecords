@@ -37,13 +37,17 @@ func uploadKindExtension(kind string) (ext string, ok bool) {
 	}
 }
 
-func uploadHandler(statsDir string, store *authkeys.Store) http.Handler {
+// uploadHandler serves PUT /upload/. With client keys in the auth DB every
+// upload needs the bearer token of its host. With no keys, uploads are
+// refused unless allowAnonymous is set, so a fresh or emptied auth DB does
+// not leave the stats directory writable by anyone.
+func uploadHandler(statsDir string, store *authkeys.Store, allowAnonymous bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serveUploadPut(w, r, statsDir, store)
+		serveUploadPut(w, r, statsDir, store, allowAnonymous)
 	})
 }
 
-func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, store *authkeys.Store) {
+func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, store *authkeys.Store, allowAnonymous bool) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -62,6 +66,11 @@ func serveUploadPut(w http.ResponseWriter, r *http.Request, statsDir string, sto
 	nKeys, err := store.KeyCount(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if nKeys == 0 && !allowAnonymous {
+		w.Header().Set("WWW-Authenticate", `Bearer realm="upload"`)
+		http.Error(w, "uploads disabled: no client keys exist (create one with --create-client-key, or start the daemon with -allow-anonymous-upload)", http.StatusUnauthorized)
 		return
 	}
 	if nKeys > 0 && !uploadAuthorized(ctx, w, store, host, r.Header.Get("Authorization")) {

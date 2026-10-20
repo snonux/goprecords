@@ -143,14 +143,14 @@ curl -fsS "http://127.0.0.1:8080/report?all=true&include-kernel=true&output-form
   - Method: only `PUT` (`405` for other methods).
   - Success: `204 No Content`.
   - Auth behavior:
-    - If no keys exist in auth DB: upload is accepted without `Authorization`.
+    - If no keys exist in auth DB: upload is refused (`401`) unless the daemon runs with `-allow-anonymous-upload` (env `GOPRECORDS_ALLOW_ANONYMOUS_UPLOAD=true`), in which case it is accepted without `Authorization`.
     - If one or more keys exist: requires `Authorization: Bearer <token>`.
     - Missing/invalid header: `401 Unauthorized` (with `WWW-Authenticate: Bearer ...`).
     - Wrong host/token pair: `403 Forbidden`.
   - Examples:
 
 ```bash
-# without auth (works only when no client keys exist in auth DB)
+# without auth (works only with -allow-anonymous-upload and no client keys in the auth DB)
 curl -i -X PUT --data-binary @./myhost.records \
   "http://127.0.0.1:8080/upload/myhost/records"
 
