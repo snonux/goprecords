@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/snonux/goprecords/internal/authkeys"
 )
 
 type syncBuffer struct {
@@ -33,13 +35,16 @@ func (s *syncBuffer) String() string {
 	return s.b.String()
 }
 
+// testHandler serves the daemon routes with anonymous uploads allowed, so
+// tests that do not care about auth can upload without creating a key.
 func testHandler(t *testing.T, statsDir string) http.Handler {
 	t.Helper()
-	h, err := NewHandler(statsDir)
+	store, err := openAuthStore(context.Background(), statsDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return h
+	t.Cleanup(func() { store.Close() })
+	return routes(statsDir, authkeys.DefaultPath(statsDir), store, true)
 }
 
 func TestNewHandlerOpenAuthStoreFails(t *testing.T) {
@@ -542,7 +547,7 @@ func TestAccessLogLineToWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	srv := httptest.NewServer(withAccessLog(log, routes(statsDir, "", store)))
+	srv := httptest.NewServer(withAccessLog(log, routes(statsDir, "", store, true)))
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/health")
 	if err != nil {
@@ -580,6 +585,30 @@ func TestUploadOpenWhenNoKeys(t *testing.T) {
 	}
 }
 
+// TestUploadRefusedWhenNoKeysByDefault checks that an empty auth DB does
+// not leave the stats directory open to anonymous uploads.
+func TestUploadRefusedWhenNoKeysByDefault(t *testing.T) {
+	statsDir := t.TempDir()
+	h, err := NewHandler(statsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("hello"))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status %d, want %d", res.StatusCode, http.StatusUnauthorized)
+	}
+	if _, err := os.Stat(filepath.Join(statsDir, "myhost.txt")); !os.IsNotExist(err) {
+		t.Fatalf("refused upload was written: %v", err)
+	}
+}
+
 func TestUploadRequiresBearerWhenKeysExist(t *testing.T) {
 	statsDir := t.TempDir()
 	ctx := context.Background()
@@ -591,7 +620,7 @@ func TestUploadRequiresBearerWhenKeysExist(t *testing.T) {
 	if _, err := store.CreateKey(ctx, "myhost"); err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", store, true))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/txt", strings.NewReader("x"))
 	res, err := http.DefaultClient.Do(req)
@@ -616,7 +645,7 @@ func TestUploadWithValidBearer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", store, true))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/myhost/os.txt", strings.NewReader("os"))
 	req.Header.Set("Authorization", "Bearer "+tok)
@@ -642,7 +671,7 @@ func TestUploadWrongHostForbidden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(routes(statsDir, "", store))
+	srv := httptest.NewServer(routes(statsDir, "", store, true))
 	defer srv.Close()
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/other/txt", strings.NewReader("x"))
 	req.Header.Set("Authorization", "Bearer "+tok)

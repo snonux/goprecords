@@ -32,6 +32,11 @@ type Config struct {
 	Addr      string
 	AuthDB    string
 	LogOutput io.Writer
+	// AllowAnonymousUpload accepts uploads without a token while the auth
+	// DB holds no client keys. Off by default: an empty auth DB would
+	// otherwise let anyone who reaches the daemon overwrite any host's
+	// records.
+	AllowAnonymousUpload bool
 }
 
 // NewHandler returns HTTP handlers for daemon routes using the default auth DB
@@ -41,10 +46,10 @@ func NewHandler(statsDir string) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("auth db: %w", err)
 	}
-	return routes(statsDir, authkeys.DefaultPath(statsDir), store), nil
+	return routes(statsDir, authkeys.DefaultPath(statsDir), store, false), nil
 }
 
-func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
+func routes(statsDir, authDB string, store *authkeys.Store, allowAnonymousUpload bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", root(statsDir))
 	mux.HandleFunc("/health", health)
@@ -52,7 +57,7 @@ func routes(statsDir, authDB string, store *authkeys.Store) http.Handler {
 	mux.HandleFunc("/readyz", readiness(statsDir, authDB))
 	mux.HandleFunc("/report", report(statsDir))
 	mux.HandleFunc("/metrics", metricsHandler(statsDir, authDB))
-	mux.Handle("/upload/", uploadHandler(statsDir, store))
+	mux.Handle("/upload/", uploadHandler(statsDir, store, allowAnonymousUpload))
 	return mux
 }
 
@@ -156,7 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("auth db: %w", err)
 	}
 	defer store.Close()
-	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(slogLog, routes(cfg.StatsDir, resolvedAuthDB, store)),
+	srv := newDaemonHTTPServer(cfg.Addr, withAccessLog(slogLog, routes(cfg.StatsDir, resolvedAuthDB, store, cfg.AllowAnonymousUpload)),
 		slog.NewLogLogger(textHandler, slog.LevelError))
 	slogLog.Info("daemon_listen", "addr", cfg.Addr)
 	errCh := make(chan error, 1)

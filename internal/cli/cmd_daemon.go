@@ -24,6 +24,8 @@ func runDaemon(args []string) error {
 	fs.SetOutput(os.Stdout)
 	statsDir := fs.String("stats-dir", os.Getenv("GOPRECORDS_STATS_DIR"), "Uptimed stats directory (required; env GOPRECORDS_STATS_DIR)")
 	listen := fs.String("listen", defaultListenFromEnv(), "TCP listen address (env GOPRECORDS_LISTEN, default :8080)")
+	allowAnon := fs.Bool("allow-anonymous-upload", os.Getenv("GOPRECORDS_ALLOW_ANONYMOUS_UPLOAD") == "true",
+		"Accept uploads without a token while the auth DB holds no client keys (env GOPRECORDS_ALLOW_ANONYMOUS_UPLOAD=true; default off)")
 	authDB := fs.String("auth-db", "", "SQLite file for upload API keys and excluded hosts (default: <stats-dir>/goprecords-auth.db)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -35,7 +37,7 @@ func runDaemon(args []string) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	err := daemon.Run(ctx, daemon.Config{StatsDir: *statsDir, Addr: *listen, AuthDB: *authDB})
+	err := daemon.Run(ctx, daemon.Config{StatsDir: *statsDir, Addr: *listen, AuthDB: *authDB, AllowAnonymousUpload: *allowAnon})
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
