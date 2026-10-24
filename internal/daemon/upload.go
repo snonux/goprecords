@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/snonux/goprecords/internal/authkeys"
 	"github.com/snonux/goprecords/internal/hostclass"
@@ -198,13 +199,17 @@ func fileUnderDir(dir, file string) bool {
 
 func writeUploadBody(path string, body io.Reader) error {
 	dir := filepath.Dir(path)
-	base := filepath.Base(path)
-	f, err := os.CreateTemp(dir, "."+base+".tmp-*")
+	f, err := os.CreateTemp(dir, ".up-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create temp: %w", err)
 	}
 	tmp := f.Name()
 	removeOwnTemp := func() { _ = os.Remove(tmp) }
+	if err := chmodLikeCreate(tmp); err != nil {
+		_ = f.Close()
+		removeOwnTemp()
+		return fmt.Errorf("chmod temp: %w", err)
+	}
 	lr := &io.LimitedReader{R: body, N: maxUploadBytes + 1}
 	n, err := io.Copy(f, lr)
 	if err != nil {
@@ -225,6 +230,12 @@ func writeUploadBody(path string, body io.Reader) error {
 		return fmt.Errorf("rename: %w", err)
 	}
 	return nil
+}
+
+func chmodLikeCreate(path string) error {
+	mask := syscall.Umask(0)
+	syscall.Umask(mask)
+	return os.Chmod(path, os.FileMode(0o666&^mask))
 }
 
 func openAuthStore(ctx context.Context, statsDir, authDB string) (*authkeys.Store, error) {

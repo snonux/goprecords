@@ -176,6 +176,58 @@ func TestWriteUploadBodyTooLarge(t *testing.T) {
 	}
 }
 
+func TestWriteUploadBodyLongHostName(t *testing.T) {
+	dir := t.TempDir()
+	host := strings.Repeat("a", 246)
+	if !safeHostSegment(host) {
+		t.Fatalf("expected host len %d to be allowed by safeHostSegment", len(host))
+	}
+	path := filepath.Join(dir, host+".records")
+	body := []byte("ok\n")
+	if err := writeUploadBody(path, bytes.NewReader(body)); err != nil {
+		t.Fatalf("writeUploadBody with long host: %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(body) {
+		t.Fatalf("body=%q want %q", got, body)
+	}
+	legacyPattern := "." + filepath.Base(path) + ".tmp-*"
+	if _, err := os.CreateTemp(dir, legacyPattern); err == nil {
+		t.Fatalf("expected legacy CreateTemp pattern %q to fail for this host length", legacyPattern)
+	}
+}
+
+func TestWriteUploadBodyModeMatchesCreate(t *testing.T) {
+	dir := t.TempDir()
+	refPath := filepath.Join(dir, "ref")
+	ref, err := os.Create(refPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ref.Close(); err != nil {
+		t.Fatal(err)
+	}
+	refInfo, err := os.Stat(refPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join(dir, "out.records")
+	if err := writeUploadBody(path, strings.NewReader("x\n")); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != refInfo.Mode().Perm() {
+		t.Fatalf("mode=%v want Create-like %v", info.Mode().Perm(), refInfo.Mode().Perm())
+	}
+}
+
 func TestWriteUploadBodyConcurrentSamePath(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "a.example.records")
