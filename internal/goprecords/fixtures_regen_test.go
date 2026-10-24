@@ -15,7 +15,12 @@ func TestRegenFixtures(t *testing.T) {
 	if os.Getenv("REGEN_FIXTURES") == "" {
 		t.Skip("set REGEN_FIXTURES=1 to regenerate")
 	}
-	dir := "../../fixtures"
+	canonical := "../../fixtures"
+	dir, err := prepareGoldenFixtures(canonical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
 	aggr := NewAggregator(dir)
 	aggregates, err := aggr.Aggregate(context.Background())
 	if err != nil {
@@ -37,7 +42,7 @@ func TestRegenFixtures(t *testing.T) {
 				} else {
 					report = NewReporter(aggregates, cat, limit, met, outFmt, 1).Report()
 				}
-				path := fmt.Sprintf("%s/%s.%s.%s.expected", dir, cat, met, outFmt)
+				path := fmt.Sprintf("%s/%s.%s.%s.expected", canonical, cat, met, outFmt)
 				if err := os.WriteFile(path, []byte(report), 0o644); err != nil {
 					t.Fatal(err)
 				}

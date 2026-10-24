@@ -12,16 +12,22 @@ import (
 // RunIntegrationTests runs integration tests against fixture data.
 // It returns an error if any test fails.
 func RunIntegrationTests(fixturesDir string) error {
+	prepared, err := prepareGoldenFixtures(fixturesDir)
+	if err != nil {
+		return fmt.Errorf("prepare fixtures: %w", err)
+	}
+	defer os.RemoveAll(prepared)
+
 	ctx := context.Background()
-	aggr := NewAggregator(fixturesDir)
+	aggr := NewAggregator(prepared)
 	aggregates, err := aggr.Aggregate(ctx)
 	if err != nil {
 		return fmt.Errorf("aggregate: %w", err)
 	}
 	failed := 0
-	failed += testReportFixtures(aggregates, fixturesDir)
+	failed += testReportFixtures(aggregates, prepared)
 	failed += testStatsOrder()
-	failed += testImportExport(ctx, aggregates, fixturesDir)
+	failed += testImportExport(ctx, aggregates, prepared)
 	if failed > 0 {
 		return fmt.Errorf("%d integration test(s) failed", failed)
 	}
