@@ -197,28 +197,31 @@ func fileUnderDir(dir, file string) bool {
 }
 
 func writeUploadBody(path string, body io.Reader) error {
-	tmp := path + ".tmp"
-	f, err := os.Create(tmp)
+	dir := filepath.Dir(path)
+	base := filepath.Base(path)
+	f, err := os.CreateTemp(dir, "."+base+".tmp-*")
 	if err != nil {
 		return fmt.Errorf("create temp: %w", err)
 	}
+	tmp := f.Name()
+	removeOwnTemp := func() { _ = os.Remove(tmp) }
 	lr := &io.LimitedReader{R: body, N: maxUploadBytes + 1}
 	n, err := io.Copy(f, lr)
 	if err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
+		removeOwnTemp()
 		return fmt.Errorf("write: %w", err)
 	}
 	if err := f.Close(); err != nil {
-		os.Remove(tmp)
+		removeOwnTemp()
 		return fmt.Errorf("close temp: %w", err)
 	}
 	if n > maxUploadBytes {
-		os.Remove(tmp)
+		removeOwnTemp()
 		return fmt.Errorf("body too large")
 	}
 	if err := os.Rename(tmp, path); err != nil {
-		os.Remove(tmp)
+		removeOwnTemp()
 		return fmt.Errorf("rename: %w", err)
 	}
 	return nil

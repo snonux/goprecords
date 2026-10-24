@@ -4,14 +4,53 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"testing/iotest"
 )
+
+// syncGateReader blocks after announcing that Read has started until release
+// is closed, then delivers data. Used to force overlapping temp-file writes.
+type syncGateReader struct {
+	data    []byte
+	pos     int
+	started chan<- struct{}
+	release <-chan struct{}
+	once    sync.Once
+}
+
+func (g *syncGateReader) Read(p []byte) (int, error) {
+	g.once.Do(func() { close(g.started) })
+	<-g.release
+	if g.pos >= len(g.data) {
+		return 0, io.EOF
+	}
+	n := copy(p, g.data[g.pos:])
+	g.pos += n
+	return n, nil
+}
+
+func leftoverUploadTemps(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var left []string
+	for _, e := range entries {
+		name := e.Name()
+		if strings.Contains(name, ".tmp") {
+			left = append(left, name)
+		}
+	}
+	return left
+}
 
 func TestParseBearer(t *testing.T) {
 	tests := []struct {
@@ -132,6 +171,189 @@ func TestWriteUploadBodyTooLarge(t *testing.T) {
 	if _, err := os.Stat(path); err == nil {
 		t.Fatal("final file should not exist")
 	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps after oversize: %v", left)
+	}
+}
+
+func TestWriteUploadBodyConcurrentSamePath(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.example.records")
+	bodyA := bytes.Repeat([]byte{'A'}, 65536)
+	bodyB := bytes.Repeat([]byte{'B'}, 65536)
+
+	startedA := make(chan struct{})
+	startedB := make(chan struct{})
+	release := make(chan struct{})
+	rA := &syncGateReader{data: bodyA, started: startedA, release: release}
+	rB := &syncGateReader{data: bodyB, started: startedB, release: release}
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		errs[0] = writeUploadBody(path, rA)
+	}()
+	go func() {
+		defer wg.Done()
+		errs[1] = writeUploadBody(path, rB)
+	}()
+
+	<-startedA
+	<-startedB
+	close(release)
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("writer %d: %v", i, err)
+		}
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, bodyA) && !bytes.Equal(got, bodyB) {
+		t.Fatalf("final file mixed or truncated: len=%d distinct=%d", len(got), len(setOfBytes(got)))
+	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps: %v", left)
+	}
+}
+
+func TestWriteUploadBodyConcurrentDifferentHosts(t *testing.T) {
+	dir := t.TempDir()
+	pathA := filepath.Join(dir, "host-a.records")
+	pathB := filepath.Join(dir, "host-b.records")
+	bodyA := bytes.Repeat([]byte{'A'}, 4096)
+	bodyB := bytes.Repeat([]byte{'B'}, 4096)
+
+	startedA := make(chan struct{})
+	startedB := make(chan struct{})
+	release := make(chan struct{})
+	rA := &syncGateReader{data: bodyA, started: startedA, release: release}
+	rB := &syncGateReader{data: bodyB, started: startedB, release: release}
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		errs[0] = writeUploadBody(pathA, rA)
+	}()
+	go func() {
+		defer wg.Done()
+		errs[1] = writeUploadBody(pathB, rB)
+	}()
+	<-startedA
+	<-startedB
+	close(release)
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("writer %d: %v", i, err)
+		}
+	}
+	gotA, err := os.ReadFile(pathA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotB, err := os.ReadFile(pathB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(gotA, bodyA) || !bytes.Equal(gotB, bodyB) {
+		t.Fatalf("independent hosts corrupted: a=%q b=%q", gotA[:1], gotB[:1])
+	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps: %v", left)
+	}
+}
+
+func setOfBytes(b []byte) map[byte]struct{} {
+	m := make(map[byte]struct{}, 8)
+	for _, c := range b {
+		m[c] = struct{}{}
+	}
+	return m
+}
+
+func TestUploadConcurrentSameHostHTTP(t *testing.T) {
+	statsDir := t.TempDir()
+	srv := httptest.NewServer(testHandler(t, statsDir))
+	defer srv.Close()
+
+	bodyA := bytes.Repeat([]byte{'A'}, 65536)
+	bodyB := bytes.Repeat([]byte{'B'}, 65536)
+	startedA := make(chan struct{})
+	startedB := make(chan struct{})
+	release := make(chan struct{})
+
+	type result struct {
+		status int
+		err    error
+	}
+	results := make([]result, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/a.example/records",
+			&syncGateReader{data: bodyA, started: startedA, release: release})
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			results[0] = result{err: err}
+			return
+		}
+		res.Body.Close()
+		results[0] = result{status: res.StatusCode}
+	}()
+	go func() {
+		defer wg.Done()
+		req, _ := http.NewRequest(http.MethodPut, srv.URL+"/upload/a.example/records",
+			&syncGateReader{data: bodyB, started: startedB, release: release})
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			results[1] = result{err: err}
+			return
+		}
+		res.Body.Close()
+		results[1] = result{status: res.StatusCode}
+	}()
+
+	<-startedA
+	<-startedB
+	close(release)
+	wg.Wait()
+
+	for i, r := range results {
+		if r.err != nil {
+			t.Fatalf("request %d: %v", i, r.err)
+		}
+		if r.status != http.StatusNoContent {
+			t.Fatalf("request %d status %d want 204", i, r.status)
+		}
+	}
+
+	target := filepath.Join(statsDir, "a.example.records")
+	first, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(first, bodyA) && !bytes.Equal(first, bodyB) {
+		t.Fatalf("accepted payload mixed or truncated: len=%d", len(first))
+	}
+	later, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(first, later) {
+		t.Fatal("accepted file changed after both uploads completed")
+	}
+	if left := leftoverUploadTemps(t, statsDir); len(left) != 0 {
+		t.Fatalf("leftover temps: %v", left)
+	}
 }
 
 func TestWriteUploadBodyReadError(t *testing.T) {
@@ -140,6 +362,30 @@ func TestWriteUploadBodyReadError(t *testing.T) {
 	err := writeUploadBody(path, iotest.ErrReader(errors.New("read boom")))
 	if err == nil || !strings.Contains(err.Error(), "write") {
 		t.Fatalf("expected write wrap error, got %v", err)
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Fatal("final file should not exist after read error")
+	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps after read error: %v", left)
+	}
+}
+
+func TestWriteUploadBodyCancelMidWrite(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "partial.txt")
+	err := writeUploadBody(path, io.MultiReader(
+		bytes.NewReader(bytes.Repeat([]byte{'x'}, 1024)),
+		iotest.ErrReader(errors.New("canceled")),
+	))
+	if err == nil || !strings.Contains(err.Error(), "write") {
+		t.Fatalf("expected write wrap error, got %v", err)
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Fatal("final file should not exist after cancel")
+	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps after cancel: %v", left)
 	}
 }
 
@@ -166,6 +412,9 @@ func TestWriteUploadBodyRenameFails(t *testing.T) {
 	err := writeUploadBody(path, strings.NewReader("x"))
 	if err == nil || !strings.Contains(err.Error(), "rename") {
 		t.Fatalf("expected rename error, got %v", err)
+	}
+	if left := leftoverUploadTemps(t, dir); len(left) != 0 {
+		t.Fatalf("leftover temps after rename failure: %v", left)
 	}
 }
 
