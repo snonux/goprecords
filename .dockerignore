@@ -2,5 +2,7 @@
 .cursor
 goprecords
 tmp
-*.db
-*.log
+# ** so local SQLite/test artifacts in subdirectories (fixtures/, internal/cli/)
+# stay out of the build context too, not only the ones at the root.
+**/*.db
+**/*.log
