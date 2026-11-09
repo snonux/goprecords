@@ -30,8 +30,8 @@ Image build and registry push live in the **`conf`** repo (`f3s/goprecords`), no
 **Release checklist**
 
 1. Bump **`internal/version/version.go`** (`Tag`, semver).
-2. In **`conf`**: set **`docker-image/Justfile`** `TAG` to the same version; set **`helm-chart/templates/deployment.yaml`** `image:` to `registry.lan.buetow.org:30001/goprecords:<Tag>`; update **`f3s/goprecords/README.md`** example tags if present.
-3. From **`conf/f3s/goprecords`**: run **`just build-push`** (tags and pushes **`r0.lan.buetow.org:30001/goprecords:<Tag>`**; the cluster pulls via **`registry.lan.buetow.org:30001`**).
+2. Pick a NEW immutable image tag `<Tag>-runtime<YYYYMMDD>` (also for a base/toolchain-only rebuild; never re-push a deployed tag). In **`conf`**: set the **`docker-image/Justfile`** `TAG` default to it; set **`helm-chart/templates/deployment.yaml`** `image:` to `registry.lan.buetow.org:30001/goprecords:<image tag>`; update **`f3s/goprecords/README.md`**. Refresh the digest-pinned `GO_IMAGE`/`RUNTIME_IMAGE` in this `Dockerfile` when Go or Alpine moves.
+3. From **`conf/f3s/goprecords`**: run **`just build-push`**. It builds the Dockerfile `test` stage (vet, unit and fixture tests as non-root) before the `runtime` stage, then pushes **`r0.lan.buetow.org:30001/goprecords:<image tag>`**; the cluster pulls via **`registry.lan.buetow.org:30001`**. Roll out per the conf README (upload windows, Argo hold, snapshot/backup).
 4. Commit and tag **`goprecords`**; push branch and tag to `origin`.
 5. Commit **`conf`**; push **`master`** to Codeberg (remote **`master`**) **and** to **`forgejo`** (`git push forgejo master`, `ssh://git@code.f3s.buetow.org:2022/snonux/conf.git`) — Argo pulls from the in-cluster Forgejo (`forgejo.services.svc.cluster.local/snonux/conf.git`). The old **`r0`**/**`r1`** git server remotes are retired and read-only.
 6. Sync the app: from **`conf/f3s/goprecords`**, **`just sync`** (or wait for Argo automated sync). Confirm with **`kubectl rollout status deployment/goprecords -n services`** and the deployment image tag.
