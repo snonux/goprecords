@@ -511,7 +511,7 @@ func TestParseReportQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 20 {
+	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 23 {
 		t.Fatalf("defaults: %+v", cfg)
 	}
 	if cfg.OutputFormat != FormatPlaintext || cfg.All || cfg.IncludeKernel || cfg.StatsOrder != "" {
@@ -589,7 +589,7 @@ func TestRegisterReportFlagsDefaultsUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 20 {
+	if cfg.Category != CategoryHost || cfg.Metric != MetricUptime || cfg.Limit != 23 {
 		t.Fatalf("defaults: %+v", cfg)
 	}
 	if cfg.OutputFormat != FormatPlaintext || cfg.All || cfg.IncludeKernel || cfg.StatsOrder != "" {

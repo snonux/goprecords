@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// DefaultLimit is the number of entries shown in each top list when no
+// explicit limit is given (CLI flag, HTTP query parameter or daemon root page).
+const DefaultLimit uint = 23
+
 // ReportConfig holds parsed report configuration.
 type ReportConfig struct {
 	Category      Category
@@ -35,7 +39,7 @@ func RegisterReportFlags(fs *flag.FlagSet) *ReportFlags {
 	return &ReportFlags{
 		category:      fs.String("category", "Host", "Category: Host, Kernel, KernelMajor, KernelName"),
 		metric:        fs.String("metric", "Uptime", "Metric: Boots, Uptime, Score, Downtime, Lifespan, LastUpdated"),
-		limit:         fs.Uint("limit", 20, "Limit output to num of entries"),
+		limit:         fs.Uint("limit", DefaultLimit, "Limit output to num of entries"),
 		outputFormat:  fs.String("output-format", "Plaintext", "Output format: Plaintext, Markdown, Gemtext, HTML"),
 		all:           fs.Bool("all", false, "Generate all possible stats but Kernel"),
 		includeKernel: fs.Bool("include-kernel", false, "Also include Kernel when using -all"),
@@ -132,7 +136,7 @@ func parseReportQueryLimit(q url.Values) (uint, error) {
 		}
 		return uint(v), nil
 	}
-	return 20, nil
+	return DefaultLimit, nil
 }
 
 func parseReportQueryOutputFormat(q url.Values) (OutputFormat, error) {

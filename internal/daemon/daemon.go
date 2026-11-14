@@ -208,7 +208,7 @@ func root(statsDir string) http.HandlerFunc {
 		cfg := goprecords.ReportConfig{
 			Category:      goprecords.CategoryHost,
 			Metric:        goprecords.MetricUptime,
-			Limit:         20,
+			Limit:         goprecords.DefaultLimit,
 			OutputFormat:  goprecords.FormatHTML,
 			All:           true,
 			IncludeKernel: false,

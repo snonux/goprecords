@@ -35,7 +35,7 @@ Whereas:
   - `-stats-dir` (required): The uptimed raw record input dir.
   - `-category`: One of `Host`, `Kernel`, `KernelMajor`, `KernelName` (default: `Host`).
   - `-metric`: One of `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan` (default: `Uptime`).
-  - `-limit`: Max entries (default: 20).
+  - `-limit`: Max entries (default: 23).
   - `-output-format`: `Plaintext`, `Markdown`, `Gemtext`, or `HTML` (default: `Plaintext`).
   - `-all`: Generate all reports except `Kernel`.
   - `-include-kernel`: Include `Kernel` when using `-all`.
@@ -78,7 +78,7 @@ goprecords --daemon -stats-dir="$HOME/git/uprecords/stats" -listen=":8080"
 - **`GET /health`** and **`GET /livez`** — Liveness (`200`, body `ok`).
 - **`GET /readyz`** — Readiness: checks the stats directory is readable/writable (and the auth DB parent directory when **`auth-db`** is outside the stats tree). Returns **`503`** if not ready.
 - **`GET /report`** — Same report options as **`query`** and no-subcommand mode (aggregated from the stats directory). **Only `GET`** is supported (other methods → **`405`**). Query parameters use the same names and defaults as the CLI flags; you can also use the aliases **`Category`**, **`Metric`**, and **`OutputFormat`**:
-  - **`category`**, **`metric`**, **`limit`** (default `20`)
+  - **`category`**, **`metric`**, **`limit`** (default `23`)
   - **`output-format`** / **`OutputFormat`**: **`Plaintext`**, **`Markdown`**, **`Gemtext`**, or **`HTML`** (default `Plaintext`); the response **`Content-Type`** matches (e.g. `text/html` for HTML)
   - **`all`**, **`include-kernel`**: booleans (`true` / `false`, `1` / `0`, `yes` / `no`)
   - **`stats-order`**: comma-separated **`Category:Metric`** list when **`all`** is true
@@ -121,7 +121,7 @@ curl -i "http://127.0.0.1:8080/readyz"
     - `category`: `Host`, `Kernel`, `KernelMajor`, `KernelName`
     - `metric`: `Boots`, `Uptime`, `Score`, `Downtime`, `Lifespan`
     - `output-format`: `Plaintext`, `Markdown`, `Gemtext`, `HTML`
-    - `limit`: integer (default `20`)
+    - `limit`: integer (default `23`)
     - `all`, `include-kernel`: booleans
     - `stats-order`: comma-separated `Category:Metric`
     - aliases: `Category`, `Metric`, `OutputFormat`
@@ -451,7 +451,8 @@ hours, but its latest completed uptime record is stale or has not yet been
 written. The latter commonly occurs during the first hour after boot when
 uptimed uses `LOG_MINIMUM_UPTIME=1h`.
 
-... to generate something like the following:
+... to generate something like the following (this sample was produced with
+the former default of `-limit=20`; the default is now 23):
 
 ## Top 20 Boots's by Host
 

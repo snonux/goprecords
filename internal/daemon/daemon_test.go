@@ -127,6 +127,22 @@ func TestRootHTML(t *testing.T) {
 	if !strings.Contains(string(body), "<!DOCTYPE html>") {
 		t.Fatalf("expected html body, got %q", string(body))
 	}
+	assertRootTop23(t, string(body))
+}
+
+// assertRootTop23 checks that the root page uses the default top-list size
+// of 23: the fixtures hold 29 hosts, so a 23-row list proves the limit applies.
+func assertRootTop23(t *testing.T, body string) {
+	t.Helper()
+	if !strings.Contains(body, "Top 23 Uptime&#39;s by Host") {
+		t.Fatalf("expected Top 23 heading in root page")
+	}
+	if strings.Contains(body, "Top 20 ") {
+		t.Fatalf("unexpected Top 20 heading in root page")
+	}
+	if !strings.Contains(body, "<td>23.</td>") || strings.Contains(body, "<td>24.</td>") {
+		t.Fatalf("expected exactly 23 ranked rows per host list")
+	}
 }
 
 func TestRootCacheReuseAndExpiry(t *testing.T) {
